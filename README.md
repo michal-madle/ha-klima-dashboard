@@ -75,10 +75,26 @@ Při ruční aktualizaci souboru může prohlížeč používat starou uloženou
 - [ENTITY_MAP.md](./ENTITY_MAP.md) – mapování entit používaných nástěnkou
 - [DESIGN_HISTORY.md](./DESIGN_HISTORY.md) – historie návrhu a nahrazená rozhodnutí
 - [MEMORY_SUMMARIZED.md](./MEMORY_SUMMARIZED.md) – stručná projektová paměť
-- [Původní poznámky](./memories/climate-dashboard.md)
+- [AUDIT.md](./AUDIT.md) – konflikty, chybějící informace a doporučení pro údržbu
 
 Pro aktuální chování a návrh má přednost `CURRENT_SPEC.md`, poté `ENTITY_MAP.md`. Historická rozhodnutí nejsou závazná.
 
+## Konfigurace místnosti
+
+Každá místnost má volitelné klíče `temperature`, `humidity`, `carbon_dioxide`, `pm25`, `window`, `cover`, `heating` (Topení: `climate`, `overlay`, `target`, `intensity`) a `air_conditioner` (Klimatizace: entita `climate`). Starší klíče `tado`, `samsung` a `heating.heating` karta odmítne s chybovou hláškou; přejmenujte je podle [příkladu](./examples/domov_prototyp_loznice.yaml).
+
+## Ovládání karty
+
+- Klepnutí na teplotu otevře dialog „Historie místnosti – 24 h“; klepnutí na CO₂ nebo PM2.5 otevře společný 24h graf. Dialogy jsou součástí karty a historii čtou z recorderu Home Assistantu.
+- Klepnutí na panel žaluzie otevře standardní ovládání krytu.
+- Čtyři tlačítka nad panelem žaluzie (Tma 0/0, Ráno 35/60, Stín 0/100, Den 100/100; poloha/naklopení) volají službu `script.zaluzie_posun` s poli `entity`, `pos` a `tilt`. Skript musí v Home Assistantu existovat.
+- Mikrotrendy teploty, CO₂ a PM2.5 (posledních 120 minut) se obnovují každých 5 minut.
+- Klepnutí nic nepřepíná ani nevypíná. Dlouhý stisk zatím nemá žádnou funkci.
+
 ## Rozsah prototypu
 
-Karta je základ připravený pro další iteraci podle specifikace. Historické grafy, mikrotrendy, detailní akce po klepnutí a konečné vizuální doladění palety zatím nejsou implementovány. Entitám, které nejsou v mapě potvrzené, nepřiřazujte odhadnutá ID.
+Implementováno je rozložení karty podle [CURRENT_SPEC.md](./CURRENT_SPEC.md), panel žaluzie s presety, mikrotrendy a dialogy s historií. Zatím neřešeno: hlášení „upozornění“ na Domov, slovní hodnocení venkovního vzduchu (dobrý / zhoršený / špatný; chybí hranice PM2.5, viz [AUDIT.md](./AUDIT.md), bod 4.5) a konečné vizuální doladění palety. Entitám, které nejsou v mapě potvrzené, nepřiřazujte odhadnutá ID.
+
+## Sestavení
+
+Po změně ve složce `src/` spusťte v kořeni repozitáře `npm install` a `npm run build`. Výsledek se zapíše do `dist/` a zkopíruje do kořenového `ha-klima-dashboard.js`, který používá HACS. Soubor `ha-klima-dashboard.js` ručně neupravujte.

@@ -29,6 +29,19 @@ export function normalizeConfig(config: DashboardConfig): DashboardConfig {
     if (!room || typeof room.name !== "string" || !room.name.trim()) {
       throw new Error("Each Klima Dashboard room requires a name.");
     }
+    // Fail loudly on keys of the previous configuration contract instead of silently ignoring them.
+    const keys = room as unknown as Record<string, unknown>;
+    for (const [oldKey, newKey] of [
+      ["tado", "heating"],
+      ["samsung", "air_conditioner"],
+    ]) {
+      if (oldKey in keys) {
+        throw new Error(`Room "${room.name}": key "${oldKey}" was renamed to "${newKey}".`);
+      }
+    }
+    if (room.heating && "heating" in (room.heating as Record<string, unknown>)) {
+      throw new Error(`Room "${room.name}": key "heating.heating" was renamed to "heating.intensity".`);
+    }
   }
   for (const [key, value] of Object.entries(config.thresholds ?? {})) {
     if (typeof value !== "number" || !Number.isFinite(value)) {

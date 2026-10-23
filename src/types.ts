@@ -7,6 +7,12 @@ export interface HassEntity {
 
 export interface HomeAssistant {
   states: Record<EntityId, HassEntity>;
+  callService(
+    domain: string,
+    service: string,
+    serviceData?: Record<string, unknown>,
+  ): Promise<unknown>;
+  callWS<T>(message: Record<string, unknown>): Promise<T>;
 }
 
 export interface RoomConfig {
@@ -17,13 +23,15 @@ export interface RoomConfig {
   pm25?: EntityId;
   window?: EntityId;
   cover?: EntityId;
-  tado?: {
+  /** Topení: heating system (climate entity, overlay mode, target, heating intensity in %). */
+  heating?: {
     climate?: EntityId;
     overlay?: EntityId;
     target?: EntityId;
-    heating?: EntityId;
+    intensity?: EntityId;
   };
-  samsung?: EntityId;
+  /** Klimatizace: air conditioner climate entity. */
+  air_conditioner?: EntityId;
 }
 
 export interface OutsideConfig {
@@ -66,7 +74,7 @@ export interface RoomStatus {
   kind: "normal" | "warning" | "critical" | "unknown";
 }
 
-export type SamsungMode =
+export type ClimateMode =
   | "off"
   | "cool"
   | "wind_free"
@@ -75,6 +83,21 @@ export type SamsungMode =
   | "heat"
   | "auto"
   | "unknown";
+
+export interface BlindPreset {
+  id: string;
+  label: string;
+  description: string;
+  position: number;
+  tilt: number;
+}
+
+export type DialogKind = "room" | "air";
+
+export interface DialogState {
+  kind: DialogKind;
+  room: RoomConfig;
+}
 
 declare global {
   interface Window {

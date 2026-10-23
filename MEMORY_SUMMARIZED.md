@@ -1,8 +1,7 @@
-# Stručná projektová paměť
+# Project Memory – Home Assistant Klima Dashboard
 
-- Účel: mobilní nástěnka Home Assistantu „Domov“ pro rychlý přehled pohodlí v pěti místnostech.
-- Aktuální specifikace, uživatelské prostředí a pravidla jsou v `CURRENT_SPEC.md`.
-- Mapování entit je v `ENTITY_MAP.md`.
-- Historická rozhodnutí jsou archivována v `DESIGN_HISTORY.md`.
-- `CURRENT_SPEC.md` má vždy přednost před historií v `DESIGN_HISTORY.md`.
-- Při rozporu používej aktuální specifikaci; historické návrhy nejsou závazné.
+- Účel: mobilní (iPhone 14 Pro) Home Assistant dashboard „Domov“ – rychlý stavový přehled pěti místností (Ložnice, Pracovna, Maxík, Mikuláš, Obývák); vlastní karta přes HACS z GitHubu.
+- Zdroj pravdy: `CURRENT_SPEC.md`.
+- Entity: `ENTITY_MAP.md` (ID ověřená exporty ve složce `HA entities/`); chybějící entity se neodhadují.
+- Historie a zamítnuté návrhy: `DESIGN_HISTORY.md` (jen archiv, nezávazné).
+- Pravidlo: `CURRENT_SPEC.md` má vždy přednost před čímkoli jiným (historie, staré poznámky, kód, příklady).

@@ -1,11 +1,26 @@
 import { HOUSE_MODE_ENTITY } from "./config";
 import type {
+  BlindPreset,
   DashboardConfig,
   DashboardThresholds,
   EntityId,
   RoomStatus,
-  SamsungMode,
+  ClimateMode,
 } from "./types";
+
+/** Script called by the blind presets (fields: entity, pos, tilt). */
+export const COVER_SCRIPT = { domain: "script", service: "zaluzie_posun" } as const;
+
+/** Position / tilt: 0 = closed (down / vertical slats), 100 = open (up / horizontal slats). */
+export const BLIND_PRESETS: BlindPreset[] = [
+  { id: "dark", label: "Tma", description: "úplné zatemnění", position: 0, tilt: 0 },
+  { id: "morning", label: "Ráno", description: "ranní prosvětlení", position: 35, tilt: 60 },
+  { id: "shade", label: "Stín", description: "spuštěno, lamely otevřené", position: 0, tilt: 100 },
+  { id: "open", label: "Den", description: "vytaženo nahoru", position: 100, tilt: 100 },
+];
+
+/** Smallest range a trend is stretched over; flatter periods are drawn as stable. */
+export const TREND_MIN_SPAN = { temperature: 0.5, co2: 50, pm25: 3 } as const;
 
 export const COLORS = {
   background: "#1C1C1E",
@@ -18,13 +33,14 @@ export const COLORS = {
   warning: "#FF9F0A",
   alert: "#FF453A",
   cold: "#64D2FF",
+  humidity: "#64D2FF",
   cool: "#64D2FF",
   dry: "#FFD60A",
   heat: "#FF9F0A",
   auto: "#BF5AF2",
 };
 
-export const SAMSUNG_COLORS: Record<SamsungMode, string> = {
+export const CLIMATE_COLORS: Record<ClimateMode, string> = {
   off: COLORS.off,
   cool: COLORS.cool,
   wind_free: COLORS.cool,
@@ -35,7 +51,7 @@ export const SAMSUNG_COLORS: Record<SamsungMode, string> = {
   unknown: COLORS.off,
 };
 
-export const SAMSUNG_LABELS: Record<SamsungMode, string> = {
+export const CLIMATE_LABELS: Record<ClimateMode, string> = {
   off: "Vypnuto",
   cool: "Chlazení",
   wind_free: "WindFree",
@@ -45,6 +61,42 @@ export const SAMSUNG_LABELS: Record<SamsungMode, string> = {
   auto: "Auto",
   unknown: "––",
 };
+
+const PRESET_NAMES: Record<string, string> = {
+  sleep: "Sleep",
+  boost: "Boost",
+  wind_free: "WindFree",
+  wind_free_sleep: "WindFree Sleep",
+};
+
+export function formatPreset(preset: string): string {
+  const known = PRESET_NAMES[preset];
+  if (known) {
+    return known;
+  }
+  const text = preset.replace(/_/g, " ");
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+export function climateModeFromState(state: string | undefined): ClimateMode {
+  switch (state?.toLowerCase()) {
+    case "off":
+      return "off";
+    case "cool":
+      return "cool";
+    case "dry":
+      return "dry";
+    case "fan_only":
+      return "fan";
+    case "heat":
+      return "heat";
+    case "auto":
+    case "heat_cool":
+      return "auto";
+    default:
+      return "unknown";
+  }
+}
 
 export function getRoomStatus(
   temperature: number | undefined,
@@ -151,13 +203,26 @@ export function configuredEntityIds(config: DashboardConfig): Set<EntityId> {
     add(room.pm25);
     add(room.window);
     add(room.cover);
-    add(room.tado?.climate);
-    add(room.tado?.overlay);
-    add(room.tado?.target);
-    add(room.tado?.heating);
-    add(room.samsung);
+    add(room.heating?.climate);
+    add(room.heating?.overlay);
+    add(room.heating?.target);
+    add(room.heating?.intensity);
+    add(room.air_conditioner);
   }
   return entityIds;
+}
+
+/** Entities whose recent history is drawn as a micro trend. */
+export function trendEntityIds(config: DashboardConfig): EntityId[] {
+  const entityIds = new Set<EntityId>();
+  for (const room of config.rooms) {
+    for (const entityId of [room.temperature, room.carbon_dioxide, room.pm25]) {
+      if (entityId) {
+        entityIds.add(entityId);
+      }
+    }
+  }
+  return [...entityIds];
 }
 
 export function sameAttributes(

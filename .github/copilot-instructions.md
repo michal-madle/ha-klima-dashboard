@@ -4,19 +4,19 @@
 
 - This repository builds a Home Assistant Lovelace **custom frontend card** distributed through HACS. It is not a Home Assistant integration, automation package, or backend service. Keep card implementation changes in `src/` unless the request requires another surface.
 - Before changing product behavior, read `CURRENT_SPEC.md` and the relevant parts of `ENTITY_MAP.md`. `CURRENT_SPEC.md` defines intended behavior; `ENTITY_MAP.md` records which entity IDs are confirmed. `README.md` describes installation and the current implementation. The example YAML demonstrates card configuration but does not override the spec.
-- `DESIGN_HISTORY.md`, `MEMORY_SUMMARIZED.md`, and files under `memories/` are historical context only. Prefer the current spec over older decisions or existing code when they disagree.
+- `DESIGN_HISTORY.md`, `MEMORY_SUMMARIZED.md`, are historical context only. Prefer the current spec over older decisions or existing code when they disagree.
 - Do not invent entity IDs, attributes, units, or configuration keys. An entity marked “not found” or “not mapped” is unconfirmed: leave it optional or absent until the user confirms it.
 - The spec includes features that are not implemented yet. Treat it as the product contract, but implement only the requested scope; do not claim a specified feature already exists just because it is documented.
 - For edits to `.github/skills/`, `.github/evals/`, or their validation scripts, also follow the applicable guidance in `CLAUDE.md`. Do not change those plugin resources as part of unrelated card work.
 
 ## Product behavior to preserve
 
-- The dashboard is mobile-first, designed primarily for iPhone 14 Pro, and must not require horizontal scrolling. Keep room order: Ložnice, Pracovna, Maxík, Mikuláš, Obývací pokoj.
-- Room temperature, humidity, CO₂, and PM2.5 come from the configured room entities; Tado temperature is not a substitute. IKEA MYGGBETT is the window source. Tado CE is the heating source; Samsung is the cooling and other climate-mode source.
+- The dashboard is mobile-first, designed primarily for iPhone 14 Pro, and must not require horizontal scrolling. Keep room order: Ložnice, Pracovna, Maxík, Mikuláš, Obývák.
+- Room temperature, humidity, CO₂, and PM2.5 come from the configured room entities; Tado temperature is not a substitute. IKEA MYGGBETT is the window source. Topení is the heating source; Klimatizace is the cooling and other climate-mode source.
 - Missing, `unknown`, `unavailable`, invalid, or unconfigured readings are not alarms. Keep the row/icon visible and show `––` in a neutral style. If any required room measurement or the house mode is missing, the room status is `Bez dat`; never report `Příjemné` from partial data.
 - Preserve room-status precedence from `CURRENT_SPEC.md`: missing required data; PM2.5 ≥ critical; CO₂ ≥ critical; CO₂ ≥ warning; humidity too high; humidity too low; temperature too high; temperature too low; otherwise comfortable. PM2.5 in its warning range changes only the value color, not the room status. Threshold defaults are defined in the spec and implementation.
-- `input_select.house_mode` values Zima/Léto select comfort thresholds and the primary order of the Tado/Samsung rows; they must not turn either system on or off. Keep both rows present. Preserve Tado schedule/manual/off meanings, heating-wave bands, Samsung off/unavailable handling, and the rule that WindFree is shown only while cooling.
-- Cover position is 0% closed/down and 100% open/up; tilt is 0% closed slats and 100% open slats. Cover configuration is optional, including for Obývací pokoj. Unknown position or tilt must remain visibly unknown rather than being treated as zero.
+- `input_select.house_mode` values Zima/Léto select comfort thresholds and the primary order of the HVAC rows; they must not turn either system on or off. Keep both rows present. Preserve Topení schedule/manual/off meanings, heating-wave bands, Klimatizace off/unavailable handling, and the rule that WindFree is shown only while cooling.
+- Cover position is 0% closed/down and 100% open/up; tilt is 0% closed slats and 100% open slats. Cover configuration is optional, including for Obývák. Unknown position or tilt must remain visibly unknown rather than being treated as zero.
 - Preserve Czech user-facing labels and `cs-CZ` number formatting. Do not change thresholds, color semantics, entity mappings, or card interactions based on guesswork; ask when the spec leaves a material behavior decision open.
 
 ## Implementation conventions
