@@ -24,15 +24,18 @@ Co není v Memory rozhodnuto, je uvedeno v sekci „Chybějící data“ a v `AU
 
 - Všechny karty mají stejné rozložení. Obývák má stejné rozložení bez žaluzií (prázdné místo se akceptuje).
 - Hlavička karty: název místnosti + stav místnosti, přes celou šířku. Název místnosti je největší text karty po teplotě (26 px, polotučně).
-- Pod hlavičkou je blok teplota + mikrotrend teploty + vlhkost (vedle sebe) a pod ním tři sloupce zleva doprava: informační řádky | tlačítka předvoleb žaluzií | panel žaluzie. Informační řádky jsou v pořadí CO₂ → PM2.5 → první HVAC řádek → druhý HVAC řádek → okno.
+- Pod hlavičkou je blok teplota + vlhkost (vedle sebe, bez mikrotrendu) a pod ním tři sloupce zleva doprava: informační řádky | tlačítka předvoleb žaluzií | panel žaluzie. Informační řádky jsou v pořadí CO₂ → PM2.5 → první HVAC řádek → druhý HVAC řádek → okno; všechny mají stejnou výšku.
+- Blok informačních řádků má dva stejně široké sloupce: vlevo ikony, hodnoty a popisky, vpravo mikrotrendy. Mikrotrend je tedy stejně široký jako levý sloupec s ikonami, hodnotami a popisky.
 - Panel žaluzie (viz Žaluzie) začíná u řádku CO₂ a končí u řádku okna; má stejnou výšku jako informační řádky a nezasahuje do hlavičky ani k bloku teplota/vlhkost.
 - Teplota je dominantní; vlhkost vedle ní je sekundární, ve velikosti navazující na „°C“. Formát: „20,4 °C  46 %“, české formátování čísel.
 - Teplota, vlhkost, CO₂ a PM2.5 pocházejí výhradně z IKEA ALPSTUGA. Teplota z Topení se pro kartu nepoužívá (Topení měří u radiátoru pod oknem).
 - CO₂ a PM2.5 mají jen ikonu, bez textového popisku. CO₂: ikona molekuly CO₂ (`mdi:molecule-co2`, schválená). PM2.5: vlastní ikona z rozptýlených teček různé velikosti, bez rámečku a bez textu. Obě ikony mají jemnou mátovou barvu (testovací `#5BD6B5`) jen tehdy, když řádek má hodnotu; bez dat jsou ikona i „––“ neutrálně šedé (bez barvy, bez mikrotrendu). Podle hodnoty se barva ikony nemění; číslo se barví jen při překročení prahu. Význam ikony čtečkám obrazovky sděluje `aria-label` řádku.
 - Vlhkost je bez barvy (neutrální světle šedá); chybí-li, je „––“ šedé.
-- Mikrotrendy (viz Historie a grafy) jsou na kartě právě tři, u svých hodnot, ne u žaluzií: teplota hned za číslem teploty, CO₂ a PM2.5 hned za svou hodnotou. Všechny tři začínají na stejné svislici (120 px zleva) a jsou stejně široké jako panel žaluzie (60 px, na užších displejích 52 px), takže jsou zarovnané pod sebou. Do řádků Topení, Klimatizace a okna nezasahují.
+- Mikrotrendy (viz Historie a grafy) jsou na kartě právě tři, všechny v pravém sloupci informačních řádků, takže začínají na stejné svislici a jsou stejně široké: CO₂ a PM2.5 ve svém řádku, mikrotrend teploty vedle řádků Topení a Klimatizace a vysoký jako oba řádky dohromady (teplota je výsledkem vytápění a chlazení). Vedle řádku okna mikrotrend není.
+- Text HVAC řádku se nikdy nezkracuje uprostřed čísla: když se na úzkém displeji nevejde celý, skryje se celá cílová teplota („· 21 °C“) a stav (Plán, Ručně, WindFree …) zůstane celý. Celý text řádku je vždy v `aria-label`.
 - Detail hodnot: klepnutí na teplotu (i její mikrotrend), vlhkost, CO₂, PM2.5 a okno otevře standardní detail entity Home Assistantu (`more-info`) s grafem historie. Karta nemá vlastní grafy.
-- Volitelná ilustrace místnosti (`scene`: `bedroom`, `office`, `kids`, `living`): jemná čárová kresba v pravém horním rohu karty, v tónu `bedroom` `#A5A1F2`, `office` `#7FC8F8`, `kids` `#FFB36B`, `living` `#E8D9B5`, plynule zeslabená směrem k obsahu (maska + měkká záře). Je jen dekorativní (`aria-hidden`), nepřekrývá text a bez klíče `scene` se nezobrazí.
+- Ilustrace místnosti: jemná čárová kresba v pravém horním rohu karty, v tónu `bedroom` `#A5A1F2`, `office` `#7FC8F8`, `kids` `#FFB36B`, `living` `#E8D9B5`, plynule zeslabená směrem k obsahu (maska + měkká záře). Je jen dekorativní (`aria-hidden`) a nepřekrývá text.
+- Ilustrace se zobrazuje bez konfigurace: bez klíče `scene` se zvolí podle názvu místnosti (Ložnice → `bedroom`, Pracovna → `office`, Maxík a Mikuláš → `kids`, Obývák / Obývací pokoj → `living`; velikost písmen a diakritika nerozhodují). U jiného názvu se bez `scene` nezobrazí. Klíč `scene` (`bedroom`, `office`, `kids`, `living`) volbu přepíše, `scene: none` ilustraci vypne.
 
 ## HVAC logika
 
@@ -116,7 +119,7 @@ Stav místnosti je lidské zhodnocení prostředí, ne příkaz. Platí první s
 - Ložnice, Pracovna, Maxík, Mikuláš mají žaluzie (Shelly); Obývák nemá. Panel i tlačítka předvoleb se zobrazí jen u místnosti, která má v konfiguraci karty entitu `cover`.
 - Poloha: 100 % = otevřeno (nahoře), 0 % = zavřeno (dole). Naklopení: 100 % = lamely otevřené (vodorovně), 0 % = zavřené (svisle).
 - Panel je jeden svislý sloupec, miniatura reálné žaluzie viděné zevnitř; bez rámečku, textu, procent, popisků a slovních stavů.
-- Výška panelu = výška informačních řádků (od řádku CO₂ po řádek okna). Šířka panelu = šířka sloupce mikrotrendů (na iPhonu 14 Pro 60 px, na užších displejích menší). Stálý počet lamel.
+- Výška panelu = výška informačních řádků (od řádku CO₂ po řádek okna). Šířka panelu je 60 px (na užších displejích 52 px); na šířce mikrotrendů nezávisí. Stálý počet lamel.
 - Naklopení mění jen tloušťku lamel: 0 % téměř splývají v plnou plochu (tenká mezera), 100 % velmi tenké linky s mezerami.
 - Poloha dělí sloupec: spuštěná horní část (žaluzie) je 100 % neprůhledná, dolní část představuje okno, zachovává strukturu lamel a je v barvě oblohy při přibližně 28 % neprůhlednosti. Poloha 100 % = zvýrazněna jen horní linka; poloha 0 % = zvýrazněno celé shora dolů.
 - Neznámá poloha nebo naklopení = přerušovaná silueta panelu; nikdy se nebere jako 0.
@@ -140,7 +143,8 @@ Stav místnosti je lidské zhodnocení prostředí, ne příkaz. Platí první s
 ## Historie a grafy
 
 - Vlastní 24h grafy („Historie místnosti – 24 h“, společný graf CO₂/PM2.5) byly nahrazeny standardním detailem entity s historií (viz Klikací akce).
-- Mikrotrendy (jen CO₂, PM2.5 a teplota; umístění viz Room Card; klepnutí na ně otevře detail své entity): posledních 120 minut, 12 vzorků, normalizace na lokální minimum/maximum zobrazeného období; bez os, popisků, rámečku, bublin a interakce; každý jednou jemnou barvou (CO₂ a PM2.5 mátová, teplota broskvová), tenká čára s velmi jemnou plochou pod ní a tečkou na posledním vzorku; na první pohled patrné zlepšování / zhoršování / stabilita.
+- Mikrotrendy (jen CO₂, PM2.5 a teplota; umístění viz Room Card; klepnutí na ně otevře detail své entity): posledních 120 minut, 12 vzorků; bez viditelných os, popisků, rámečku, bublin a interakce; každý jednou jemnou barvou (CO₂ a PM2.5 mátová, teplota broskvová), tenká čára s velmi jemnou plochou pod ní a tečkou na posledním vzorku; na první pohled patrné zlepšování / zhoršování / stabilita.
+- Společná osa: všechny mikrotrendy jedné veličiny mají v celém domě stejnou svislou osu, takže stejná hodnota leží ve všech místnostech ve stejné výšce a místnosti jdou porovnat. Rozsah osy = minimum a maximum všech vzorků dané veličiny ze všech místností za zobrazené období, zaokrouhlené dolů a nahoru na krok: teplota 1 °C, CO₂ 100 ppm, PM2.5 5 µg/m³. Jsou-li všechny vzorky stejné celé číslo kroku, osa se rozšíří o jeden krok na každou stranu (čára je uprostřed). Příklad: jedna místnost 22–23 °C, druhá 20–21 °C → osa 20–23 °C; první leží v horní části, druhá ve spodní. Osa se nikdy nenormalizuje na jednu místnost.
 
 ## Klikací akce
 
@@ -155,7 +159,12 @@ Stav místnosti je lidské zhodnocení prostředí, ne příkaz. Platí první s
 
 ## Vizuální pravidla
 
-- Jednotná velikost písma pro informační řádky (Topení, Klimatizace, okno, text stavu). Vlastní hierarchii mohou mít název místnosti, teplota a vlhkost.
+- Jednotná velikost napříč kategoriemi a řádky (CO₂, PM2.5, Topení, Klimatizace, okno) i pro text stavu místnosti:
+  - všechny ikony informačních řádků mají stejnou velikost (22 px);
+  - všechny hodnoty a popisky (656, 2, Plán, Vypnuto, Otevřeno, Příjemné …) mají stejnou velikost písma (15 px);
+  - všechny jednotky a doplňky hodnot (ppm, µg/m³, „· 21 °C“) mají tutéž velikost jako hodnoty a liší se jen sekundární šedou barvou.
+- Primární HVAC řádek se od druhého liší jen řezem písma (polotučně, když systém běží), ne velikostí ani výškou řádku.
+- Vlastní hierarchii mají jen název místnosti, teplota (s jednotkou „°C“) a vlhkost.
 - Všechny informační řádky (CO₂, PM2.5, Topení, Klimatizace, okno) mají ikonu ve stejném sloupci; hodnoty a texty řádků začínají ve stejné svislici.
 - Řádek, který nemá data, zachová svou ikonu a zobrazí „––“.
 - Normální stav nemá dominantní zelenou. Vypnuto je šedé. Topení Ručně je zřetelně zvýrazněné.

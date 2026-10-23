@@ -1,4 +1,4 @@
-import { ROOM_SCENES } from "./types";
+import { ROOM_SCENES, SCENE_NONE } from "./types";
 import type { DashboardConfig, DashboardThresholds } from "./types";
 
 export const HOUSE_MODE_ENTITY = "input_select.house_mode";
@@ -40,10 +40,9 @@ export function normalizeConfig(config: DashboardConfig): DashboardConfig {
         throw new Error(`Room "${room.name}": key "${oldKey}" was renamed to "${newKey}".`);
       }
     }
-    if (room.scene !== undefined && !(ROOM_SCENES as readonly string[]).includes(room.scene)) {
-      throw new Error(
-        `Room "${room.name}": scene must be one of ${ROOM_SCENES.join(", ")}.`,
-      );
+    const scenes: readonly string[] = [...ROOM_SCENES, SCENE_NONE];
+    if (room.scene !== undefined && !scenes.includes(room.scene)) {
+      throw new Error(`Room "${room.name}": scene must be one of ${scenes.join(", ")}.`);
     }
     if (room.heating && "heating" in (room.heating as Record<string, unknown>)) {
       throw new Error(`Room "${room.name}": key "heating.heating" was renamed to "heating.intensity".`);

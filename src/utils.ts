@@ -6,6 +6,7 @@ import type {
   EntityId,
   RoomStatus,
   ClimateMode,
+  TrendKind,
 } from "./types";
 
 /** Script called by the blind presets (fields: entity, pos, tilt). */
@@ -21,8 +22,11 @@ export const BLIND_PRESETS: BlindPreset[] = [
   { id: "open", label: "Den", description: "vytaženo nahoru", position: 100, tilt: 100, tone: "#FFD84A" },
 ];
 
-/** Smallest range a trend is stretched over; flatter periods are drawn as stable. */
-export const TREND_MIN_SPAN = { temperature: 0.5, co2: 50, pm25: 3 } as const;
+/**
+ * Rounding step of the house-wide trend axis per quantity (°C, ppm, µg/m³); it is also the
+ * smallest axis range, so sensor noise is not drawn as a trend.
+ */
+export const TREND_AXIS_STEP: Record<TrendKind, number> = { temperature: 1, co2: 100, pm25: 5 };
 
 export const COLORS = {
   background: "#1C1C1E",

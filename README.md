@@ -76,20 +76,22 @@ Při ruční aktualizaci souboru může prohlížeč používat starou uloženou
 - [DESIGN_HISTORY.md](./DESIGN_HISTORY.md) – historie návrhu a nahrazená rozhodnutí
 - [MEMORY_SUMMARIZED.md](./MEMORY_SUMMARIZED.md) – stručná projektová paměť
 - [AUDIT.md](./AUDIT.md) – konflikty, chybějící informace a doporučení pro údržbu
+- [TODO.md](./TODO.md) – navržená vylepšení UX/UI (zatím nerozhodnutá, nejsou součástí zadání)
 
 Pro aktuální chování a návrh má přednost `CURRENT_SPEC.md`, poté `ENTITY_MAP.md`. Historická rozhodnutí nejsou závazná.
 
 ## Konfigurace místnosti
 
-Každá místnost má volitelné klíče `temperature`, `humidity`, `carbon_dioxide`, `pm25`, `window`, `cover`, `scene` (ilustrace `bedroom`, `office`, `kids` nebo `living`), `heating` (Topení: `climate`, `overlay`, `target`, `intensity`) a `air_conditioner` (Klimatizace: entita `climate`). Starší klíče `tado`, `samsung` a `heating.heating` karta odmítne s chybovou hláškou; přejmenujte je podle [příkladu](./examples/domov_prototyp_loznice.yaml).
+Každá místnost má volitelné klíče `temperature`, `humidity`, `carbon_dioxide`, `pm25`, `window`, `cover`, `scene` (ilustrace `bedroom`, `office`, `kids`, `living`, nebo `none` pro vypnutí; bez klíče se ilustrace zvolí podle názvu místnosti), `heating` (Topení: `climate`, `overlay`, `target`, `intensity`) a `air_conditioner` (Klimatizace: entita `climate`). Starší klíče `tado`, `samsung` a `heating.heating` karta odmítne s chybovou hláškou; přejmenujte je podle [příkladu](./examples/domov_prototyp_loznice.yaml).
 
 ## Ovládání karty
 
 - Klepnutí na teplotu, vlhkost, CO₂, PM2.5 nebo okno otevře standardní detail entity Home Assistantu s grafem historie. Totéž dělá klepnutí na mikrotrend u dané hodnoty. Klepnutí na panel žaluzie otevře standardní ovládání krytu.
 - Klepnutí na řádek **Topení** otevře popup: Vypnuto, Plán, Ručně a Boost. Klepnutí na řádek **Klimatizace** otevře popup s režimy a předvolbami (např. WindFree). Nabídka vychází z atributů `hvac_modes` a `preset_modes` příslušné `climate` entity a volá `climate.set_hvac_mode` / `climate.set_preset_mode`. Boost je aktivní jen tehdy, když entita předvolbu `boost` nabízí. Odkaz „Detail a historie“ v popupu otevře standardní detail entity.
 - Tři kulatá tlačítka v jednom sloupci vlevo od panelu žaluzie (shora Tma 0/0, Stín 0/100, Den 100/100; poloha/naklopení) mají jen ikonu. Odešlou se **dvojitým klepnutím nebo dlouhým stiskem** (jednoduché klepnutí nic neudělá); volají službu `script.zaluzie_posun` s poli `entity`, `pos` a `tilt`. Skript musí v Home Assistantu existovat. Název tlačítka se ukáže jako nápověda při najetí myší a čtečka obrazovky ho přečte.
-- Mikrotrendy teploty, CO₂ a PM2.5 (posledních 120 minut) se obnovují každých 5 minut.
-- Volitelná ilustrace v pravém horním rohu karty místnosti: `scene: bedroom | office | kids | living`.
+- Mikrotrendy teploty, CO₂ a PM2.5 (posledních 120 minut) se obnovují každých 5 minut. Jsou v pravém sloupci informačních řádků, stejně širokém jako sloupec s hodnotami; trend teploty je vedle řádků Topení a Klimatizace. Každá veličina má v celém domě společnou osu (teplota zaokrouhlená na 1 °C, CO₂ na 100 ppm, PM2.5 na 5 µg/m³), takže trendy místností jdou porovnat.
+- Ilustrace v pravém horním rohu karty místnosti se zobrazí sama podle názvu (Ložnice, Pracovna, Maxík, Mikuláš, Obývák). Jinou zvolíte klíčem `scene: bedroom | office | kids | living`, vypnete ji `scene: none`.
+- Na úzkém displeji se u řádků Topení a Klimatizace může skrýt cílová teplota („· 21 °C“), pokud se vedle stavu nevejde; stav zůstane vždy celý.
 
 ## Rozsah prototypu
 

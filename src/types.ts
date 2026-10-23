@@ -32,12 +32,24 @@ export interface RoomConfig {
   };
   /** Klimatizace: air conditioner climate entity. */
   air_conditioner?: EntityId;
-  /** Decorative illustration in the top-right corner of the room card. */
-  scene?: RoomScene;
+  /**
+   * Decorative illustration in the top-right corner of the room card. Without the key it is
+   * chosen from the room name; "none" turns it off.
+   */
+  scene?: RoomScene | typeof SCENE_NONE;
 }
 
 export const ROOM_SCENES = ["bedroom", "office", "kids", "living"] as const;
 export type RoomScene = (typeof ROOM_SCENES)[number];
+export const SCENE_NONE = "none";
+
+/** Quantities that have a micro trend; each has one axis shared by the whole house. */
+export type TrendKind = "temperature" | "co2" | "pm25";
+
+export interface TrendAxis {
+  min: number;
+  max: number;
+}
 
 export interface OutsideConfig {
   temperature?: EntityId;

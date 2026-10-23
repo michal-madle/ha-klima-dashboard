@@ -51,8 +51,15 @@ export const styles = css`
     }
 
     .room {
-      /* Micro trends start at the same x in every row and are as wide as the blind panel. */
-      --trend-x: 120px;
+      /*
+       * One size for every info row (CURRENT_SPEC.md, Vizuální pravidla): row height, icon,
+       * values, labels and units. --col is the blind panel width.
+       */
+      --row-h: 26px;
+      --row-font: 15px;
+      --icon: 22px;
+      --info-gap: 6px;
+      --icon-gap: 7px;
       --col: 60px;
       --preset-col: 36px;
       position: relative;
@@ -137,38 +144,28 @@ export const styles = css`
     .status-line {
       display: flex;
       align-items: center;
-      gap: 6px;
-      min-height: 18px;
-      font-size: 13px;
-      line-height: 18px;
+      gap: 7px;
+      min-height: 20px;
+      font-size: var(--row-font);
+      line-height: 20px;
     }
 
     .status-dot {
       box-sizing: border-box;
-      width: 7px;
-      height: 7px;
-      flex: 0 0 7px;
+      width: 8px;
+      height: 8px;
+      flex: 0 0 8px;
       border-radius: 50%;
     }
 
+    /* Temperature (dominant) and humidity side by side; no micro trend here. */
     .measurements {
       display: flex;
       align-items: baseline;
       gap: 14px;
       min-height: 44px;
-      margin: 8px 0;
+      margin: 8px 0 10px;
       font-variant-numeric: tabular-nums;
-    }
-
-    /* Temperature value and its micro trend, one button that opens the entity detail. */
-    .temp-block {
-      display: grid;
-      grid-template-columns: var(--trend-x) var(--col);
-      align-items: center;
-    }
-
-    .temp-block .spark {
-      align-self: center;
     }
 
     .temperature {
@@ -197,125 +194,181 @@ export const styles = css`
 
     /*
      * Lower part: info rows | blind presets | blind panel. The blind panel is as tall as the
-     * info rows (--info-height), so it starts at the CO₂ row. Micro trends sit inside the rows,
-     * right after the values, at --trend-x.
+     * info rows (5 × --row-h), so it starts at the CO₂ row.
      */
     .lower {
-      --air-height: 22px;
-      --primary-height: 28px;
-      --secondary-height: 24px;
       display: grid;
       grid-template-columns: minmax(0, 1fr) var(--preset-col) var(--col);
       align-items: stretch;
       column-gap: 8px;
     }
 
+    /*
+     * Info rows: two equally wide columns, values on the left and micro trends on the right
+     * (CURRENT_SPEC.md, Room Card). The temperature trend spans the Topení and Klimatizace rows.
+     */
     .info {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      grid-template-rows: repeat(5, var(--row-h));
+      column-gap: var(--info-gap);
+      min-width: 0;
+      font-size: var(--row-font);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .slot-co2 {
+      grid-column: 1 / -1;
+      grid-row: 1;
+    }
+
+    .slot-pm25 {
+      grid-column: 1 / -1;
+      grid-row: 2;
+    }
+
+    .slot-hvac1 {
+      grid-column: 1;
+      grid-row: 3;
+    }
+
+    .slot-hvac2 {
+      grid-column: 1;
+      grid-row: 4;
+    }
+
+    .slot-temperature-trend {
+      grid-column: 2;
+      grid-row: 3 / span 2;
+    }
+
+    .slot-window {
+      grid-column: 1;
+      grid-row: 5;
+    }
+
+    /* CO₂ / PM2.5: the same two columns inside the row, so the trend lines up with the others. */
+    .air-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      column-gap: var(--info-gap);
+      align-items: stretch;
+      min-width: 0;
+      height: var(--row-h);
+    }
+
+    .system-row {
+      display: flex;
+      min-width: 0;
+      height: var(--row-h);
+      color: var(--row-color);
+    }
+
+    .row-main {
+      display: flex;
+      align-items: center;
+      gap: var(--icon-gap);
+      min-width: 0;
+      height: var(--row-h);
+    }
+
+    .row-icon {
+      display: flex;
+      width: var(--icon);
+      height: var(--icon);
+      flex: 0 0 var(--icon);
+      align-items: center;
+      justify-content: center;
+    }
+
+    .row-icon svg {
+      display: block;
+      width: var(--icon);
+      height: var(--icon);
+    }
+
+    .row-icon ha-icon {
+      display: flex;
+      --mdc-icon-size: var(--icon);
+    }
+
+    /*
+     * Value or label and its unit / target. When both do not fit, the unit or target wraps onto
+     * a second line that is clipped, so a number is never cut in the middle.
+     */
+    .row-text {
+      display: flex;
+      flex-wrap: wrap;
+      align-content: flex-start;
+      column-gap: 0.3em;
+      min-width: 0;
+      height: var(--row-h);
+      overflow: hidden;
+    }
+
+    .row-label,
+    .row-unit {
+      line-height: var(--row-h);
+      white-space: nowrap;
+    }
+
+    .row-label {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .system-row.strong .row-label {
+      font-weight: 500;
+    }
+
+    .row-unit {
+      color: #9a9aa0;
+      font-weight: 400;
+    }
+
+    /* Micro trend: stretches over its cell; the dot is HTML so it stays round. */
+    .trend-button {
+      display: block;
+      width: 100%;
+      height: 100%;
       min-width: 0;
     }
 
     .spark {
       display: block;
-      width: var(--col);
-    }
-
-    .air-row {
-      display: grid;
-      grid-template-columns: var(--trend-x) var(--col);
-      align-items: center;
-      width: 100%;
-      height: var(--air-height);
-      font-size: 14px;
-      line-height: 22px;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .air-main {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      min-width: 0;
-    }
-
-    /* Same 24 px icon column as the Topení, Klimatizace and window rows. */
-    .air-icon {
-      display: flex;
-      width: 24px;
-      height: 22px;
-      flex: 0 0 24px;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .air-icon ha-icon {
-      --mdc-icon-size: 24px;
-    }
-
-    .air-icon svg {
-      display: block;
-      width: 20px;
-      height: 20px;
-    }
-
-    .air-value-unit {
-      color: #9a9aa0;
-      font-size: 11px;
-    }
-
-    .system-row {
-      display: flex;
-      align-items: center;
       box-sizing: border-box;
       width: 100%;
-      gap: 8px;
-      min-width: 0;
-      height: 24px;
-      color: var(--row-color);
-      font-size: 14px;
-      line-height: 20px;
+      height: 100%;
+      padding: 5px 3px;
     }
 
-    .system-row.primary {
-      height: var(--primary-height);
-      font-size: 15px;
+    .trend-button .spark {
+      padding: 7px 3px;
     }
 
-    .system-row.strong {
-      font-weight: 500;
-    }
-
-    .system-icon {
-      display: flex;
-      width: 24px;
-      height: 24px;
-      flex: 0 0 24px;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .system-icon svg {
+    .spark-plot {
+      position: relative;
       display: block;
-      width: 20px;
-      height: 20px;
+      width: 100%;
+      height: 100%;
     }
 
-    .system-text {
-      min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+    .spark-plot svg {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      overflow: visible;
     }
 
-    .system-extra {
-      flex: 0 0 auto;
-      color: #9a9aa0;
-      font-weight: 400;
-    }
-
-    .window-row {
-      height: 24px;
-      margin-top: 2px;
-      font-size: 14px;
+    .spark-dot {
+      position: absolute;
+      width: 5px;
+      height: 5px;
+      margin: -2.5px 0 0 -2.5px;
+      border-radius: 50%;
+      background: currentColor;
     }
 
     /*

@@ -2,10 +2,10 @@ import { svg } from "lit";
 import type { TemplateResult } from "lit";
 import { COLORS } from "./utils";
 
-/** Width shared by the blind panel and the micro-trend column. */
+/** Width of the blind panel (--col in styles.ts). */
 export const BLIND_WIDTH = 60;
-/** Height of the info rows from CO₂ to the window row: 22 + 22 + 28 + 24 + 26 px (see styles.ts). */
-export const BLIND_HEIGHT = 122;
+/** Height of the info rows from CO₂ to the window row: 5 × --row-h (26 px, see styles.ts). */
+export const BLIND_HEIGHT = 130;
 
 const SLAT_COUNT = 18;
 const RAIL_HEIGHT = 3;

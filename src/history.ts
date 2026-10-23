@@ -1,4 +1,4 @@
-import type { EntityId, HomeAssistant } from "./types";
+import type { EntityId, HomeAssistant, TrendAxis } from "./types";
 
 export interface HistoryPoint {
   time: number;
@@ -116,26 +116,46 @@ export function sampleNumeric(
 }
 
 /**
- * Normalizes samples to 0..1 using the local minimum/maximum of the shown
- * period. A period flatter than `minSpan` is drawn around the middle so that
- * sensor noise is not displayed as a trend.
+ * Axis shared by all micro trends of one quantity in the whole house (CURRENT_SPEC.md,
+ * Historie a grafy): the minimum and maximum of every sample of every room, rounded down
+ * and up to `step`. When all samples are the same multiple of `step`, the axis grows by one
+ * step on each side so the flat line sits in the middle.
  */
-export function normalizeTrend(
+export function sharedAxis(
+  series: Array<Array<number | undefined> | undefined>,
+  step: number,
+): TrendAxis | undefined {
+  let minimum = Number.POSITIVE_INFINITY;
+  let maximum = Number.NEGATIVE_INFINITY;
+  for (const values of series) {
+    for (const value of values ?? []) {
+      if (value !== undefined && Number.isFinite(value)) {
+        minimum = Math.min(minimum, value);
+        maximum = Math.max(maximum, value);
+      }
+    }
+  }
+  if (!Number.isFinite(minimum) || !Number.isFinite(maximum) || step <= 0) {
+    return undefined;
+  }
+  let low = Math.floor(minimum / step) * step;
+  let high = Math.ceil(maximum / step) * step;
+  if (high - low < step) {
+    low -= step;
+    high += step;
+  }
+  return { min: low, max: high };
+}
+
+/** Maps samples onto a shared axis as 0 (bottom) .. 1 (top). */
+export function normalizeToAxis(
   values: Array<number | undefined>,
-  minSpan: number,
+  axis: TrendAxis,
 ): Array<number | undefined> {
-  const defined = values.filter((value): value is number => value !== undefined);
-  if (defined.length < 2) {
-    return values.map(() => undefined);
-  }
-  const minimum = Math.min(...defined);
-  const maximum = Math.max(...defined);
-  const range = maximum - minimum;
-  if (range >= minSpan) {
-    return values.map((value) => (value === undefined ? undefined : (value - minimum) / range));
-  }
-  const center = (maximum + minimum) / 2;
+  const range = axis.max - axis.min;
   return values.map((value) =>
-    value === undefined ? undefined : 0.5 + (value - center) / minSpan,
+    value === undefined || range <= 0
+      ? undefined
+      : Math.min(1, Math.max(0, (value - axis.min) / range)),
   );
 }

@@ -10,6 +10,8 @@ house_mode_entity: input_select.house_mode
 #   rain_probability: sensor.rain_probability
 #   pm25: sensor.outdoor_pm2_5
 
+# scene is optional: without it the illustration is chosen from the room name
+# (Ložnice, Pracovna, Maxík, Mikuláš, Obývák); scene: none turns it off.
 rooms:
   - name: Ložnice
     scene: bedroom

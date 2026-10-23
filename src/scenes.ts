@@ -1,6 +1,37 @@
 import { html, svg } from "lit";
 import type { TemplateResult } from "lit";
-import type { RoomScene } from "./types";
+import { SCENE_NONE } from "./types";
+import type { RoomConfig, RoomScene } from "./types";
+
+/** Default illustration by room name (lower case, without diacritics). */
+const SCENE_BY_NAME: Record<string, RoomScene> = {
+  loznice: "bedroom",
+  pracovna: "office",
+  maxik: "kids",
+  mikulas: "kids",
+  obyvak: "living",
+  "obyvaci pokoj": "living",
+};
+
+/**
+ * Illustration of a room: the configured `scene`, otherwise the default for the room name
+ * (CURRENT_SPEC.md, Room Card). `scene: none` and unknown names give no illustration.
+ */
+export function resolveScene(room: RoomConfig): RoomScene | undefined {
+  if (room.scene === SCENE_NONE) {
+    return undefined;
+  }
+  if (room.scene) {
+    return room.scene;
+  }
+  const key = room.name
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, " ");
+  return SCENE_BY_NAME[key];
+}
 
 /** Accent colour of each illustration; the picture and its glow are drawn in it. */
 export const SCENE_TONES: Record<RoomScene, string> = {

@@ -5,13 +5,14 @@ import { BLIND_HEIGHT, BLIND_WIDTH, renderBlindShape } from "./blind";
 import { DEFAULT_THRESHOLDS, HOUSE_MODE_ENTITY, normalizeConfig } from "./config";
 import { renderHeatingOptionIcon, renderParticlesIcon, renderPresetIcon } from "./icons";
 import type { HeatingOptionId } from "./icons";
-import { SCENE_TONES, renderScene } from "./scenes";
+import { SCENE_TONES, renderScene, resolveScene } from "./scenes";
 import {
   TREND_SAMPLES,
   TREND_WINDOW_MS,
   fetchHistory,
-  normalizeTrend,
+  normalizeToAxis,
   sampleNumeric,
+  sharedAxis,
 } from "./history";
 import { styles } from "./styles";
 import type {
@@ -26,6 +27,8 @@ import type {
   ClimateMode,
   SheetKind,
   SheetState,
+  TrendAxis,
+  TrendKind,
 } from "./types";
 import {
   BLIND_PRESETS,
@@ -33,7 +36,7 @@ import {
   COVER_SCRIPT,
   CLIMATE_COLORS,
   CLIMATE_LABELS,
-  TREND_MIN_SPAN,
+  TREND_AXIS_STEP,
   climateModeFromState,
   configuredEntityIds,
   formatHalf,
@@ -58,9 +61,13 @@ const DOUBLE_TAP_MS = 400;
 const FLASH_MS = 700;
 
 interface SystemRowAction {
-  label: string;
   onClick: (event: Event) => void;
 }
+
+type TrendAxes = Partial<Record<TrendKind, TrendAxis>>;
+
+/** Grid slot of an air-quality row (see `.slot-*` in styles.ts). */
+type InfoSlot = "co2" | "pm25";
 
 /** One choice in the Topení / Klimatizace popup. */
 interface SheetOption {
@@ -188,6 +195,7 @@ export class HaKlimaDashboard extends LitElement {
     const isSummer = mode === "léto" || mode === "leto";
     const modeKnown = isSummer || mode === "zima";
     const thresholds = this.thresholds();
+    const axes = this.trendAxes(this._config);
 
     return html`
       <ha-card>
@@ -199,7 +207,7 @@ export class HaKlimaDashboard extends LitElement {
           ${this._notice ? html`<div class="notice" role="alert">${this._notice}</div>` : nothing}
           <div class="rooms">
             ${this._config.rooms.map((room) =>
-              this.renderRoom(room, isSummer, modeKnown, thresholds),
+              this.renderRoom(room, isSummer, modeKnown, thresholds, axes),
             )}
           </div>
         </div>
@@ -210,6 +218,23 @@ export class HaKlimaDashboard extends LitElement {
 
   private thresholds(): DashboardThresholds {
     return { ...DEFAULT_THRESHOLDS, ...this._config?.thresholds };
+  }
+
+  /**
+   * One axis per quantity for the whole house (CURRENT_SPEC.md, Historie a grafy), so the
+   * same value is drawn at the same height in every room.
+   */
+  private trendAxes(config: DashboardConfig): TrendAxes {
+    const series = (pick: (room: RoomConfig) => EntityId | undefined) =>
+      config.rooms.map((room) => {
+        const entityId = pick(room);
+        return entityId ? this._trends[entityId] : undefined;
+      });
+    return {
+      temperature: sharedAxis(series((room) => room.temperature), TREND_AXIS_STEP.temperature),
+      co2: sharedAxis(series((room) => room.carbon_dioxide), TREND_AXIS_STEP.co2),
+      pm25: sharedAxis(series((room) => room.pm25), TREND_AXIS_STEP.pm25),
+    };
   }
 
   // ---------------------------------------------------------------- header
@@ -271,6 +296,7 @@ export class HaKlimaDashboard extends LitElement {
     isSummer: boolean,
     modeKnown: boolean,
     thresholds: DashboardThresholds,
+    axes: TrendAxes,
   ): TemplateResult {
     const temperature = this.reading(room.temperature, "°C", 1);
     const humidity = this.reading(room.humidity, "%", 0);
@@ -286,16 +312,15 @@ export class HaKlimaDashboard extends LitElement {
       thresholds,
     );
     const primaryIsClimate = isSummer;
+    const scene = resolveScene(room);
 
     return html`
       <article
         class="room"
         aria-label=${room.name}
-        style=${room.scene ? `--scene-tone: ${SCENE_TONES[room.scene]}` : nothing}
+        style=${scene ? `--scene-tone: ${SCENE_TONES[scene]}` : nothing}
       >
-        ${room.scene
-          ? html`<div class="scene" aria-hidden="true">${renderScene(room.scene)}</div>`
-          : nothing}
+        ${scene ? html`<div class="scene" aria-hidden="true">${renderScene(scene)}</div>` : nothing}
         <div class="room-title">${room.name}</div>
         <div class="status-line">
           <span
@@ -311,23 +336,24 @@ export class HaKlimaDashboard extends LitElement {
         <div class="measurements">
           <button
             type="button"
-            class="plain-button temp-block"
+            class="plain-button temperature"
             ?disabled=${!room.temperature}
-            aria-label=${`${room.name}: teplota, detail a historie`}
+            aria-label=${`${room.name}: teplota ${
+              temperature.value === undefined ? "neznámá" : `${formatOne(temperature.value)} °C`
+            }, detail a historie`}
             @click=${() => this.showMoreInfo(room.temperature)}
           >
-            <span class="temperature">
-              ${temperature.value === undefined
-                ? html`<span class="missing">––</span>`
-                : html`${formatOne(temperature.value)}<span class="temperature-unit">${NBSP}°C</span>`}
-            </span>
-            ${this.renderSpark(room.temperature, TREND_MIN_SPAN.temperature, "Trend teploty", 32, COLORS.peach)}
+            ${temperature.value === undefined
+              ? html`<span class="missing">––</span>`
+              : html`${formatOne(temperature.value)}<span class="temperature-unit">${NBSP}°C</span>`}
           </button>
           <button
             type="button"
             class="plain-button humidity"
             ?disabled=${!room.humidity}
-            aria-label=${`${room.name}: vlhkost, detail a historie`}
+            aria-label=${`${room.name}: vlhkost ${
+              humidity.value === undefined ? "neznámá" : `${Math.round(humidity.value)} %`
+            }, detail a historie`}
             @click=${() => this.showMoreInfo(room.humidity)}
           >
             ${humidity.value === undefined
@@ -339,6 +365,7 @@ export class HaKlimaDashboard extends LitElement {
           <div class="info">
             ${this.renderAirRow(
               room,
+              "co2",
               room.carbon_dioxide,
               html`<ha-icon icon="mdi:molecule-co2"></ha-icon>`,
               "CO₂",
@@ -346,10 +373,11 @@ export class HaKlimaDashboard extends LitElement {
               "ppm",
               thresholds.co2_warning,
               thresholds.co2_critical,
-              TREND_MIN_SPAN.co2,
+              axes.co2,
             )}
             ${this.renderAirRow(
               room,
+              "pm25",
               room.pm25,
               renderParticlesIcon(),
               "PM2.5",
@@ -357,7 +385,7 @@ export class HaKlimaDashboard extends LitElement {
               "µg/m³",
               thresholds.pm25_warning,
               thresholds.pm25_critical,
-              TREND_MIN_SPAN.pm25,
+              axes.pm25,
             )}
             ${primaryIsClimate
               ? this.renderClimate(room, true)
@@ -365,6 +393,7 @@ export class HaKlimaDashboard extends LitElement {
             ${primaryIsClimate
               ? this.renderHeating(room, false)
               : this.renderClimate(room, false)}
+            ${this.renderTemperatureTrend(room, temperature, axes.temperature)}
             ${this.renderWindow(room)}
           </div>
           ${room.cover
@@ -376,9 +405,13 @@ export class HaKlimaDashboard extends LitElement {
     `;
   }
 
-  /** CO₂ / PM2.5 row: icon, value and micro trend; opens the entity detail with its history. */
+  /**
+   * CO₂ / PM2.5 row: icon and value in the left column, micro trend in the right column;
+   * the whole row opens the entity detail with its history.
+   */
   private renderAirRow(
     room: RoomConfig,
+    slot: InfoSlot,
     entityId: EntityId | undefined,
     icon: TemplateResult,
     label: string,
@@ -386,10 +419,11 @@ export class HaKlimaDashboard extends LitElement {
     unit: string,
     warningThreshold: number,
     criticalThreshold: number,
-    minSpan: number,
+    axis: TrendAxis | undefined,
   ): TemplateResult {
     // Without a reading the icon is neutral grey and no trend is drawn (never coloured).
     const hasValue = reading.value !== undefined;
+    const value = Math.round(reading.value ?? 0);
     const color =
       reading.value === undefined
         ? COLORS.label
@@ -402,80 +436,103 @@ export class HaKlimaDashboard extends LitElement {
     return html`
       <button
         type="button"
-        class="plain-button air-row"
+        class="plain-button air-row slot-${slot}"
         ?disabled=${!entityId}
-        aria-label=${`${room.name}: ${label}, detail a historie`}
+        aria-label=${`${room.name}: ${label} ${hasValue ? `${value} ${unit}` : "neznámé"}, detail a historie`}
         @click=${() => this.showMoreInfo(entityId)}
       >
-        <span class="air-main">
-          <span class="air-icon" style=${`color: ${hasValue ? COLORS.mint : COLORS.off}`} aria-hidden="true">
+        <span class="row-main">
+          <span class="row-icon" style=${`color: ${hasValue ? COLORS.mint : COLORS.off}`} aria-hidden="true">
             ${icon}
           </span>
-          ${hasValue
-            ? html`<span style=${`color: ${color}`}>${Math.round(reading.value ?? 0)}</span>
-                <span class="air-value-unit">${unit}</span>`
-            : html`<span style=${`color: ${COLORS.label}`}>––</span>`}
+          <span class="row-text">
+            ${hasValue
+              ? html`<span class="row-label" style=${`color: ${color}`}>${value}</span>
+                  <span class="row-unit">${unit}</span>`
+              : html`<span class="row-label" style=${`color: ${COLORS.label}`}>––</span>`}
+          </span>
         </span>
-        ${hasValue ? this.renderSpark(entityId, minSpan, `Trend ${label}`, 18, COLORS.mint) : nothing}
+        ${hasValue ? this.renderSpark(entityId, axis, COLORS.mint) : nothing}
+      </button>
+    `;
+  }
+
+  /**
+   * Temperature micro trend: in the trend column next to the Topení and Klimatizace rows and
+   * as tall as both of them (CURRENT_SPEC.md, Room Card). Opens the temperature detail.
+   */
+  private renderTemperatureTrend(
+    room: RoomConfig,
+    temperature: Reading,
+    axis: TrendAxis | undefined,
+  ): TemplateResult | typeof nothing {
+    if (!room.temperature || temperature.value === undefined) {
+      return nothing;
+    }
+    const spark = this.renderSpark(room.temperature, axis, COLORS.peach);
+    if (spark === nothing) {
+      return nothing;
+    }
+    return html`
+      <button
+        type="button"
+        class="plain-button trend-button slot-temperature-trend"
+        aria-label=${`${room.name}: trend teploty za 2 hodiny, detail a historie`}
+        @click=${() => this.showMoreInfo(room.temperature)}
+      >
+        ${spark}
       </button>
     `;
   }
 
   /**
    * Micro trend (CURRENT_SPEC.md, Historie a grafy): the last 120 minutes as one thin line
-   * with a soft area and a dot at the latest sample. It is as wide as the blind panel.
+   * with a soft area and a dot at the latest sample, drawn on the axis shared by the whole
+   * house. It stretches over its cell; the dot is HTML so that it stays round.
    */
   private renderSpark(
     entityId: EntityId | undefined,
-    minSpan: number,
-    label: string,
-    height: number,
+    axis: TrendAxis | undefined,
     color: string,
   ): TemplateResult | typeof nothing {
     const samples = entityId ? this._trends[entityId] : undefined;
-    if (!samples) {
+    if (!samples || !axis) {
       return nothing;
     }
-    const width = BLIND_WIDTH;
-    const normalized = normalizeTrend(samples, minSpan);
-    const padX = 3;
-    const padY = 4;
-    const points = normalized
+    const points = normalizeToAxis(samples, axis)
       .map((value, index) =>
         value === undefined
           ? undefined
-          : {
-              x: padX + (index / (TREND_SAMPLES - 1)) * (width - 2 * padX),
-              y: padY + (1 - value) * (height - 2 * padY),
-            },
+          : { x: (index / (TREND_SAMPLES - 1)) * 100, y: (1 - value) * 100 },
       )
       .filter((point): point is { x: number; y: number } => point !== undefined);
     if (points.length < 2) {
       return nothing;
     }
-    const line = points.map((point) => `${point.x.toFixed(1)},${point.y.toFixed(1)}`).join(" ");
+    const line = points.map((point) => `${point.x.toFixed(2)},${point.y.toFixed(2)}`).join(" ");
     const first = points[0];
     const last = points[points.length - 1];
-    const area = `${line} ${last.x.toFixed(1)},${height} ${first.x.toFixed(1)},${height}`;
-    return html`<svg
-      class="spark"
-      viewBox="0 0 ${width} ${height}"
-      preserveAspectRatio="none"
-      aria-hidden="true"
-      data-label=${label}
-    >
-      <polygon points=${area} fill=${color} fill-opacity="0.08"></polygon>
-      <polyline
-        points=${line}
-        fill="none"
-        stroke=${color}
-        stroke-width="1.6"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        vector-effect="non-scaling-stroke"
-      ></polyline>
-      <circle cx=${last.x.toFixed(1)} cy=${last.y.toFixed(1)} r="2.2" fill=${color}></circle>
-    </svg>`;
+    const area = `${line} ${last.x.toFixed(2)},100 ${first.x.toFixed(2)},100`;
+    return html`<span class="spark" style=${`color: ${color}`} aria-hidden="true">
+      <span class="spark-plot">
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+          <polygon points=${area} fill="currentColor" fill-opacity="0.08"></polygon>
+          <polyline
+            points=${line}
+            fill="none"
+            stroke="currentColor"
+            stroke-width="1.6"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            vector-effect="non-scaling-stroke"
+          ></polyline>
+        </svg>
+        <span
+          class="spark-dot"
+          style=${`left: ${last.x.toFixed(2)}%; top: ${last.y.toFixed(2)}%`}
+        ></span>
+      </span>
+    </span>`;
   }
 
   // --------------------------------------------------------------- Topení
@@ -521,13 +578,15 @@ export class HaKlimaDashboard extends LitElement {
 
     const count = disabled || unavailable ? 0 : heatingWaveCount(heating);
     return this.renderSystemRow(
+      room,
+      "Topení",
       this.renderHeatingWaves(count, unavailable),
       label,
       color,
       primary && strong,
       extra,
       primary,
-      config?.climate ? this.sheetAction("heating", room, "Topení") : undefined,
+      config?.climate ? this.sheetAction("heating", room) : undefined,
     );
   }
 
@@ -590,13 +649,15 @@ export class HaKlimaDashboard extends LitElement {
     const active = mode !== "off" && mode !== "unknown";
 
     return this.renderSystemRow(
+      room,
+      "Klimatizace",
       this.renderClimateIcon(mode, color, mode === "unknown"),
       label ?? CLIMATE_LABELS[mode],
       color,
       primary && active,
       extra,
       primary,
-      room.air_conditioner ? this.sheetAction("climate", room, "Klimatizace") : undefined,
+      room.air_conditioner ? this.sheetAction("climate", room) : undefined,
     );
   }
 
@@ -652,14 +713,20 @@ export class HaKlimaDashboard extends LitElement {
   }
 
   /** Row action: opens the control popup of Topení / Klimatizace. */
-  private sheetAction(kind: SheetKind, room: RoomConfig, name: string): SystemRowAction {
+  private sheetAction(kind: SheetKind, room: RoomConfig): SystemRowAction {
     return {
-      label: `${room.name}: ${name}, ovládání`,
       onClick: (event: Event) => this.openSheet(kind, room, event),
     };
   }
 
+  /**
+   * Topení / Klimatizace row in the left info column. The state label always stays whole;
+   * when the row is too narrow the whole target ("· 21 °C") wraps onto a hidden second line
+   * instead of being cut inside the number (CURRENT_SPEC.md, Room Card).
+   */
   private renderSystemRow(
+    room: RoomConfig,
+    name: string,
     icon: TemplateResult,
     label: string,
     color: string,
@@ -668,18 +735,25 @@ export class HaKlimaDashboard extends LitElement {
     primary: boolean,
     action?: SystemRowAction,
   ): TemplateResult {
+    const spoken = `${label === "––" ? "neznámý stav" : label}${
+      extra ? ` ${extra.replace(/^·\s*/, "")}` : ""
+    }`;
     return html`
       <button
         type="button"
-        class="plain-button system-row ${primary ? "primary" : ""} ${strong ? "strong" : ""}"
+        class="plain-button system-row slot-${primary ? "hvac1" : "hvac2"} ${strong ? "strong" : ""}"
         style=${`--row-color: ${color}`}
         ?disabled=${!action}
-        aria-label=${action ? action.label : nothing}
+        aria-label=${`${room.name}: ${name}, ${spoken}${action ? ", ovládání" : ""}`}
         @click=${action?.onClick}
       >
-        <span class="system-icon">${icon}</span>
-        <span class="system-text">${label}</span>
-        ${extra ? html`<span class="system-extra">${extra}</span>` : nothing}
+        <span class="row-main">
+          <span class="row-icon">${icon}</span>
+          <span class="row-text">
+            <span class="row-label">${label}</span>
+            ${extra ? html`<span class="row-unit">${extra}</span>` : nothing}
+          </span>
+        </span>
       </button>
     `;
   }
@@ -699,28 +773,30 @@ export class HaKlimaDashboard extends LitElement {
     return html`
       <button
         type="button"
-        class="plain-button system-row window-row ${opened ? "strong" : ""}"
+        class="plain-button system-row slot-window ${opened ? "strong" : ""}"
         style=${`--row-color: ${color}`}
         ?disabled=${!entityId}
-        aria-label=${`${room.name}: okno, detail a historie`}
+        aria-label=${`${room.name}: okno ${unavailable ? "neznámé" : label.toLowerCase()}, detail a historie`}
         @click=${() => this.showMoreInfo(entityId)}
       >
-        <span class="system-icon">
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke=${unavailable ? COLORS.off : color}
-            stroke-width="1.8"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-dasharray=${unavailable ? "2 2.4" : nothing}
-            aria-hidden="true"
-          >
-            <rect x="5" y="3.5" width="14" height="17" rx="1.5"></rect>
-            <path d="M12 3.5v17M5 12h14"></path>
-          </svg>
+        <span class="row-main">
+          <span class="row-icon">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke=${unavailable ? COLORS.off : color}
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-dasharray=${unavailable ? "2 2.4" : nothing}
+              aria-hidden="true"
+            >
+              <rect x="5" y="3.5" width="14" height="17" rx="1.5"></rect>
+              <path d="M12 3.5v17M5 12h14"></path>
+            </svg>
+          </span>
+          <span class="row-text"><span class="row-label">${label}</span></span>
         </span>
-        <span class="system-text">${label}</span>
       </button>
     `;
   }

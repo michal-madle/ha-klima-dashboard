@@ -67,6 +67,21 @@ Formát každého bodu: **Navrženo** → **Opuštěno, protože** → **Nahraze
     - Opuštěno, protože: uživatel (23. 10.) rozhodl, že se na HVAC systémy odkazuje jen slovy **Topení** a **Klimatizace**; ID entit zůstávají beze změny.
     - Nahrazeno: názvy Topení / Klimatizace ve všech dokumentech, popiscích karty i v kódu. Klíče konfigurace místnosti: `tado` → `heating` (vnořené `heating` → `intensity`), `samsung` → `air_conditioner`. Starý zápis karta odmítne s chybovou hláškou.
 
+18. **Mikrotrend teploty hned za číslem teploty, mikrotrendy 60 px široké (24. 10. ráno)**
+    - Navrženo: mikrotrend teploty v bloku teplota/vlhkost; všechny tři mikrotrendy na svislici 120 px a široké jako panel žaluzie.
+    - Opuštěno, protože: uživatel (24. 10.) chce teplotu číst u systémů, které ji ovlivňují, a delší, čitelnější trendy; vpravo od trendů zůstávalo prázdné místo.
+    - Nahrazeno: dva stejně široké sloupce informačních řádků (hodnoty | trendy), trend teploty vedle řádků Topení a Klimatizace přes oba řádky.
+19. **Normalizace mikrotrendu na lokální minimum/maximum každé místnosti**
+    - Opuštěno, protože: místnost s 22–23 °C a místnost s 20–21 °C vypadaly stejně; trendy nešly mezi místnostmi porovnat.
+    - Nahrazeno: společnou osou veličiny pro celý dům (zaokrouhlení teplota 1 °C, CO₂ 100 ppm, PM2.5 5 µg/m³).
+20. **Hierarchie velikostí v informačních řádcích**
+    - Navrženo: primární HVAC řádek 15 px a vyšší, ostatní řádky 14 px, jednotky 11 px, ikona CO₂ 24 px a ostatní 20 px, text stavu 13 px.
+    - Opuštěno, protože: uživatel (24. 10.) chce stejnou velikost ikon, hodnot, popisků i jednotek napříč řádky.
+    - Nahrazeno: ikony 22 px, hodnoty, popisky, jednotky i text stavu 15 px; primární řádek jen polotučně.
+21. **Ilustrace místnosti jen s klíčem `scene`**
+    - Opuštěno, protože: uživatel klíč v konfiguraci neměl a ilustraci neviděl.
+    - Nahrazeno: výchozí ilustrace podle názvu místnosti, `scene` ji přepíše, `scene: none` vypne.
+
 ## Zamítnuté návrhy
 
 1. **„Prašno“** – PM2.5 může pocházet z vaření, krbu, svíček, smogu i inverze. Nahrazeno: „Znečištěný vzduch“.
@@ -106,4 +121,5 @@ Formát každého bodu: **Navrženo** → **Opuštěno, protože** → **Nahraze
 5. **v5 – sjednocení:** Topení Plán/Ručně/Vypnuto, vlny vytápění, ikony Klimatizace s barvami, chybějící data jako „––“ se zachovanou ikonou, panel bez rámečku, hlavička s venkovními podmínkami.
 6. **v6 – revize prototypu:** jeden sloupec – miniatura žaluzie od řádku CO₂ po okno (stálý počet lamel, naklopení = tloušťka, poloha = neprůhlednost), mikrotrendy teploty a CO₂, jednotná velikost písma informačních řádků, Klimatizace OFF = šedá ikona klimatizace, klikací 24h historie a graf CO₂/PM2.5.
    - Původní repozitářový kód v `src/` a první prototyp karty tento návrh nereflektují (stav uživatel potvrdil).
-7. **v7 – ovládání a Shelly presety (aktuální návrh, 24. 10.):** vlastní 24h grafy nahrazeny standardním detailem entity; přibyl popup ovládání Topení (Vypnuto / Plán / Ručně / Boost) a Klimatizace (režimy, předvolby); presety žaluzií jsou tři kulaté Shelly tlačítka spouštěná dvojitým klepnutím nebo dlouhým stiskem (Ráno zrušeno); mikrotrendy přesunuty k hodnotám; vlhkost a CO₂/PM2.5 bez dat bez barvy; volitelná ilustrace místnosti.
+7. **v7 – ovládání a Shelly presety (24. 10.):** vlastní 24h grafy nahrazeny standardním detailem entity; přibyl popup ovládání Topení (Vypnuto / Plán / Ručně / Boost) a Klimatizace (režimy, předvolby); presety žaluzií jsou tři kulaté Shelly tlačítka spouštěná dvojitým klepnutím nebo dlouhým stiskem (Ráno zrušeno); mikrotrendy přesunuty k hodnotám; vlhkost a CO₂/PM2.5 bez dat bez barvy; volitelná ilustrace místnosti.
+8. **v8 – sloupec trendů (aktuální návrh, 24. 10.):** informační řádky rozdělené na dva stejně široké sloupce (hodnoty | mikrotrendy), trend teploty u řádků Topení a Klimatizace, společná osa trendů pro celý dům, jednotná velikost ikon, hodnot a jednotek, výchozí ilustrace podle názvu místnosti.
