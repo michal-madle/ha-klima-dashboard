@@ -84,12 +84,17 @@ export type ClimateMode =
   | "auto"
   | "unknown";
 
+export type BlindPresetId = "dark" | "shade" | "morning" | "open";
+
 export interface BlindPreset {
-  id: string;
+  id: BlindPresetId;
+  /** Accessible name; the button itself shows only an icon. */
   label: string;
   description: string;
   position: number;
   tilt: number;
+  /** Accent colour of the icon and of the active state. */
+  tone: string;
 }
 
 export type DialogKind = "room" | "air";

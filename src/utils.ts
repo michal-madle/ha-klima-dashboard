@@ -11,12 +11,15 @@ import type {
 /** Script called by the blind presets (fields: entity, pos, tilt). */
 export const COVER_SCRIPT = { domain: "script", service: "zaluzie_posun" } as const;
 
-/** Position / tilt: 0 = closed (down / vertical slats), 100 = open (up / horizontal slats). */
+/**
+ * Position / tilt: 0 = closed (down / vertical slats), 100 = open (up / horizontal slats).
+ * The order is the order of the buttons from top to bottom.
+ */
 export const BLIND_PRESETS: BlindPreset[] = [
-  { id: "dark", label: "Tma", description: "úplné zatemnění", position: 0, tilt: 0 },
-  { id: "morning", label: "Ráno", description: "ranní prosvětlení", position: 35, tilt: 60 },
-  { id: "shade", label: "Stín", description: "spuštěno, lamely otevřené", position: 0, tilt: 100 },
-  { id: "open", label: "Den", description: "vytaženo nahoru", position: 100, tilt: 100 },
+  { id: "dark", label: "Tma", description: "úplné zatemnění", position: 0, tilt: 0, tone: "#A5A1F2" },
+  { id: "shade", label: "Stín", description: "spuštěno, lamely otevřené", position: 0, tilt: 100, tone: "#7FC8F8" },
+  { id: "morning", label: "Ráno", description: "ranní prosvětlení", position: 35, tilt: 60, tone: "#FFAA66" },
+  { id: "open", label: "Den", description: "vytaženo nahoru", position: 100, tilt: 100, tone: "#FFD84A" },
 ];
 
 /** Smallest range a trend is stretched over; flatter periods are drawn as stable. */
@@ -26,6 +29,13 @@ export const COLORS = {
   background: "#1C1C1E",
   open: "#D8D8DC",
   closed: "#6B6B70",
+  /** Lowered blind (champagne) and the window behind it (sky). */
+  blind: "#E8D9B5",
+  sky: "#64D2FF",
+  /** Air-quality icons and their micro trends. */
+  mint: "#5BD6B5",
+  /** Temperature micro trend. */
+  peach: "#FFB36B",
   label: "#9A9AA0",
   off: "#8E8E93",
   white: "#FFFFFF",

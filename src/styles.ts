@@ -57,8 +57,8 @@ export const styles = css`
       padding: 16px;
       border: 1px solid rgb(255 255 255 / 7%);
       border-radius: 24px;
-      background: #1c1c1e;
-      box-shadow: none;
+      background: linear-gradient(165deg, #232326 0%, #1c1c1e 55%);
+      box-shadow: inset 0 1px 0 rgb(255 255 255 / 6%);
       color: #ffffff;
       font: inherit;
       text-align: left;
@@ -89,9 +89,10 @@ export const styles = css`
 
     .room-title {
       overflow: hidden;
-      font-size: 19px;
-      font-weight: 500;
-      line-height: 24px;
+      font-size: 26px;
+      font-weight: 600;
+      letter-spacing: -0.4px;
+      line-height: 32px;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
@@ -135,7 +136,7 @@ export const styles = css`
     }
 
     .humidity {
-      color: #9a9aa0;
+      color: #7dbce0;
       font-size: 18px;
       line-height: 28px;
     }
@@ -144,45 +145,59 @@ export const styles = css`
       color: #8e8e93;
     }
 
-    .spark {
-      display: block;
-      flex: 0 0 auto;
-      align-self: center;
-      margin-left: 2px;
-      opacity: 0.85;
-    }
-
-    .hvac {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .hvac-rows {
-      min-width: 0;
-      flex: 1;
-    }
-
-    .hvac .spark {
-      margin-left: auto;
-    }
-
+    /*
+     * Lower part: info rows | micro trends | blind presets | blind panel.
+     * The trend column and the blind panel are equally wide (--col); the panel is as
+     * tall as the info rows (--info-height), so it starts at the CO₂ row.
+     */
     .lower {
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
+      --col: 60px;
+      --preset-col: 32px;
+      --air-height: 22px;
+      --primary-height: 28px;
+      --secondary-height: 24px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) var(--col) var(--preset-col) var(--col);
+      align-items: stretch;
+      column-gap: 6px;
     }
 
     .info {
       min-width: 0;
-      flex: 1;
+    }
+
+    .trends {
+      display: grid;
+      grid-template-rows:
+        var(--air-height) var(--air-height)
+        calc(var(--primary-height) + var(--secondary-height));
+      min-width: 0;
+    }
+
+    .trend-cell {
+      display: flex;
+      align-items: center;
+      min-width: 0;
+    }
+
+    .spark {
+      display: block;
+      width: 100%;
+    }
+
+    .trend-cell.air .spark {
+      height: 18px;
+    }
+
+    .trend-cell.hvac .spark {
+      height: 44px;
     }
 
     .air-row {
       display: flex;
       align-items: center;
       width: 100%;
-      min-height: 22px;
+      height: var(--air-height);
       gap: 8px;
       font-size: 14px;
       line-height: 22px;
@@ -197,7 +212,7 @@ export const styles = css`
       flex: 0 0 24px;
       align-items: center;
       justify-content: center;
-      color: #9a9aa0;
+      color: #5bd6b5;
     }
 
     .air-icon ha-icon {
@@ -228,7 +243,7 @@ export const styles = css`
     }
 
     .system-row.primary {
-      height: 28px;
+      height: var(--primary-height);
       font-size: 15px;
     }
 
@@ -270,47 +285,44 @@ export const styles = css`
       font-size: 14px;
     }
 
-    .cover-column {
-      display: flex;
-      width: 76px;
-      flex: 0 0 76px;
-      flex-direction: column;
-      gap: 6px;
-    }
-
+    /* One column of four icon buttons, as tall as the blind panel. */
     .presets {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-rows: repeat(4, 1fr);
       gap: 4px;
     }
 
     .preset {
-      height: 24px;
-      border: 1px solid rgb(255 255 255 / 14%);
-      border-radius: 8px;
-      background: rgb(255 255 255 / 6%);
-      color: #d8d8dc;
-      font-size: 11px;
-      line-height: 22px;
-      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgb(255 255 255 / 8%);
+      border-radius: 10px;
+      background: rgb(255 255 255 / 5%);
+      color: var(--tone);
+    }
+
+    .preset svg {
+      display: block;
+      width: 18px;
+      height: 18px;
     }
 
     .preset[aria-pressed="true"] {
-      border-color: rgb(255 255 255 / 40%);
-      background: rgb(255 255 255 / 20%);
-      color: #ffffff;
+      border-color: color-mix(in srgb, var(--tone) 55%, transparent);
+      background: color-mix(in srgb, var(--tone) 20%, transparent);
     }
 
     .cover-panel {
       display: block;
-      width: 76px;
-      height: 72px;
+      min-width: 0;
+      height: 100%;
     }
 
     .cover-panel svg {
       display: block;
-      width: 76px;
-      height: 72px;
+      width: 100%;
+      height: 100%;
     }
 
     .backdrop {
@@ -407,17 +419,9 @@ export const styles = css`
       }
 
       .lower {
-        gap: 8px;
-      }
-
-      .cover-column,
-      .cover-panel,
-      .cover-panel svg {
-        width: 68px;
-      }
-
-      .cover-column {
-        flex-basis: 68px;
+        --col: 52px;
+        --preset-col: 30px;
+        column-gap: 5px;
       }
     }
 `;

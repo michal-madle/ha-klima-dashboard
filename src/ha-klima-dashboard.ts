@@ -4,6 +4,7 @@ import type { PropertyValues, TemplateResult } from "lit";
 import { BLIND_HEIGHT, BLIND_WIDTH, renderBlindShape } from "./blind";
 import { hasChartData, renderAirChart, renderRoomChart } from "./charts";
 import { DEFAULT_THRESHOLDS, HOUSE_MODE_ENTITY, normalizeConfig } from "./config";
+import { renderParticlesIcon, renderPresetIcon } from "./icons";
 import {
   HOUR_MS,
   TREND_SAMPLES,
@@ -296,57 +297,47 @@ export class HaKlimaDashboard extends LitElement {
               "ppm",
               thresholds.co2_warning,
               thresholds.co2_critical,
-              room.carbon_dioxide,
-              TREND_MIN_SPAN.co2,
             )}
             ${this.renderAirRow(
               room,
-              this.renderParticlesIcon(),
+              renderParticlesIcon(),
               "PM2.5",
               pm25,
               "µg/m³",
               thresholds.pm25_warning,
               thresholds.pm25_critical,
-              room.pm25,
-              TREND_MIN_SPAN.pm25,
             )}
-            <div class="hvac">
-              <div class="hvac-rows">
-                ${primaryIsClimate
-                  ? this.renderClimate(room.air_conditioner, true)
-                  : this.renderHeating(room.heating, true)}
-                ${primaryIsClimate
-                  ? this.renderHeating(room.heating, false)
-                  : this.renderClimate(room.air_conditioner, false)}
-              </div>
-              ${this.renderSpark(room.temperature, TREND_MIN_SPAN.temperature, "Trend teploty", 48, 40)}
-            </div>
+            ${primaryIsClimate
+              ? this.renderClimate(room.air_conditioner, true)
+              : this.renderHeating(room.heating, true)}
+            ${primaryIsClimate
+              ? this.renderHeating(room.heating, false)
+              : this.renderClimate(room.air_conditioner, false)}
             ${this.renderWindow(room.window)}
           </div>
-          ${room.cover ? this.renderCover(room, room.cover) : html`<div class="cover-column"></div>`}
+          <div class="trends">
+            <div class="trend-cell air">
+              ${this.renderSpark(room.carbon_dioxide, TREND_MIN_SPAN.co2, "Trend CO₂", 18, COLORS.mint)}
+            </div>
+            <div class="trend-cell air">
+              ${this.renderSpark(room.pm25, TREND_MIN_SPAN.pm25, "Trend PM2.5", 18, COLORS.mint)}
+            </div>
+            <div class="trend-cell hvac">
+              ${this.renderSpark(
+                room.temperature,
+                TREND_MIN_SPAN.temperature,
+                "Trend teploty",
+                44,
+                COLORS.peach,
+              )}
+            </div>
+          </div>
+          ${room.cover
+            ? this.renderCover(room, room.cover)
+            : html`<div class="presets" aria-hidden="true"></div>
+                <div class="cover-panel" aria-hidden="true"></div>`}
         </div>
       </article>
-    `;
-  }
-
-  /** PM2.5 icon: scattered dots of different sizes, no frame and no text (CURRENT_SPEC.md, Room Card). */
-  private renderParticlesIcon(): TemplateResult {
-    const dots: Array<[number, number, number]> = [
-      [5.5, 6, 1.9],
-      [12.5, 3.8, 1.4],
-      [19, 6.5, 2.1],
-      [9.5, 11, 2.3],
-      [16.5, 12.5, 1.5],
-      [4.5, 15.5, 1.5],
-      [20, 18.5, 1.7],
-      [11.5, 18, 1.7],
-      [7, 20.5, 1.9],
-      [15, 21, 1.4],
-    ];
-    return html`
-      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-        ${dots.map(([cx, cy, r]) => svg`<circle cx=${cx} cy=${cy} r=${r}></circle>`)}
-      </svg>
     `;
   }
 
@@ -358,8 +349,6 @@ export class HaKlimaDashboard extends LitElement {
     unit: string,
     warningThreshold: number,
     criticalThreshold: number,
-    entityId: EntityId | undefined,
-    minSpan: number,
   ): TemplateResult {
     const color =
       reading.value === undefined
@@ -384,52 +373,64 @@ export class HaKlimaDashboard extends LitElement {
           ? html`<span style=${`color: ${COLORS.label}`}>––</span>`
           : html`<span style=${`color: ${color}`}>${Math.round(reading.value)}</span>
               <span class="air-value-unit">${unit}</span>`}
-        ${this.renderSpark(entityId, minSpan, `Trend ${label}`)}
       </button>
     `;
   }
 
+  /**
+   * Micro trend (CURRENT_SPEC.md, Historie a grafy): the last 120 minutes as one thin line
+   * with a soft area and a dot at the latest sample. It is as wide as the blind panel.
+   */
   private renderSpark(
     entityId: EntityId | undefined,
     minSpan: number,
     label: string,
-    width = 44,
-    height = 14,
+    height: number,
+    color: string,
   ): TemplateResult | typeof nothing {
     const samples = entityId ? this._trends[entityId] : undefined;
     if (!samples) {
       return nothing;
     }
+    const width = BLIND_WIDTH;
     const normalized = normalizeTrend(samples, minSpan);
-    const pad = 2;
+    const padX = 3;
+    const padY = 4;
     const points = normalized
       .map((value, index) =>
         value === undefined
           ? undefined
-          : `${((index / (TREND_SAMPLES - 1)) * width).toFixed(1)},${(
-              pad +
-              (1 - value) * (height - 2 * pad)
-            ).toFixed(1)}`,
+          : {
+              x: padX + (index / (TREND_SAMPLES - 1)) * (width - 2 * padX),
+              y: padY + (1 - value) * (height - 2 * padY),
+            },
       )
-      .filter((point): point is string => point !== undefined);
+      .filter((point): point is { x: number; y: number } => point !== undefined);
     if (points.length < 2) {
       return nothing;
     }
+    const line = points.map((point) => `${point.x.toFixed(1)},${point.y.toFixed(1)}`).join(" ");
+    const first = points[0];
+    const last = points[points.length - 1];
+    const area = `${line} ${last.x.toFixed(1)},${height} ${first.x.toFixed(1)},${height}`;
     return html`<svg
       class="spark"
       viewBox="0 0 ${width} ${height}"
-      style=${`width: ${width}px; height: ${height}px; flex-basis: ${width}px`}
+      preserveAspectRatio="none"
       aria-hidden="true"
       data-label=${label}
     >
+      <polygon points=${area} fill=${color} fill-opacity="0.08"></polygon>
       <polyline
-        points=${points.join(" ")}
+        points=${line}
         fill="none"
-        stroke=${COLORS.label}
-        stroke-width="1.4"
+        stroke=${color}
+        stroke-width="1.6"
         stroke-linecap="round"
         stroke-linejoin="round"
+        vector-effect="non-scaling-stroke"
       ></polyline>
+      <circle cx=${last.x.toFixed(1)} cy=${last.y.toFixed(1)} r="2.2" fill=${color}></circle>
     </svg>`;
   }
 
@@ -630,8 +631,8 @@ export class HaKlimaDashboard extends LitElement {
     const unavailable = state === undefined || isUnavailable(state);
     const opened = state === "on";
     // Red is reserved for critical air values (CURRENT_SPEC.md, Barvy); an open window is
-    // only emphasised.
-    const color = unavailable ? COLORS.label : opened ? COLORS.white : COLORS.label;
+    // emphasised in light sky blue.
+    const color = unavailable ? COLORS.label : opened ? COLORS.sky : COLORS.label;
     const label = unavailable ? "––" : opened ? "Otevřeno" : "Zavřeno";
 
     return html`
@@ -669,21 +670,23 @@ export class HaKlimaDashboard extends LitElement {
       : "poloha nebo naklopení neznámé";
 
     return html`
-      <div class="cover-column">
-        <div class="presets" role="group" aria-label=${`${room.name}: předvolby žaluzií`}>
-          ${BLIND_PRESETS.map((preset) => this.renderPreset(room, preset, position, tilt))}
-        </div>
-        <button
-          type="button"
-          class="plain-button cover-panel"
-          aria-label=${`${room.name}: žaluzie, ${description}. Otevřít ovládání.`}
-          @click=${() => this.showMoreInfo(entityId)}
-        >
-          <svg viewBox="0 0 ${BLIND_WIDTH} ${BLIND_HEIGHT}" aria-hidden="true">
-            ${renderBlindShape(position, tilt)}
-          </svg>
-        </button>
+      <div class="presets" role="group" aria-label=${`${room.name}: předvolby žaluzií`}>
+        ${BLIND_PRESETS.map((preset) => this.renderPreset(room, preset, position, tilt))}
       </div>
+      <button
+        type="button"
+        class="plain-button cover-panel"
+        aria-label=${`${room.name}: žaluzie, ${description}. Otevřít ovládání.`}
+        @click=${() => this.showMoreInfo(entityId)}
+      >
+        <svg
+          viewBox="0 0 ${BLIND_WIDTH} ${BLIND_HEIGHT}"
+          preserveAspectRatio="none"
+          aria-hidden="true"
+        >
+          ${renderBlindShape(position, tilt)}
+        </svg>
+      </button>
     `;
   }
 
@@ -703,11 +706,13 @@ export class HaKlimaDashboard extends LitElement {
       <button
         type="button"
         class="plain-button preset"
+        style=${`--tone: ${preset.tone}`}
+        title=${preset.label}
         aria-pressed=${active ? "true" : "false"}
-        aria-label=${`${room.name}: žaluzie ${preset.description} (poloha ${preset.position} %, naklopení ${preset.tilt} %)`}
+        aria-label=${`${room.name}: žaluzie ${preset.label}, ${preset.description} (poloha ${preset.position} %, naklopení ${preset.tilt} %)`}
         @click=${() => void this.applyPreset(room, preset)}
       >
-        ${preset.label}
+        ${renderPresetIcon(preset.id)}
       </button>
     `;
   }

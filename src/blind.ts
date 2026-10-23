@@ -2,21 +2,24 @@ import { svg } from "lit";
 import type { TemplateResult } from "lit";
 import { COLORS } from "./utils";
 
-export const BLIND_WIDTH = 76;
-export const BLIND_HEIGHT = 72;
+/** Width shared by the blind panel and the micro-trend column. */
+export const BLIND_WIDTH = 60;
+/** Height of the info rows from CO₂ to the window row: 22 + 22 + 28 + 24 + 26 px (see styles.ts). */
+export const BLIND_HEIGHT = 122;
 
-const SLAT_COUNT = 12;
+const SLAT_COUNT = 18;
 const RAIL_HEIGHT = 3;
 const MIN_GAP = 0.8;
 const MIN_SLAT = 1;
-const WINDOW_OPACITY = 0.2;
+const WINDOW_OPACITY = 0.28;
 
 /**
  * Miniature of a real blind seen from inside (see CURRENT_SPEC.md, Žaluzie).
  * Constant slat count; tilt only changes slat thickness (0 % nearly solid,
  * 100 % thin lines). Position splits the column: the lowered upper part is
- * fully opaque, the raised lower part (the window) keeps the slat structure
- * at 20 % opacity. Position 100 % highlights only the top rail, 0 % everything.
+ * the blind itself (champagne, fully opaque); the raised lower part is the
+ * window behind it, keeps the slat structure and is tinted like the sky.
+ * Position 100 % highlights only the top rail, 0 % everything.
  * An unknown position or tilt is a dashed silhouette, never a zero.
  */
 export function renderBlindShape(
@@ -52,7 +55,7 @@ export function renderBlindShape(
       width=${BLIND_WIDTH}
       height=${slatHeight.toFixed(2)}
       rx=${Math.min(1.5, slatHeight / 2).toFixed(2)}
-      fill=${COLORS.open}
+      fill=${lowered ? COLORS.blind : COLORS.sky}
       opacity=${lowered ? 1 : WINDOW_OPACITY}
     ></rect>`;
   });
@@ -63,6 +66,6 @@ export function renderBlindShape(
       width=${BLIND_WIDTH}
       height=${RAIL_HEIGHT}
       rx="1.5"
-      fill=${COLORS.open}
+      fill=${COLORS.blind}
     ></rect>${slats}`;
 }

@@ -23,13 +23,13 @@ Co není v Memory rozhodnuto, je uvedeno v sekci „Chybějící data“ a v `AU
 ## Room Card
 
 - Všechny karty mají stejné rozložení. Obývák má stejné rozložení bez žaluzií (prázdné místo se akceptuje).
-- Hlavička karty: název místnosti + stav místnosti, přes celou šířku.
-- Vlevo informační řádky v tomto pořadí: teplota + vlhkost (vedle sebe) → CO₂ → PM2.5 → první HVAC řádek → druhý HVAC řádek → okno.
-- Vpravo panel žaluzie (viz Žaluzie), začíná u řádku CO₂ a končí u řádku okna; nezasahuje do hlavičky ani k bloku teplota/vlhkost.
+- Hlavička karty: název místnosti + stav místnosti, přes celou šířku. Název místnosti je největší text karty po teplotě (26 px, polotučně).
+- Pod hlavičkou je blok teplota + vlhkost (vedle sebe) a pod ním čtyři sloupce zleva doprava: informační řádky | mikrotrendy | tlačítka předvoleb žaluzií | panel žaluzie. Informační řádky jsou v pořadí CO₂ → PM2.5 → první HVAC řádek → druhý HVAC řádek → okno.
+- Panel žaluzie (viz Žaluzie) začíná u řádku CO₂ a končí u řádku okna; má stejnou výšku jako informační řádky a nezasahuje do hlavičky ani k bloku teplota/vlhkost.
 - Teplota je dominantní; vlhkost vedle ní je sekundární, ve velikosti navazující na „°C“. Formát: „20,4 °C  46 %“, české formátování čísel.
 - Teplota, vlhkost, CO₂ a PM2.5 pocházejí výhradně z IKEA ALPSTUGA. Teplota z Topení se pro kartu nepoužívá (Topení měří u radiátoru pod oknem).
-- CO₂ a PM2.5 mají jen ikonu, bez textového popisku. CO₂: ikona molekuly CO₂ (`mdi:molecule-co2`, schválená). PM2.5: vlastní ikona z rozptýlených teček různé velikosti, bez rámečku a bez textu. Ikona má barvu `#9A9AA0` a podle hodnoty se nemění; číslo se barví jen při překročení prahu. Význam ikony čtečkám obrazovky sděluje `aria-label` řádku.
-- Mikrotrendy (viz Historie a grafy) jsou na kartě právě tři: CO₂ a PM2.5 vedle hodnoty ve svém řádku; teplota jedním mikrotrendem napravo od řádků Topení a Klimatizace, přes výšku obou těchto HVAC řádků (pod řádky CO₂ a PM2.5).
+- CO₂ a PM2.5 mají jen ikonu, bez textového popisku. CO₂: ikona molekuly CO₂ (`mdi:molecule-co2`, schválená). PM2.5: vlastní ikona z rozptýlených teček různé velikosti, bez rámečku a bez textu. Obě ikony mají jemnou mátovou barvu (testovací `#5BD6B5`) a podle hodnoty se nemění; číslo se barví jen při překročení prahu. Význam ikony čtečkám obrazovky sděluje `aria-label` řádku.
+- Mikrotrendy (viz Historie a grafy) jsou na kartě právě tři, zarovnané pod sebou v jednom sloupci vpravo za informačními řádky (za textem „Plán · 21 °C“), a sloupec je stejně široký jako panel žaluzie. CO₂ a PM2.5 leží každý ve výšce svého řádku, teplota jedním mikrotrendem přes výšku obou HVAC řádků.
 
 ## HVAC logika
 
@@ -104,21 +104,22 @@ Stav místnosti je lidské zhodnocení prostředí, ne příkaz. Platí první s
 - Ložnice, Pracovna, Maxík, Mikuláš mají žaluzie (Shelly); Obývák nemá. Panel i tlačítka předvoleb se zobrazí jen u místnosti, která má v konfiguraci karty entitu `cover`.
 - Poloha: 100 % = otevřeno (nahoře), 0 % = zavřeno (dole). Naklopení: 100 % = lamely otevřené (vodorovně), 0 % = zavřené (svisle).
 - Panel je jeden svislý sloupec, miniatura reálné žaluzie viděné zevnitř; bez rámečku, textu, procent, popisků a slovních stavů.
-- Šířka ≈ původní dvojice ukazatelů zvětšená o 20–30 %. Stálý počet lamel.
+- Výška panelu = výška informačních řádků (od řádku CO₂ po řádek okna). Šířka panelu = šířka sloupce mikrotrendů (na iPhonu 14 Pro 60 px, na užších displejích menší). Stálý počet lamel.
 - Naklopení mění jen tloušťku lamel: 0 % téměř splývají v plnou plochu (tenká mezera), 100 % velmi tenké linky s mezerami.
-- Poloha dělí sloupec: spuštěná horní část 100 % neprůhledná, dolní část představuje okno a zachovává strukturu lamel při 20 % neprůhlednosti. Poloha 100 % = zvýrazněna jen horní linka; poloha 0 % = zvýrazněno celé shora dolů.
+- Poloha dělí sloupec: spuštěná horní část (žaluzie) je 100 % neprůhledná, dolní část představuje okno, zachovává strukturu lamel a je v barvě oblohy při přibližně 28 % neprůhlednosti. Poloha 100 % = zvýrazněna jen horní linka; poloha 0 % = zvýrazněno celé shora dolů.
 - Neznámá poloha nebo naklopení = přerušovaná silueta panelu; nikdy se nebere jako 0.
 - Panel je pouze zobrazení; klepnutí otevře standardní ovládání krytu.
-- Nad panelem žaluzie jsou čtyři tlačítka s předvolbami, rozložená 2×2 v šířce panelu. Hodnoty jsou poloha / naklopení v %:
+- Vlevo od panelu žaluzie je jeden sloupec čtyř tlačítek s předvolbami, přes stejnou výšku jako panel, v pořadí shora dolů Tma, Stín, Ráno, Den. Tlačítka mají jen ikonu, bez textu; název je v `aria-label` a v `title`. Ikony tvoří jednu rodinu čárových ikon (stejná tloušťka čáry, zaoblené konce) a vyprávějí světlo během dne. Hodnoty jsou poloha / naklopení v %:
 
-| Tlačítko | Poloha / naklopení | Význam |
-|---|---|---|
-| Tma | 0 / 0 | úplné zatemnění |
-| Ráno | 35 / 60 | částečně povysunuto (ranní prosvětlení) |
-| Stín | 0 / 100 | sjeté dolů, lamely otevřené |
-| Den | 100 / 100 | vysunuto nahoru |
+| Pořadí | Tlačítko | Ikona | Poloha / naklopení | Význam |
+|---|---|---|---|---|
+| 1 | Tma | měsíc | 0 / 0 | úplné zatemnění |
+| 2 | Stín | slunečník | 0 / 100 | sjeté dolů, lamely otevřené |
+| 3 | Ráno | východ slunce | 35 / 60 | částečně povysunuto (ranní prosvětlení) |
+| 4 | Den | slunce | 100 / 100 | vysunuto nahoru |
 
-- Tlačítka jsou první verze; po vyzkoušení se mohou upravit (velikost, texty).
+- Tlačítko, jehož hodnoty odpovídají aktuálnímu stavu žaluzie (tolerance ±2 %), je zvýrazněné barvou své ikony.
+- Tlačítka jsou první verze; po vyzkoušení se mohou upravit (velikost, ikony).
 
 ## Detail místnosti
 
@@ -128,7 +129,7 @@ Stav místnosti je lidské zhodnocení prostředí, ne příkaz. Platí první s
 
 - „Historie místnosti – 24 h“ (inspirace iOS aplikací pro ovládání topení): plošné šedé pozadí + hlavní křivka teploty; modrá přerušovaná křivka vlhkosti; dole časové vrstvy Topení (Plán / Ručně / Vypnuto) a Klimatizace (barvy podle režimu); intenzita vytápění jako intenzita výplně 0–3 vln mezi časovou vrstvou a křivkou teploty.
 - CO₂ a PM2.5: jeden společný 24h graf.
-- Mikrotrendy (jen CO₂, PM2.5 a teplota): CO₂ a PM2.5 bezprostředně za hodnotou ve stejném řádku, teplota jedním mikrotrendem napravo od řádků Topení a Klimatizace přes jejich výšku; posledních 120 minut, 12 vzorků, normalizace na lokální minimum/maximum zobrazeného období; bez os, popisků, rámečku, bublin a interakce; jedna jemná barva; na první pohled patrné zlepšování / zhoršování / stabilita.
+- Mikrotrendy (jen CO₂, PM2.5 a teplota; umístění viz Room Card): posledních 120 minut, 12 vzorků, normalizace na lokální minimum/maximum zobrazeného období; bez os, popisků, rámečku, bublin a interakce; každý jednou jemnou barvou (CO₂ a PM2.5 mátová, teplota broskvová), tenká čára s velmi jemnou plochou pod ní a tečkou na posledním vzorku; na první pohled patrné zlepšování / zhoršování / stabilita.
 
 ## Klikací akce
 
@@ -147,12 +148,13 @@ Stav místnosti je lidské zhodnocení prostředí, ne příkaz. Platí první s
 - Všechny informační řádky (CO₂, PM2.5, Topení, Klimatizace, okno) mají ikonu ve stejném sloupci; hodnoty a texty řádků začínají ve stejné svislici.
 - Řádek, který nemá data, zachová svou ikonu a zobrazí „––“.
 - Normální stav nemá dominantní zelenou. Vypnuto je šedé. Topení Ručně je zřetelně zvýrazněné.
-- Okno: jeden řádek Zavřeno / Otevřeno. Zdroj stavu okna je výhradně IKEA MYGGBETT.
+- Okno: jeden řádek Zavřeno / Otevřeno. Zdroj stavu okna je výhradně IKEA MYGGBETT. Otevřené okno je světle modré (barva oblohy, testovací `#64D2FF`) včetně ikony, zavřené je šedé.
 - Žádné slovní stavy žaluzií, žádná procenta u žaluzií a vytápění.
 
 ## Barvy
 
-- Pouze testovací paleta (není finální; ověřit kontrast, čitelnost venku a vzhled na OLED): otevřené žaluzie `#D8D8DC`, ikony CO₂/PM2.5 a vedlejší texty `#9A9AA0`, Klimatizace OFF `#8E8E93`, zavřené žaluzie `#6B6B70`.
+- Pouze testovací paleta (není finální; ověřit kontrast, čitelnost venku a vzhled na OLED): spuštěná žaluzie šampaňská `#E8D9B5`, okno za žaluzií a otevřené okno obloha `#64D2FF`, vedlejší texty `#9A9AA0`, Klimatizace OFF `#8E8E93`, zavřené žaluzie `#6B6B70`, ikony CO₂/PM2.5 a jejich mikrotrendy máta `#5BD6B5`, mikrotrend teploty broskev `#FFB36B`, vlhkost jemně modrá `#7DBCE0`.
+- Ikony předvoleb žaluzií mají každá svou barvu: Tma `#A5A1F2`, Stín `#7FC8F8`, Ráno `#FFAA66`, Den `#FFD84A`.
 - Oranžová = varování (CO₂ 1000+, PM2.5 15+), červená = kritické (CO₂ 1500+, PM2.5 35+).
 - Neznámá hodnota není nikdy červená ani alarm.
 - Ostatní barvy (režimy Klimatizace, Plán/Ručně, vlhkost) nejsou v Memory rozhodnuty, kromě pravidel výše: Větrání = barva Plánu; běžící Klimatizace ≠ OFF; křivka vlhkosti modrá.

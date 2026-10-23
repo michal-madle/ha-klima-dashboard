@@ -87,7 +87,7 @@ Každá místnost má volitelné klíče `temperature`, `humidity`, `carbon_diox
 
 - Klepnutí na teplotu otevře dialog „Historie místnosti – 24 h“; klepnutí na CO₂ nebo PM2.5 otevře společný 24h graf. Dialogy jsou součástí karty a historii čtou z recorderu Home Assistantu.
 - Klepnutí na panel žaluzie otevře standardní ovládání krytu.
-- Čtyři tlačítka nad panelem žaluzie (Tma 0/0, Ráno 35/60, Stín 0/100, Den 100/100; poloha/naklopení) volají službu `script.zaluzie_posun` s poli `entity`, `pos` a `tilt`. Skript musí v Home Assistantu existovat.
+- Čtyři tlačítka s ikonami v jednom sloupci vlevo od panelu žaluzie (shora Tma 0/0 měsíc, Stín 0/100 slunečník, Ráno 35/60 východ slunce, Den 100/100 slunce; poloha/naklopení) volají službu `script.zaluzie_posun` s poli `entity`, `pos` a `tilt`. Skript musí v Home Assistantu existovat. Název tlačítka se ukáže jako nápověda při najetí myší a čtečka obrazovky ho přečte.
 - Mikrotrendy teploty, CO₂ a PM2.5 (posledních 120 minut) se obnovují každých 5 minut.
 - Klepnutí nic nepřepíná ani nevypíná. Dlouhý stisk zatím nemá žádnou funkci.
 
