@@ -52,16 +52,42 @@ interface DashboardThresholds {
 interface DashboardConfig {
   type: string;
   title?: string;
-  house_mode_entity: EntityId;
+  house_mode_entity?: EntityId;
   outside?: OutsideConfig;
   rooms: RoomConfig[];
   thresholds?: Partial<DashboardThresholds>;
 }
 
 interface Reading {
-  text: string;
   value?: number;
 }
+
+interface RoomStatus {
+  label: string;
+  color: string;
+  kind: "normal" | "warning" | "critical" | "unknown";
+}
+
+type SamsungMode = "off" | "cool" | "wind_free" | "dry" | "fan" | "heat" | "auto" | "unknown";
+
+const HOUSE_MODE_ENTITY = "input_select.house_mode";
+
+const COLORS = {
+  background: "#1C1C1E",
+  open: "#D8D8DC",
+  closed: "#6B6B70",
+  label: "#9A9AA0",
+  off: "#8E8E93",
+  white: "#FFFFFF",
+  plan: "#F2F2F7",
+  warning: "#FF9F0A",
+  alert: "#FF453A",
+  cold: "#64D2FF",
+  cool: "#64D2FF",
+  dry: "#FFD60A",
+  heat: "#FF9F0A",
+  auto: "#BF5AF2",
+};
 
 const DEFAULT_THRESHOLDS: DashboardThresholds = {
   humidity_min: 35,
@@ -76,7 +102,27 @@ const DEFAULT_THRESHOLDS: DashboardThresholds = {
   summer_max: 25,
 };
 
-const ROOM_NAMES = ["Ložnice", "Pracovna", "Maxík", "Mikuláš", "Obývací pokoj"];
+const SAMSUNG_COLORS: Record<SamsungMode, string> = {
+  off: COLORS.off,
+  cool: COLORS.cool,
+  wind_free: COLORS.cool,
+  dry: COLORS.dry,
+  fan: COLORS.plan,
+  heat: COLORS.heat,
+  auto: COLORS.auto,
+  unknown: COLORS.off,
+};
+
+const SAMSUNG_LABELS: Record<SamsungMode, string> = {
+  off: "Vypnuto",
+  cool: "Chlazení",
+  wind_free: "WindFree",
+  dry: "Sušení",
+  fan: "Větrání",
+  heat: "Topení",
+  auto: "Auto",
+  unknown: "––",
+};
 
 class HaKlimaDashboard extends LitElement {
   static styles = css`
@@ -86,15 +132,19 @@ class HaKlimaDashboard extends LitElement {
     }
 
     ha-card {
-      overflow: hidden;
+      overflow: visible;
+      border: 0;
+      background: transparent;
+      box-shadow: none;
     }
 
     .dashboard {
-      padding: 18px;
+      display: grid;
+      gap: 12px;
     }
 
     .dashboard-header {
-      margin: 0 0 14px;
+      padding: 0 4px;
     }
 
     h1 {
@@ -115,123 +165,166 @@ class HaKlimaDashboard extends LitElement {
 
     .rooms {
       display: grid;
-      gap: 10px;
+      gap: 12px;
     }
 
     .room {
-      padding: 14px;
-      border-radius: 16px;
-      background: var(--ha-card-background, var(--card-background-color));
-      box-shadow: 0 1px 5px rgb(0 0 0 / 9%);
+      display: block;
+      box-sizing: border-box;
+      width: 100%;
+      padding: 16px;
+      border: 1px solid rgb(255 255 255 / 7%);
+      border-radius: 24px;
+      background: #1c1c1e;
+      box-shadow: none;
+      color: #ffffff;
+      cursor: pointer;
+      font: inherit;
+      text-align: left;
+      -webkit-tap-highlight-color: transparent;
     }
 
-    .room-main {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) 42px;
-      gap: 0 12px;
-      min-width: 0;
+    .room:focus-visible {
+      outline: 2px solid var(--primary-color, #64b5f6);
+      outline-offset: 2px;
     }
 
-    .room-header {
-      grid-column: 1 / -1;
-      display: flex;
-      align-items: baseline;
-      justify-content: space-between;
-      gap: 8px;
-      margin-bottom: 10px;
-    }
-
-    h2 {
+    .room-title {
       overflow: hidden;
-      margin: 0;
-      font-size: 1.05rem;
-      font-weight: 650;
+      font-size: 19px;
+      font-weight: 500;
+      line-height: 24px;
       text-overflow: ellipsis;
       white-space: nowrap;
     }
 
-    .status {
-      flex: 0 0 auto;
-      color: var(--secondary-text-color);
-      font-size: 0.9rem;
-      text-align: right;
+    .status-line {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 18px;
+      font-size: 13px;
+      line-height: 18px;
     }
 
-    .status.warning,
-    .reading.warning {
-      color: var(--warning-color, #d97706);
-    }
-
-    .status.critical,
-    .reading.critical {
-      color: var(--error-color, #c62828);
+    .status-dot {
+      box-sizing: border-box;
+      width: 7px;
+      height: 7px;
+      flex: 0 0 7px;
+      border-radius: 50%;
     }
 
     .measurements {
-      grid-column: 1 / -1;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-bottom: 9px;
-    }
-
-    .measurement {
       display: flex;
       align-items: baseline;
-      gap: 5px;
-      min-width: 0;
-      font-size: 1.2rem;
+      gap: 14px;
+      min-height: 44px;
+      margin: 8px 0;
       font-variant-numeric: tabular-nums;
-      font-weight: 600;
     }
 
-    .measurement-label {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      overflow: hidden;
-      clip: rect(0, 0, 0, 0);
-      white-space: nowrap;
-      clip-path: inset(50%);
+    .temperature {
+      font-size: 38px;
+      letter-spacing: -0.5px;
+      line-height: 44px;
+    }
+
+    .temperature-unit {
+      color: #9a9aa0;
+      font-size: 18px;
+      letter-spacing: 0;
+    }
+
+    .humidity {
+      color: #9a9aa0;
+      font-size: 20px;
+      line-height: 28px;
+    }
+
+    .missing {
+      color: #8e8e93;
     }
 
     .air {
-      grid-column: 1;
       display: grid;
-      gap: 5px;
-      margin-bottom: 9px;
+      gap: 0;
     }
 
-    .air-row,
-    .system-row {
+    .air-row {
       display: flex;
       align-items: center;
       min-height: 20px;
-      gap: 7px;
-      font-size: 0.9rem;
+      gap: 6px;
+      font-size: 14px;
+      line-height: 20px;
+      font-variant-numeric: tabular-nums;
     }
 
-    .air-row ha-icon,
-    .system-row ha-icon {
-      flex: 0 0 18px;
-      width: 18px;
-      height: 18px;
-      color: var(--secondary-text-color);
+    .air-row ha-icon {
+      width: 16px;
+      height: 16px;
+      flex: 0 0 16px;
+      color: #9a9aa0;
     }
 
     .air-label {
       width: 44px;
-      color: var(--secondary-text-color);
+      flex: 0 0 44px;
+      color: #9a9aa0;
+      font-size: 12px;
     }
 
-    .reading {
-      font-variant-numeric: tabular-nums;
+    .air-value-unit {
+      color: #9a9aa0;
+      font-size: 11px;
     }
 
-    .system-rows {
-      grid-column: 1;
-      display: grid;
-      gap: 4px;
+    .lower {
+      display: flex;
+      gap: 12px;
+      margin-top: 8px;
+    }
+
+    .system-list {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .system-row {
+      display: flex;
+      align-items: center;
+      box-sizing: border-box;
+      gap: 8px;
+      min-width: 0;
+      height: 24px;
+      color: var(--row-color);
+      font-size: 14px;
+      line-height: 20px;
+    }
+
+    .system-row.primary {
+      height: 28px;
+      font-size: 15px;
+    }
+
+    .system-row.strong {
+      font-weight: 500;
+    }
+
+    .system-icon {
+      display: flex;
+      width: 24px;
+      height: 24px;
+      flex: 0 0 24px;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .system-icon svg {
+      display: block;
+      width: 20px;
+      height: 20px;
     }
 
     .system-text {
@@ -241,98 +334,56 @@ class HaKlimaDashboard extends LitElement {
       white-space: nowrap;
     }
 
-    .manual {
-      color: var(--warning-color, #d97706);
-      font-weight: 600;
+    .system-extra {
+      flex: 0 0 auto;
+      color: #9a9aa0;
+      font-weight: 400;
     }
 
-    .off {
-      color: var(--secondary-text-color);
-    }
-
-    .heating {
-      display: inline-flex;
-      gap: 1px;
-      margin-left: auto;
-      color: var(--warning-color, #d97706);
-      font-size: 0.88rem;
-      letter-spacing: -2px;
+    .window-row {
+      height: 20px;
+      margin-top: 6px;
+      font-size: 13px;
     }
 
     .cover {
-      grid-column: 2;
-      grid-row: 3 / span 2;
-      display: flex;
-      align-items: stretch;
-      justify-content: center;
-      min-height: 100%;
-      padding: 4px 5px;
+      width: 60px;
+      height: 78px;
+      flex: 0 0 60px;
     }
 
-    .blind {
-      display: grid;
-      width: 28px;
-      min-height: 104px;
-      grid-template-rows: auto 1fr;
-      overflow: hidden;
-      border-radius: 5px;
-      background: color-mix(in srgb, var(--secondary-text-color) 8%, transparent);
+    .cover-placeholder {
+      width: 60px;
+      flex: 0 0 60px;
     }
 
-    .blind-rail {
-      height: 2px;
-      background: var(--secondary-text-color);
-      opacity: 0.8;
-    }
-
-    .blind-slats {
-      display: grid;
-      grid-template-rows: repeat(10, 1fr);
-      gap: 1px;
-      padding: 3px 2px;
-    }
-
-    .blind-slat {
-      border-radius: 2px;
-      background: var(--blind-color, #8e8e93);
-    }
-
-    .blind-slat.raised {
-      opacity: 0.25;
-    }
-
-    .blind.unknown {
-      border: 1px dashed var(--secondary-text-color);
-      background: transparent;
-    }
-
-    .blind.unknown .blind-slat {
-      border: 1px dashed var(--secondary-text-color);
-      background: transparent;
-    }
-
-    .no-cover {
-      grid-column: 2;
-      grid-row: 3 / span 2;
-      width: 28px;
+    .cover svg {
+      display: block;
+      width: 60px;
+      height: 78px;
     }
 
     @media (max-width: 380px) {
-      .dashboard {
+      .room {
         padding: 14px;
       }
 
-      .room {
-        padding: 12px;
+      .lower {
+        gap: 8px;
       }
 
-      .room-main {
-        grid-template-columns: minmax(0, 1fr) 36px;
-        gap: 0 8px;
+      .cover,
+      .cover svg {
+        width: 52px;
       }
 
-      .blind {
-        width: 24px;
+      .cover {
+        flex-basis: 52px;
+      }
+
+      .cover-placeholder {
+        width: 52px;
+        flex-basis: 52px;
       }
     }
   `;
@@ -344,8 +395,11 @@ class HaKlimaDashboard extends LitElement {
     if (!config || !Array.isArray(config.rooms) || config.rooms.length === 0) {
       throw new Error("Klima Dashboard requires a non-empty rooms list.");
     }
-    if (typeof config.house_mode_entity !== "string" || !config.house_mode_entity.trim()) {
-      throw new Error("Klima Dashboard requires house_mode_entity.");
+    if (
+      config.house_mode_entity !== undefined &&
+      (typeof config.house_mode_entity !== "string" || !config.house_mode_entity.trim())
+    ) {
+      throw new Error("house_mode_entity must be a non-empty entity ID.");
     }
     for (const room of config.rooms) {
       if (!room || typeof room.name !== "string" || !room.name.trim()) {
@@ -378,7 +432,7 @@ class HaKlimaDashboard extends LitElement {
   }
 
   getCardSize(): number {
-    return 2 + (this._config?.rooms.length ?? ROOM_NAMES.length) * 4;
+    return 2 + (this._config?.rooms.length ?? 1) * 4;
   }
 
   render(): TemplateResult | typeof nothing {
@@ -386,9 +440,9 @@ class HaKlimaDashboard extends LitElement {
       return nothing;
     }
 
-    const mode = this.getState(this._config.house_mode_entity)?.state;
-    const isSummer = mode === "Léto";
-    const modeKnown = mode === "Léto" || mode === "Zima";
+    const mode = this.entityState(this._config.house_mode_entity ?? HOUSE_MODE_ENTITY)?.toLowerCase();
+    const isSummer = mode === "léto" || mode === "leto";
+    const modeKnown = isSummer || mode === "zima";
     const thresholds = { ...DEFAULT_THRESHOLDS, ...this._config.thresholds };
 
     return html`
@@ -414,22 +468,19 @@ class HaKlimaDashboard extends LitElement {
       return nothing;
     }
 
-    const temperature = this.reading(outside.temperature, "°C");
-    const minimum = this.reading(outside.minimum, "°C");
-    const maximum = this.reading(outside.maximum, "°C");
-    const rain = this.reading(outside.rain_probability, "%");
-    const pm25 = this.reading(outside.pm25, "µg/m³");
-    const range = [
-      minimum.text !== "--" ? minimum.text : undefined,
-      maximum.text !== "--" ? maximum.text : undefined,
-    ]
-      .filter((part): part is string => Boolean(part))
+    const temperature = this.reading(outside.temperature, "°C", 1);
+    const minimum = this.reading(outside.minimum, "°C", 1);
+    const maximum = this.reading(outside.maximum, "°C", 1);
+    const rain = this.reading(outside.rain_probability, "%", 0);
+    const pm25 = this.reading(outside.pm25, "µg/m³", 0);
+    const range = [minimum.text, maximum.text]
+      .filter((value): value is string => value !== undefined)
       .join("–");
     const parts = [
-      temperature.text !== "--" ? temperature.text : undefined,
+      temperature.text,
       range || undefined,
-      rain.text !== "--" ? `Déšť ${rain.text}` : undefined,
-      pm25.text !== "--" ? `PM2.5 ${pm25.text}` : undefined,
+      rain.text ? `Déšť ${rain.text}` : undefined,
+      pm25.text ? `PM2.5 ${pm25.text}` : undefined,
     ].filter((part): part is string => Boolean(part));
 
     return parts.length > 0
@@ -443,10 +494,10 @@ class HaKlimaDashboard extends LitElement {
     modeKnown: boolean,
     thresholds: DashboardThresholds,
   ): TemplateResult {
-    const temperature = this.reading(room.temperature, "°C");
-    const humidity = this.reading(room.humidity, "%");
-    const co2 = this.reading(room.carbon_dioxide, "ppm");
-    const pm25 = this.reading(room.pm25, "µg/m³");
+    const temperature = this.reading(room.temperature, "°C", 1);
+    const humidity = this.reading(room.humidity, "%", 0);
+    const co2 = this.reading(room.carbon_dioxide, "ppm", 0);
+    const pm25 = this.reading(room.pm25, "µg/m³", 0);
     const status = this.roomStatus(
       temperature.value,
       humidity.value,
@@ -456,36 +507,73 @@ class HaKlimaDashboard extends LitElement {
       modeKnown,
       thresholds,
     );
-    const primary = isSummer ? this.renderSamsung(room.samsung) : this.renderTado(room.tado);
-    const secondary = isSummer ? this.renderTado(room.tado) : this.renderSamsung(room.samsung);
+    const primaryIsSamsung = isSummer;
 
     return html`
-      <article class="room">
-        <div class="room-main">
-          <div class="room-header">
-            <h2>${room.name}</h2>
-            <span class="status ${status.kind}">${status.label}</span>
-          </div>
-          <div class="measurements">
-            <div class="measurement">
-              <span class="measurement-label">Teplota</span>
-              <span>${temperature.text}</span>
-            </div>
-            <div class="measurement">
-              <span class="measurement-label">Vlhkost</span>
-              <span>${humidity.text}</span>
-            </div>
-          </div>
-          <div class="air">
-            ${this.renderAirRow("mdi:molecule-co2", "CO₂", co2, thresholds.co2_warning, thresholds.co2_critical)}
-            ${this.renderAirRow("mdi:blur", "PM2.5", pm25, thresholds.pm25_warning, thresholds.pm25_critical)}
-          </div>
-          <div class="system-rows">
-            ${primary}
-            ${secondary}
+      <article
+        class="room"
+        role="button"
+        tabindex=${room.temperature ? "0" : "-1"}
+        aria-disabled=${!room.temperature}
+        aria-label="${room.name}: otevřít detail teploty"
+        @click=${() => this.showMoreInfo(room.temperature)}
+        @keydown=${(event: KeyboardEvent) => this.handleRoomKeydown(event, room.temperature)}
+      >
+        <div class="room-title">${room.name}</div>
+        <div class="status-line">
+          <span
+            class="status-dot"
+            style=${status.kind === "unknown"
+              ? `border: 1.5px solid ${COLORS.off}`
+              : `background: ${status.color}`}
+          ></span>
+          <span style=${`color: ${status.color}; font-weight: ${status.kind === "normal" ? 400 : 500}`}>
+            ${status.label}
+          </span>
+        </div>
+        <div class="measurements">
+          <span class="temperature">
+            ${temperature.value === undefined
+              ? html`<span class="missing">––</span>`
+              : html`${this.formatOne(temperature.value)}<span class="temperature-unit">
+                  &nbsp;°C
+                </span>`}
+          </span>
+          <span class="humidity">
+            ${humidity.value === undefined
+              ? html`<span class="missing">––</span>`
+              : html`${Math.round(humidity.value)}&nbsp;%`}
+          </span>
+        </div>
+        <div class="air">
+          ${this.renderAirRow(
+            "mdi:molecule-co2",
+            "CO₂",
+            co2,
+            "ppm",
+            thresholds.co2_warning,
+            thresholds.co2_critical,
+          )}
+          ${this.renderAirRow(
+            "mdi:blur",
+            "PM2.5",
+            pm25,
+            "µg/m³",
+            thresholds.pm25_warning,
+            thresholds.pm25_critical,
+          )}
+        </div>
+        <div class="lower">
+          <div class="system-list">
+            ${primaryIsSamsung
+              ? this.renderSamsung(room.samsung, true)
+              : this.renderTado(room.tado, true)}
+            ${primaryIsSamsung
+              ? this.renderTado(room.tado, false)
+              : this.renderSamsung(room.samsung, false)}
             ${this.renderWindow(room.window)}
           </div>
-          ${room.cover ? this.renderCover(room.cover) : html`<div class="no-cover"></div>`}
+          ${room.cover ? this.renderCover(room.cover) : html`<div class="cover-placeholder"></div>`}
         </div>
       </article>
     `;
@@ -495,155 +583,337 @@ class HaKlimaDashboard extends LitElement {
     icon: string,
     label: string,
     reading: Reading,
+    unit: string,
     warningThreshold: number,
     criticalThreshold: number,
   ): TemplateResult {
-    const kind =
+    const color =
       reading.value === undefined
-        ? ""
+        ? COLORS.label
         : reading.value >= criticalThreshold
-          ? "critical"
+          ? COLORS.alert
           : reading.value >= warningThreshold
-            ? "warning"
-            : "";
+            ? COLORS.warning
+            : COLORS.white;
 
     return html`
       <div class="air-row">
         <ha-icon icon=${icon}></ha-icon>
         <span class="air-label">${label}</span>
-        <span class="reading ${kind}">${reading.text}</span>
+        ${reading.value === undefined
+          ? html`<span style=${`color: ${COLORS.label}`}>––</span>`
+          : html`<span style=${`color: ${color}`}>${Math.round(reading.value)}</span>
+              <span class="air-value-unit">${unit}</span>`}
       </div>
     `;
   }
 
-  private renderTado(config?: RoomConfig["tado"]): TemplateResult {
-    const climate = this.getState(config?.climate);
-    const climateState = climate?.state.toLowerCase();
-    const climateAvailable =
-      climateState !== undefined &&
-      climateState !== "unknown" &&
-      climateState !== "unavailable";
-    const overlayState = this.getState(config?.overlay)?.state.toLowerCase();
-    const overlay =
-      overlayState === "unknown" || overlayState === "unavailable"
-        ? undefined
-        : overlayState;
-    const heating = this.reading(config?.heating, "%");
-    const target = this.reading(config?.target, "°C");
+  private renderTado(config: RoomConfig["tado"], primary: boolean): TemplateResult {
+    const climateState = this.entityState(config?.climate)?.toLowerCase();
+    const overlay = this.entityState(config?.overlay)?.toLowerCase();
+    const unavailable = overlay === undefined || this.isUnavailable(overlay);
     const disabled = climateState === "off" || overlay === "off";
-    const manual = overlay === "manual";
-    const label = disabled
-      ? "Vypnuto"
-      : !climateAvailable || !overlay
-        ? "--"
-        : manual
-          ? "Ručně"
-          : overlay === "schedule"
-            ? "Plán"
-            : "--";
-    const targetText =
-      label === "--" || disabled || target.text === "--" ? "" : ` · ${target.text}`;
-    const waveCount = disabled ? 0 : this.heatingWaveCount(heating.value);
-    const wavesUnknown = !disabled && heating.value === undefined;
+    const heating = this.numberState(config?.heating);
+    const target = this.numberState(config?.target);
 
-    return html`
-      <div class="system-row ${disabled ? "off" : manual ? "manual" : ""}">
-        <ha-icon icon="mdi:radiator"></ha-icon>
-        <span class="system-text">Tado CE · ${label}${targetText}</span>
-        <span class="heating" aria-label=${wavesUnknown ? "Intenzita neznámá" : `Intenzita ${waveCount} z 3`}>
-          ${wavesUnknown ? "--" : Array.from({ length: waveCount }, () => html`<span>∿</span>`)}
-        </span>
-      </div>
-    `;
+    let label = "––";
+    let color = COLORS.label;
+    let strong = false;
+    let extra = "";
+
+    if (disabled) {
+      label = "Vypnuto";
+      color = COLORS.off;
+    } else if (!unavailable && (climateState === undefined || this.isUnavailable(climateState))) {
+      label = "––";
+    } else if (overlay === "schedule") {
+      label = "Plán";
+      color = COLORS.plan;
+      strong = true;
+      if (target !== undefined) {
+        extra = `· ${this.formatHalf(target)}\u00a0°C`;
+      }
+    } else if (overlay === "manual") {
+      label = "Ručně";
+      color = COLORS.warning;
+      strong = true;
+      if (target !== undefined) {
+        extra = `· ${this.formatHalf(target)}\u00a0°C`;
+      }
+    } else if (!unavailable && overlay) {
+      label = overlay;
+      color = COLORS.warning;
+      strong = true;
+    }
+
+    const count = disabled || unavailable ? 0 : this.heatingWaveCount(heating);
+    return this.renderSystemRow(
+      this.renderTadoWaves(count, unavailable),
+      label,
+      color,
+      primary && strong,
+      extra,
+      primary,
+    );
   }
 
-  private renderSamsung(entityId?: EntityId): TemplateResult {
+  private renderSamsung(entityId: EntityId | undefined, primary: boolean): TemplateResult {
     const entity = this.getState(entityId);
-    if (!entity) {
-      return this.systemRow("mdi:air-conditioner", "Samsung · --", "");
+    let mode: SamsungMode = "unknown";
+    let target: number | undefined;
+
+    if (entity && !this.isUnavailable(entity.state.toLowerCase())) {
+      const state = entity.state.toLowerCase();
+      const preset = String(entity.attributes.preset_mode ?? "none").toLowerCase();
+      if (state === "off") {
+        mode = "off";
+      } else if (state === "cool") {
+        mode = preset === "wind_free" || preset === "wind_free_sleep" ? "wind_free" : "cool";
+      } else if (state === "dry") {
+        mode = "dry";
+      } else if (state === "fan_only") {
+        mode = "fan";
+      } else if (state === "heat") {
+        mode = "heat";
+      } else if (state === "auto") {
+        mode = "auto";
+      } else if (state !== "unknown" && state !== "unavailable") {
+        mode = "unknown";
+      }
+      target = this.numberAttribute(entity.attributes.temperature);
     }
 
-    const state = entity.state.toLowerCase();
-    if (state === "unknown" || state === "unavailable") {
-      return this.systemRow("mdi:air-conditioner", "Samsung · --", "");
-    }
-    const mode = String(entity.attributes.hvac_mode ?? state).toLowerCase();
-    const preset = String(entity.attributes.preset_mode ?? "none").toLowerCase();
-    if (state === "off" || mode === "off") {
-      return this.systemRow("mdi:air-conditioner", "Samsung · Vypnuto", "off");
-    }
+    const color = SAMSUNG_COLORS[mode];
+    const label = SAMSUNG_LABELS[mode];
+    const hasTarget = ["cool", "wind_free", "dry", "heat", "auto"].includes(mode);
+    const extra =
+      hasTarget && target !== undefined ? `· ${this.formatHalf(target)}\u00a0°C` : "";
+    const active = mode !== "off" && mode !== "unknown";
 
-    let label: string;
-    if (mode === "cool" && preset === "wind_free") {
-      label = "WindFree";
-    } else if (mode === "cool") {
-      label = "Chlazení";
-    } else if (mode === "fan_only") {
-      label = "Větrání";
-    } else if (mode === "dry") {
-      label = "Odvlhčování";
-    } else if (preset !== "none") {
-      label = preset.replaceAll("_", " ");
-    } else {
-      label = mode;
-    }
-
-    return this.systemRow("mdi:air-conditioner", `Samsung · ${label}`, mode === "fan_only" ? "fan" : "");
+    return this.renderSystemRow(
+      this.renderSamsungIcon(mode, color, mode === "unknown"),
+      label,
+      color,
+      primary && active,
+      extra,
+      primary,
+    );
   }
 
-  private systemRow(icon: string, text: string, kind: string): TemplateResult {
+  private renderSystemRow(
+    icon: TemplateResult,
+    label: string,
+    color: string,
+    strong: boolean,
+    extra: string,
+    primary: boolean,
+  ): TemplateResult {
     return html`
-      <div class="system-row ${kind}">
-        <ha-icon icon=${icon}></ha-icon>
-        <span class="system-text">${text}</span>
+      <div
+        class="system-row ${primary ? "primary" : ""} ${strong ? "strong" : ""}"
+        style=${`--row-color: ${color}`}
+      >
+        <span class="system-icon">${icon}</span>
+        <span class="system-text">${label}</span>
+        ${extra ? html`<span class="system-extra">${extra}</span>` : nothing}
       </div>
     `;
   }
 
-  private renderWindow(entityId?: EntityId): TemplateResult {
-    const state = this.getState(entityId)?.state.toLowerCase();
-    const label = state === "on" ? "Otevřeno" : state === "off" ? "Zavřeno" : "--";
-    return this.systemRow("mdi:window-closed-variant", `Okno · ${label}`, "");
+  private renderTadoWaves(count: number, dashed: boolean): TemplateResult {
+    return html`
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke-width="1.8"
+        stroke-linecap="round"
+        aria-hidden="true"
+      >
+        ${[0, 1, 2].map(
+          (index) => html`<path
+            d="M${6 + 6 * index} 20q-3-2.4 0-4.8t0-4.8t0-4.8"
+            stroke=${index < count ? COLORS.warning : COLORS.off}
+            stroke-dasharray=${dashed ? "1.6 2.6" : nothing}
+          ></path>`,
+        )}
+      </svg>
+    `;
+  }
+
+  private renderSamsungIcon(mode: SamsungMode, color: string, dashed: boolean): TemplateResult {
+    let shape: TemplateResult;
+    const arm = html`<path d="M12 3v18M9.9 5.1 12 3l2.1 2.1M9.9 18.9 12 21l2.1-2.1"></path>`;
+    const blade = html`<path d="M12 12c0-5 2.4-8.1 5.8-6.8 1.2 3.2-1.3 6.1-5.8 6.8z"></path>`;
+
+    switch (mode) {
+      case "cool":
+      case "wind_free":
+        shape = html`<path d="M12 3v18M9.9 5.1 12 3l2.1 2.1M9.9 18.9 12 21l2.1-2.1"></path>
+          <g transform="rotate(60 12 12)">${arm}</g>
+          <g transform="rotate(120 12 12)">${arm}</g>`;
+        break;
+      case "dry":
+        shape = html`<path d="M12 3.5S5.5 10.2 5.5 14.6a6.5 6.5 0 0 0 13 0C18.5 10.2 12 3.5 12 3.5z"></path>`;
+        break;
+      case "fan":
+        shape = html`${blade}<g transform="rotate(120 12 12)">${blade}</g>
+          <g transform="rotate(240 12 12)">${blade}</g>`;
+        break;
+      case "heat":
+        shape = html`<circle cx="12" cy="12" r="4"></circle>
+          ${[0, 1, 2, 3, 4, 5, 6, 7].map(
+            (index) => html`<path d="M12 3v2.5" transform=${`rotate(${45 * index} 12 12)`}></path>`,
+          )}`;
+        break;
+      case "auto":
+        shape = html`<circle cx="12" cy="12" r="9"></circle>
+          <path d="M8.3 16.3 12 7.7l3.7 8.6M9.7 13.6h4.6"></path>`;
+        break;
+      case "off":
+        shape = html`<path d="M12 3.5v8"></path><path d="M7.4 6.4a7.5 7.5 0 1 0 9.2 0"></path>`;
+        break;
+      default:
+        shape = html`<rect x="3" y="5" width="18" height="8" rx="2"></rect>
+          <path d="M7 9.5h10M8 16.5v2.5M12 16.5v2.5M16 16.5v2.5"></path>`;
+    }
+
+    return html`
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke=${color}
+        stroke-width="1.8"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        stroke-dasharray=${dashed ? "2 2.4" : nothing}
+        aria-hidden="true"
+      >
+        ${shape}
+      </svg>
+    `;
+  }
+
+  private renderWindow(entityId: EntityId | undefined): TemplateResult {
+    const state = this.entityState(entityId)?.toLowerCase();
+    const unavailable = state === undefined || this.isUnavailable(state);
+    const opened = state === "on";
+    const color = unavailable ? COLORS.label : opened ? COLORS.alert : COLORS.label;
+    const label = unavailable ? "––" : opened ? "Otevřeno" : "Zavřeno";
+
+    return html`
+      <div
+        class="system-row window-row"
+        style=${`--row-color: ${color}`}
+      >
+        <span class="system-icon">
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke=${unavailable ? COLORS.off : color}
+            stroke-width="1.8"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-dasharray=${unavailable ? "2 2.4" : nothing}
+            aria-hidden="true"
+          >
+            <rect x="5" y="3.5" width="14" height="17" rx="1.5"></rect>
+            <path d="M12 3.5v17M5 12h14"></path>
+          </svg>
+        </span>
+        <span class="system-text">${label}</span>
+      </div>
+    `;
   }
 
   private renderCover(entityId: EntityId): TemplateResult {
     const entity = this.getState(entityId);
     const position = this.numberAttribute(entity?.attributes.current_position);
     const tilt = this.numberAttribute(entity?.attributes.current_tilt_position);
-
-    if (position === undefined || tilt === undefined) {
-      return html`
-        <div class="cover" aria-label="Poloha žaluzie neznámá">
-          <div class="blind unknown">
-            <div class="blind-rail"></div>
-            <div class="blind-slats">
-              ${Array.from({ length: 10 }, () => html`<span class="blind-slat"></span>`)}
-            </div>
-          </div>
-        </div>
-      `;
-    }
-
-    const raisedCount = Math.round((position / 100) * 10);
-    const slatThickness = Math.max(1, 5 - (tilt / 100) * 4);
+    const width = 26;
+    const gap = 8;
+    const height = 78;
+    const radius = 4;
+    const slatCount = 11;
+    const closedHeight = position === undefined ? undefined : ((100 - position) / 100) * height;
+    const tiltLevel = tilt === undefined ? undefined : ((100 - tilt) / 100) * height;
+    const slatSize = (2 * height) / (2 * slatCount - 1);
+    const minSlatHeight = slatSize / 7;
+    const maxSlatHeight = slatSize - minSlatHeight;
+    let y = 0;
 
     return html`
-      <div class="cover" aria-label="Žaluzie">
-        <div
-          class="blind"
-          style=${`--blind-color: var(--primary-text-color); --slat-thickness: ${slatThickness}px`}
+      <div class="cover" aria-label="Poloha a naklopení žaluzie">
+        <svg
+          viewBox="0 0 ${2 * width + gap} ${height}"
+          role="img"
+          aria-hidden="true"
         >
-          <div class="blind-rail"></div>
-          <div class="blind-slats">
-            ${Array.from({ length: 10 }, (_, index) => {
-              const raised = index < raisedCount;
-              return html`<span
-                class="blind-slat ${raised ? "raised" : ""}"
-                style=${`height: var(--slat-thickness); align-self: center`}
-              ></span>`;
-            })}
-          </div>
-        </div>
+          ${closedHeight === undefined
+            ? html`<rect
+                x="0.75"
+                y="0.75"
+                width=${width - 1.5}
+                height=${height - 1.5}
+                rx=${radius}
+                fill="none"
+                stroke=${COLORS.off}
+                stroke-width="1.5"
+                stroke-dasharray="3 3"
+              ></rect>`
+            : html`<rect
+                  x="0"
+                  y="0"
+                  width=${width}
+                  height=${height}
+                  rx=${radius}
+                  fill=${COLORS.open}
+                ></rect>
+                ${closedHeight >= height - 0.5
+                  ? html`<rect
+                      x="0"
+                      y="0"
+                      width=${width}
+                      height=${height}
+                      rx=${radius}
+                      fill=${COLORS.closed}
+                    ></rect>`
+                  : closedHeight > 0.5
+                    ? html`<path
+                        d=${`M0 ${Math.min(radius, closedHeight)} A${Math.min(radius, closedHeight)} ${Math.min(radius, closedHeight)} 0 0 1 ${Math.min(radius, closedHeight)} 0 H${width - Math.min(radius, closedHeight)} A${Math.min(radius, closedHeight)} ${Math.min(radius, closedHeight)} 0 0 1 ${width} ${Math.min(radius, closedHeight)} V${closedHeight.toFixed(2)} H0 Z`}
+                        fill=${COLORS.closed}
+                      ></path>`
+                    : nothing}`}
+          ${tiltLevel === undefined
+            ? html`<rect
+                x=${width + gap + 0.75}
+                y="0.75"
+                width=${width - 1.5}
+                height=${height - 1.5}
+                rx=${radius}
+                fill="none"
+                stroke=${COLORS.off}
+                stroke-width="1.5"
+                stroke-dasharray="3 3"
+              ></rect>`
+            : Array.from({ length: slatCount }, (_, index) => {
+                const slatHeight =
+                  minSlatHeight + ((maxSlatHeight - minSlatHeight) * index) / (slatCount - 1);
+                const fill = y + slatHeight / 2 <= tiltLevel ? COLORS.closed : COLORS.open;
+                const slat = html`<rect
+                  x=${width + gap}
+                  y=${y.toFixed(2)}
+                  width=${width}
+                  height=${slatHeight.toFixed(2)}
+                  rx=${Math.min(radius, slatHeight / 2).toFixed(2)}
+                  fill=${fill}
+                ></rect>`;
+                if (index < slatCount - 1) {
+                  y += slatHeight + maxSlatHeight -
+                    ((maxSlatHeight - minSlatHeight) * index) / (slatCount - 2);
+                }
+                return slat;
+              })}
+        </svg>
       </div>
     `;
   }
@@ -656,7 +926,7 @@ class HaKlimaDashboard extends LitElement {
     isSummer: boolean,
     modeKnown: boolean,
     thresholds: DashboardThresholds,
-  ): { label: string; kind: string } {
+  ): RoomStatus {
     if (
       temperature === undefined ||
       humidity === undefined ||
@@ -664,81 +934,127 @@ class HaKlimaDashboard extends LitElement {
       pm25 === undefined ||
       !modeKnown
     ) {
-      return { label: "Bez dat", kind: "" };
+      return { label: "Bez dat", color: COLORS.label, kind: "unknown" };
     }
     if (pm25 >= thresholds.pm25_critical) {
-      return { label: "Znečištěný vzduch", kind: "critical" };
+      return { label: "Znečištěný vzduch", color: COLORS.alert, kind: "critical" };
     }
     if (co2 >= thresholds.co2_critical) {
-      return { label: "Silně vydýchaný vzduch", kind: "critical" };
+      return { label: "Silně vydýchaný vzduch", color: COLORS.alert, kind: "critical" };
     }
     if (co2 >= thresholds.co2_warning) {
-      return { label: "Vydýchaný vzduch", kind: "warning" };
+      return { label: "Vydýchaný vzduch", color: COLORS.warning, kind: "warning" };
     }
     if (humidity > thresholds.humidity_max) {
-      return { label: "Vlhko", kind: "" };
+      return { label: "Vlhko", color: COLORS.warning, kind: "warning" };
     }
     if (humidity < thresholds.humidity_min) {
-      return { label: "Sucho", kind: "" };
+      return { label: "Sucho", color: COLORS.warning, kind: "warning" };
     }
 
     const minimum = isSummer ? thresholds.summer_min : thresholds.winter_min;
     const maximum = isSummer ? thresholds.summer_max : thresholds.winter_max;
     if (temperature > maximum) {
-      return { label: "Teplo", kind: "" };
+      return { label: "Teplo", color: COLORS.warning, kind: "warning" };
     }
     if (temperature < minimum) {
-      return { label: "Chladno", kind: "" };
+      return { label: "Chladno", color: COLORS.cold, kind: "warning" };
     }
-    return { label: "Příjemné", kind: "" };
+    return { label: "Příjemné", color: COLORS.label, kind: "normal" };
   }
 
-  private reading(entityId: EntityId | undefined, fallbackUnit: string): Reading {
+  private reading(
+    entityId: EntityId | undefined,
+    fallbackUnit: string,
+    decimals: number,
+  ): Reading & { text?: string } {
     const entity = this.getState(entityId);
-    if (!entity || entity.state === "unknown" || entity.state === "unavailable") {
-      return { text: "--" };
+    const value = this.numberState(entityId);
+    if (value === undefined) {
+      return {};
     }
 
-    const value = Number(entity.state);
-    if (!Number.isFinite(value)) {
-      return { text: "--" };
-    }
-
-    const unit = String(entity.attributes.unit_of_measurement ?? fallbackUnit);
-    const decimals = fallbackUnit === "ppm" ? 0 : 1;
+    const unit = String(entity?.attributes.unit_of_measurement ?? fallbackUnit);
     return {
-      text: `${new Intl.NumberFormat("cs-CZ", {
-        maximumFractionDigits: decimals,
-      }).format(value)} ${unit}`,
       value,
+      text: `${new Intl.NumberFormat("cs-CZ", { maximumFractionDigits: decimals }).format(value)} ${unit}`,
     };
+  }
+
+  private numberState(entityId: EntityId | undefined): number | undefined {
+    const state = this.entityState(entityId);
+    if (state === undefined || this.isUnavailable(state.toLowerCase())) {
+      return undefined;
+    }
+
+    const value = Number.parseFloat(state);
+    return Number.isFinite(value) ? value : undefined;
   }
 
   private getState(entityId: EntityId | undefined): HassEntity | undefined {
     return entityId ? this._hass?.states[entityId] : undefined;
   }
 
+  private entityState(entityId: EntityId | undefined): string | undefined {
+    return this.getState(entityId)?.state;
+  }
+
+  private isUnavailable(state: string): boolean {
+    return state === "" || state === "unknown" || state === "unavailable" || state === "none";
+  }
+
   private numberAttribute(value: unknown): number | undefined {
     if (value === undefined || value === null || value === "") {
       return undefined;
     }
-    const number = typeof value === "number" ? value : Number(value);
-    return Number.isFinite(number) && number >= 0 && number <= 100
-      ? number
-      : undefined;
+    const number = typeof value === "number" ? value : Number.parseFloat(String(value));
+    return Number.isFinite(number) && number >= 0 && number <= 100 ? number : undefined;
+  }
+
+  private formatOne(value: number): string {
+    return new Intl.NumberFormat("cs-CZ", {
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1,
+    }).format(value);
+  }
+
+  private formatHalf(value: number): string {
+    return new Intl.NumberFormat("cs-CZ", { maximumFractionDigits: 1 }).format(
+      Math.round(value * 2) / 2,
+    );
   }
 
   private heatingWaveCount(value: number | undefined): number {
     if (value === undefined || value <= 0) {
       return 0;
     }
-    if (value < 35) {
+    if (value <= 34) {
       return 1;
     }
-    if (value < 68) {
+    if (value <= 67) {
       return 2;
     }
     return 3;
+  }
+
+  private showMoreInfo(entityId: EntityId | undefined): void {
+    if (!entityId) {
+      return;
+    }
+    this.dispatchEvent(
+      new CustomEvent("hass-more-info", {
+        detail: { entityId },
+        bubbles: true,
+        composed: true,
+      }),
+    );
+  }
+
+  private handleRoomKeydown(event: KeyboardEvent, entityId: EntityId | undefined): void {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      this.showMoreInfo(entityId);
+    }
   }
 }
 
@@ -762,7 +1078,7 @@ if (!window.customCards.some((card) => card.type === "ha-klima-dashboard")) {
   window.customCards.push({
     type: "ha-klima-dashboard",
     name: "Klima Dashboard",
-    description: "Mobilní přehled klimatu v domácnosti.",
+    description: "Přehled teploty, kvality vzduchu, vytápění a žaluzií v místnostech.",
     preview: false,
   });
 }

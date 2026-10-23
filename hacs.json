@@ -1,5 +1,6 @@
 {
   "name": "Klima Dashboard",
   "filename": "ha-klima-dashboard.js",
+  "content_in_root": true,
   "render_readme": true
 }

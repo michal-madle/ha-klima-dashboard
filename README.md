@@ -24,19 +24,36 @@ npm install
 npm run build
 ```
 
-Výsledná samostatná ES module karta je `dist/ha-klima-dashboard.js`.
+Výsledný samostatný ES module soubor `ha-klima-dashboard.js` vznikne v kořeni
+repozitáře. Je součástí HACS balíčku; `hacs.json` na něj odkazuje.
 
-## Ruční instalace do Home Assistantu
+## Instalace přes HACS
 
-1. Zkopírujte `dist/ha-klima-dashboard.js` do `/config/www/ha-klima-dashboard.js`.
-2. V dashboardu přidejte zdroj `/local/ha-klima-dashboard.js` typu `module`.
-3. Vložte konfiguraci karty z [examples/dashboard-card.yaml](./examples/dashboard-card.yaml)
-   do požadovaného pohledu. Ukázka používá entity z [ENTITY_MAP.md](./ENTITY_MAP.md);
-   dosud nezmapované hodnoty záměrně nechává prázdné.
+1. V HACS otevřete **Frontend** → nabídku **⋮** → **Vlastní repozitáře**.
+2. Přidejte `https://github.com/michal-madle/ha-klima-dashboard` jako kategorii **Dashboard**.
+3. Najděte **Klima Dashboard** a zvolte **Stáhnout**.
+4. Pokud HACS zdroj karty nepřidá automaticky, otevřete **Nastavení → Nástěnky → Zdroje**
+   a přidejte `/hacsfiles/ha-klima-dashboard/ha-klima-dashboard.js` jako **JavaScript module**.
+5. Do pohledu vložte konfiguraci z
+   [examples/domov_prototyp_loznice.yaml](./examples/domov_prototyp_loznice.yaml).
+   Příklad pokrývá všech pět místností; doplňuje jen potvrzené entity podle
+   [ENTITY_MAP.md](./ENTITY_MAP.md), ostatní hodnoty zůstanou prázdné.
 
-Nastavení aktuální polohy a naklopení žaluzie vyžaduje atributy
-`current_position` a `current_tilt_position`. Karta zobrazuje `--` nebo přerušovaný
-náhled, pokud data nejsou dostupná.
+Po instalaci obnovte stránku Home Assistantu. Karta používá vlastní vykreslení, takže
+nevyžaduje `button-card` ani jinou frontendovou kartu.
+
+### Ruční instalace
+
+1. Spusťte `npm install` a `npm run build`.
+2. Zkopírujte `ha-klima-dashboard.js` do `/config/www/ha-klima-dashboard.js`.
+3. V **Nastavení → Nástěnky → Zdroje** přidejte `/local/ha-klima-dashboard.js`
+   jako **JavaScript module**.
+4. Do pohledu vložte konfiguraci z
+   [examples/domov_prototyp_loznice.yaml](./examples/domov_prototyp_loznice.yaml).
+
+Karta pracuje s entitami, které jsou nastavené v konfiguraci místnosti. Chybějící nebo
+nedostupné hodnoty zobrazí jako `––`; náhled žaluzie vyžaduje atributy
+`current_position` a `current_tilt_position`.
 
 ## Rozsah prototypu
 

@@ -1,274 +1,80 @@
+type: custom:ha-klima-dashboard
 title: Domov prototyp
+house_mode_entity: input_select.house_mode
 
-# =====================================================================
-# Prototyp pokojové karty. Vyžaduje HACS kartu button-card.
-#
-# Nasazení: Nastavení -> Dashboardy -> Přidat dashboard -> Nový od nuly
-# (např. "Domov prototyp"), otevři ho, Upravit -> tři tečky -> Raw
-# configuration editor, vše nahraď tímto souborem a ulož.
-#
-# Prahy a barvy se mění jen v sekci "variables" šablony klima_room.
-# Entity jednoho pokoje se mění jen ve "variables" karty dole.
-# Ikona a "––" místo hodnoty = entita je unavailable/unknown/chybí
-# (včetně překlepu v ID entity).
-# =====================================================================
+# Outside entity IDs are not mapped yet; add them when confirmed.
+# outside:
+#   temperature: sensor.outdoor_temperature
+#   minimum: sensor.outdoor_temperature_min
+#   maximum: sensor.outdoor_temperature_max
+#   rain_probability: sensor.rain_probability
+#   pm25: sensor.outdoor_pm2_5
 
-button_card_templates:
-  klima_room:
-    triggers_update: all
-    show_name: false
-    show_icon: false
-    show_state: false
-    show_label: false
-    tap_action:
-      action: more-info
-    hold_action:
-      action: none
-    double_tap_action:
-      action: none
-    variables:
-      # ---------- PRAHY ----------
-      co2_orange: 1000
-      co2_red: 1500
-      pm_orange: 15
-      pm_red: 35
-      hum_low: 30
-      hum_high: 65
-      band_zima: [20, 24]
-      band_leto: [21, 25]
-      heat_b1: 34
-      heat_b2: 67
-      # ---------- BARVY ----------
-      c_open: '#D8D8DC'
-      c_closed: '#6B6B70'
-      c_label: '#9A9AA0'
-      c_off: '#8E8E93'
-      c_white: '#FFFFFF'
-      c_plan: '#F2F2F7'
-      c_warn: '#FF9F0A'
-      c_alert: '#FF453A'
-      c_cold: '#64D2FF'
-      c_cool: '#64D2FF'
-      c_dry: '#FFD60A'
-      c_heat: '#FF9F0A'
-      c_auto: '#BF5AF2'
-      # ---------- ROZMĚRY ----------
-      # výška panelu žaluzií = 28 + 24 + 6 + 20 (řádky pod CO2/PM2.5)
-      panel_h: 78
-      # ---------- ENTITY ----------
-      e_house_mode: input_select.house_mode
-    styles:
-      card:
-        - background: '#1C1C1E'
-        - border-radius: 24px
-        - border: 1px solid rgba(255,255,255,0.07)
-        - box-shadow: none
-        - padding: 16px
-      grid:
-        - grid-template-areas: '"body"'
-        - grid-template-columns: 1fr
-        - grid-template-rows: auto
-      custom_fields:
-        body:
-          - justify-self: stretch
-          - width: 100%
-    custom_fields:
-      body: |
-        [[[
-          const V = variables;
-          const st = (id) => (id && states[id]) ? states[id].state : undefined;
-          const at = (id, k) => (id && states[id] && states[id].attributes) ? states[id].attributes[k] : undefined;
-          const na = (v) => v === undefined || v === null || v === '' || v === 'unavailable' || v === 'unknown' || v === 'none';
-          const num = (id) => { const v = st(id); if (na(v)) return null; const n = parseFloat(v); return isNaN(n) ? null : n; };
-          const f1 = (n) => (Math.round(n * 10) / 10).toFixed(1).replace('.', ',');
-          const f0 = (n) => String(Math.round(n * 2) / 2).replace('.', ',');
-          const NB = '\u00a0';
-          const svg = (inner, stroke, dashed) => '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="' + stroke + '" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"' + (dashed ? ' stroke-dasharray="2 2.4"' : '') + ' aria-hidden="true">' + inner + '</svg>';
+rooms:
+  - name: Ložnice
+    temperature: sensor.loznice_teplomer_loznice_temperature
+    humidity: sensor.loznice_teplomer_loznice_humidity
+    carbon_dioxide: sensor.loznice_teplomer_loznice_carbon_dioxide
+    pm25: sensor.loznice_teplomer_loznice_pm2_5
+    window: binary_sensor.loznice_okno_loznice
+    cover: cover.loznice_zaluzie_loznice
+    tado:
+      climate: climate.loznice_tado_ce_loznice
+      overlay: sensor.loznice_tado_ce_loznice_overlay
+      target: sensor.loznice_tado_ce_loznice_target
+      heating: sensor.loznice_tado_ce_loznice_heating
+    samsung: climate.loznice_ac_loznice
 
-          // ---------- ALPSTUGA + režim domu ----------
-          const T = num(V.e_temp), H = num(V.e_hum), CO = num(V.e_co2), PM = num(V.e_pm);
-          const mode = String(st(V.e_house_mode) || '').toLowerCase();
-          const summer = (mode === 'léto' || mode === 'leto');
-          const band = summer ? V.band_leto : V.band_zima;
+  - name: Pracovna
+    temperature: sensor.pracovna_teplomer_pracovna_temperature
+    humidity: sensor.pracovna_teplomer_pracovna_humidity
+    window: binary_sensor.pracovna_okno_pracovna
+    cover: cover.pracovna_zaluzie_pracovna
+    tado:
+      climate: climate.pracovna_tado_ce_pracovna
+      overlay: sensor.pracovna_tado_ce_pracovna_overlay
+      target: sensor.pracovna_tado_ce_pracovna_target
+      heating: sensor.pracovna_tado_ce_pracovna_heating
+    samsung: climate.pracovna_ac_pracovna
 
-          // ---------- stav místnosti ----------
-          let status = 'Příjemné', kind = 'n', sc = V.c_label;
-          if (PM !== null && PM >= V.pm_red) { status = 'Znečištěný vzduch'; kind = 'p'; sc = V.c_alert; }
-          else if (CO !== null && CO >= V.co2_red) { status = 'Silně vydýchaný vzduch'; kind = 'p'; sc = V.c_alert; }
-          else if (CO !== null && CO >= V.co2_orange) { status = 'Vydýchaný vzduch'; kind = 'p'; sc = V.c_warn; }
-          else if (H !== null && H > V.hum_high) { status = 'Vlhko'; kind = 'p'; sc = V.c_warn; }
-          else if (H !== null && H < V.hum_low) { status = 'Sucho'; kind = 'p'; sc = V.c_warn; }
-          else if (T !== null && T > band[1]) { status = 'Teplo'; kind = 'p'; sc = V.c_warn; }
-          else if (T !== null && T < band[0]) { status = 'Chladno'; kind = 'p'; sc = V.c_cold; }
-          else if (T === null || H === null || CO === null || PM === null) { status = 'Bez dat'; kind = 'u'; }
+  - name: Maxík
+    window: binary_sensor.maxik_okno_maxik
+    cover: cover.maxik_zaluzie_maxik
+    tado:
+      climate: climate.maxik_tado_ce_maxik
+      overlay: sensor.maxik_tado_ce_maxik_overlay
+      target: sensor.maxik_tado_ce_maxik_target
+      heating: sensor.maxik_tado_ce_maxik_heating
+    samsung: climate.maxik_ac_maxik
 
-          const dot = (kind === 'u')
-            ? '<span style="width:7px;height:7px;border-radius:50%;box-sizing:border-box;border:1.5px solid ' + V.c_off + '"></span>'
-            : '<span style="width:7px;height:7px;border-radius:50%;background:' + sc + '"></span>';
-          const sTxt = '<span style="font-weight:' + (kind === 'p' ? 500 : 400) + ';color:' + sc + '">' + status + '</span>';
+  - name: Mikuláš
+    window: binary_sensor.mikulas_okno_mikulas
+    cover: cover.mikulas_zaluzie_mikulas
+    tado:
+      climate: climate.mikulas_tado_ce_mikulas
+      overlay: sensor.mikulas_tado_ce_mikulas_overlay
+      target: sensor.mikulas_tado_ce_mikulas_target
+      heating: sensor.mikulas_tado_ce_mikulas_heating
+    samsung: climate.mikulas_ac_mikulas
 
-          // ---------- teplota a vlhkost ----------
-          const big = (T === null)
-            ? '<span style="font-size:38px;color:' + V.c_off + '">––</span>'
-            : '<span style="font-size:38px;letter-spacing:-0.5px">' + f1(T) + '<span style="font-size:18px;letter-spacing:0;color:' + V.c_label + '">' + NB + '°C</span></span>';
-          const hum = (H === null)
-            ? '<span style="font-size:20px;color:' + V.c_label + '">––</span>'
-            : '<span style="font-size:20px;color:' + V.c_label + '">' + Math.round(H) + NB + '%</span>';
+  - name: Obývací pokoj
+    window: binary_sensor.obyvak_dvere_zahrada
+    tado:
+      climate: climate.obyvak_tado_ce_obyvak
+      overlay: sensor.obyvak_tado_ce_obyvak_overlay
+      target: sensor.obyvak_tado_ce_obyvak_target
+      heating: sensor.obyvak_tado_ce_obyvak_heating
+    samsung: climate.obyvak_ac_obyvak
 
-          // ---------- CO2 a PM2.5 ----------
-          const aqRow = (label, val, unit, orange, red) => {
-            let v;
-            if (val === null) { v = '<span style="color:' + V.c_label + '">––</span>'; }
-            else {
-              const col = val >= red ? V.c_alert : (val >= orange ? V.c_warn : V.c_white);
-              v = '<span style="color:' + col + '">' + Math.round(val) + '</span><span style="font-size:11px;color:' + V.c_label + '">' + unit + '</span>';
-            }
-            return '<div style="display:flex;align-items:baseline;gap:6px;font-size:14px;line-height:20px"><span style="width:44px;font-size:12px;color:' + V.c_label + '">' + label + '</span>' + v + '</div>';
-          };
-
-          // ---------- řádek HVAC ----------
-          const row = (primary, icon, text, color, extra, strong) =>
-            '<div style="display:flex;align-items:center;gap:8px;height:' + (primary ? 28 : 24) + 'px;font-size:' + (primary ? 15 : 14) + 'px;font-weight:' + (strong ? 500 : 400) + ';color:' + color + '">'
-            + '<span style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;flex:none">' + icon + '</span>'
-            + '<span>' + text + '</span>'
-            + (extra ? '<span style="font-weight:400;color:' + V.c_label + '">' + extra + '</span>' : '')
-            + '</div>';
-          const tadPrimary = !summer;
-
-          // ---------- Tado CE: Plán / Ručně / Vypnuto ----------
-          const waves = (n, dashed) => {
-            let s = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">';
-            for (let i = 0; i < 3; i++) {
-              s += '<path d="M' + (6 + 6 * i) + ' 20q-3-2.4 0-4.8t0-4.8t0-4.8" stroke="' + (i < n ? V.c_warn : V.c_off) + '"' + (dashed ? ' stroke-dasharray="1.6 2.6"' : '') + '/>';
-            }
-            return s + '</svg>';
-          };
-          const bands = (p) => (p === null || p <= 0) ? 0 : (p <= V.heat_b1 ? 1 : (p <= V.heat_b2 ? 2 : 3));
-          const ov = st(V.e_tado_overlay), tg = num(V.e_tado_target), hp = num(V.e_tado_heating);
-          let tIcon, tText, tColor, tExtra = '', tStrong = false;
-          if (na(ov)) { tIcon = waves(0, true); tText = '––'; tColor = V.c_label; }
-          else {
-            const o = String(ov).toLowerCase();
-            if (o === 'off') { tIcon = waves(0, false); tText = 'Vypnuto'; tColor = V.c_off; }
-            else if (o === 'schedule') { tIcon = waves(bands(hp), false); tText = 'Plán'; tColor = V.c_plan; tStrong = true; if (tg !== null) { tExtra = '· ' + f0(tg) + NB + '°C'; } }
-            else if (o === 'manual') { tIcon = waves(bands(hp), false); tText = 'Ručně'; tColor = V.c_warn; tStrong = true; if (tg !== null) { tExtra = '· ' + f0(tg) + NB + '°C'; } }
-            else { tIcon = waves(bands(hp), false); tText = String(ov); tColor = V.c_warn; tStrong = true; }
-          }
-          const tadRow = row(tadPrimary, tIcon, tText, tColor, tExtra, tStrong && tadPrimary);
-
-          // ---------- Samsung ----------
-          const ARM = '<path d="M12 3v18M9.9 5.1 12 3l2.1 2.1M9.9 18.9 12 21l2.1-2.1"/>';
-          const BLD = '<path d="M12 12c0-5 2.4-8.1 5.8-6.8 1.2 3.2-1.3 6.1-5.8 6.8z"/>';
-          let RAYS = '';
-          for (let k = 0; k < 8; k++) { RAYS += '<path d="M12 3v2.5" transform="rotate(' + (45 * k) + ' 12 12)"/>'; }
-          const SHAPES = {
-            cool: ARM + '<g transform="rotate(60 12 12)">' + ARM + '</g><g transform="rotate(120 12 12)">' + ARM + '</g>',
-            wf: '<path stroke-width="2.4" d="M12 12h.01M12 8h.01M15.46 10h.01M15.46 14h.01M12 16h.01M8.54 14h.01M8.54 10h.01M12 4h.01M18.93 8h.01M18.93 16h.01M12 20h.01M5.07 16h.01M5.07 8h.01"/>',
-            dry: '<path d="M12 3.5C12 3.5 5.5 10.2 5.5 14.6a6.5 6.5 0 0 0 13 0C18.5 10.2 12 3.5 12 3.5z"/>',
-            fan: BLD + '<g transform="rotate(120 12 12)">' + BLD + '</g><g transform="rotate(240 12 12)">' + BLD + '</g>',
-            heat: '<circle cx="12" cy="12" r="4"/>' + RAYS,
-            auto: '<circle cx="12" cy="12" r="9"/><path d="M8.3 16.3 12 7.7l3.7 8.6M9.7 13.6h4.6"/>',
-            off: '<path d="M12 3.5v8"/><path d="M7.4 6.4a7.5 7.5 0 1 0 9.2 0"/>',
-            unk: '<rect x="3" y="5" width="18" height="8" rx="2"/><path d="M7 9.5h10"/><path d="M8 16.5v2.5M12 16.5v2.5M16 16.5v2.5"/>'
-          };
-          const AC_COL = { off: V.c_off, cool: V.c_cool, wf: V.c_cool, dry: V.c_dry, fan: V.c_plan, heat: V.c_heat, auto: V.c_auto, unk: V.c_off };
-          const AC_TXT = { off: 'Vypnuto', cool: 'Chlazení', wf: 'WindFree', dry: 'Sušení', fan: 'Větrání', heat: 'Topení', auto: 'Auto' };
-          const acS = st(V.e_ac), acP = at(V.e_ac, 'preset_mode'), acT = parseFloat(at(V.e_ac, 'temperature'));
-          let ac = 'unk';
-          if (!na(acS)) {
-            if (acS === 'off') { ac = 'off'; }
-            else if (acS === 'cool') { ac = (acP === 'wind_free' || acP === 'wind_free_sleep') ? 'wf' : 'cool'; }
-            else if (acS === 'dry') { ac = 'dry'; }
-            else if (acS === 'fan_only') { ac = 'fan'; }
-            else if (acS === 'heat') { ac = 'heat'; }
-            else if (acS === 'auto') { ac = 'auto'; }
-          }
-          let aText = '––', aColor = V.c_label, aExtra = '';
-          if (ac !== 'unk') {
-            aText = AC_TXT[ac]; aColor = AC_COL[ac];
-            if (['cool', 'wf', 'dry', 'heat', 'auto'].indexOf(ac) >= 0 && !isNaN(acT)) { aExtra = '· ' + f0(acT) + NB + '°C'; }
-          }
-          const running = (ac !== 'off' && ac !== 'unk');
-          const samRow = row(!tadPrimary, svg(SHAPES[ac], AC_COL[ac], ac === 'unk'), aText, aColor, aExtra, running && !tadPrimary);
-
-          // ---------- okno (MYGGBETT) ----------
-          const winShape = '<rect x="5" y="3.5" width="14" height="17" rx="1.5"/><path d="M12 3.5v17M5 12h14"/>';
-          const wS = st(V.e_win);
-          let wIcon, wText, wColor;
-          if (na(wS)) { wIcon = svg(winShape, V.c_off, true); wText = '––'; wColor = V.c_label; }
-          else if (wS === 'on') { wIcon = svg(winShape, V.c_alert, false); wText = 'Otevřeno'; wColor = V.c_alert; }
-          else { wIcon = svg(winShape, V.c_label, false); wText = 'Zavřeno'; wColor = V.c_label; }
-          const wRow = '<div style="display:flex;align-items:center;gap:8px;margin-top:6px;height:20px;font-size:13px;color:' + wColor + '"><span style="display:flex;align-items:center;justify-content:center;width:24px;height:24px;flex:none">' + wIcon + '</span><span>' + wText + '</span></div>';
-
-          // ---------- panel žaluzií ----------
-          const panel = () => {
-            const W = 26, G = 8, n = 11, Hh = V.panel_h, R = 4;
-            const pos = at(V.e_cover, 'current_position'), tilt = at(V.e_cover, 'current_tilt_position');
-            const cs = st(V.e_cover);
-            const P = (na(cs) || typeof pos !== 'number') ? null : pos;
-            const TL = (na(cs) || typeof tilt !== 'number') ? null : tilt;
-            const dash = (x) => '<rect x="' + (x + 0.75) + '" y="0.75" width="' + (W - 1.5) + '" height="' + (Hh - 1.5) + '" rx="' + R + '" fill="none" stroke="' + V.c_off + '" stroke-width="1.5" stroke-dasharray="3 3"/>';
-            let o = '<svg width="' + (2 * W + G) + '" height="' + Hh + '" viewBox="0 0 ' + (2 * W + G) + ' ' + Hh + '" aria-hidden="true">';
-            if (P === null) { o += dash(0); }
-            else {
-              const fh = (100 - P) / 100 * Hh;
-              o += '<rect x="0" y="0" width="' + W + '" height="' + Hh + '" rx="' + R + '" fill="' + V.c_open + '"/>';
-              if (fh >= Hh - 0.5) {
-                o += '<rect x="0" y="0" width="' + W + '" height="' + Hh + '" rx="' + R + '" fill="' + V.c_closed + '"/>';
-              } else if (fh > 0.5) {
-                const r = Math.min(R, fh);
-                o += '<path d="M0 ' + r + ' A' + r + ' ' + r + ' 0 0 1 ' + r + ' 0 H' + (W - r) + ' A' + r + ' ' + r + ' 0 0 1 ' + W + ' ' + r + ' V' + fh.toFixed(2) + ' H0 Z" fill="' + V.c_closed + '"/>';
-              }
-            }
-            if (TL === null) { o += dash(W + G); }
-            else {
-              const lvlY = (100 - TL) / 100 * Hh;
-              const s = 2 * Hh / (2 * n - 1), a = s / 7, b = s - a;
-              let y = 0;
-              for (let i = 0; i < n; i++) {
-                const ti = a + (b - a) * i / (n - 1);
-                const col = (y + ti / 2) <= lvlY ? V.c_closed : V.c_open;
-                o += '<rect x="' + (W + G) + '" y="' + y.toFixed(2) + '" width="' + W + '" height="' + ti.toFixed(2) + '" rx="' + Math.min(R, ti / 2).toFixed(2) + '" fill="' + col + '"/>';
-                if (i < n - 1) { y += ti + b - (b - a) * i / (n - 2); }
-              }
-            }
-            return o + '</svg>';
-          };
-
-          // ---------- sestavení karty ----------
-          return '<div style="text-align:left;font-family:-apple-system,BlinkMacSystemFont,Roboto,sans-serif;color:' + V.c_white + '">'
-            + '<div style="font-size:19px;font-weight:500;line-height:24px">' + V.name + '</div>'
-            + '<div style="display:flex;align-items:center;gap:6px;font-size:13px;line-height:18px">' + dot + sTxt + '</div>'
-            + '<div style="display:flex;align-items:baseline;gap:14px;margin:8px 0;line-height:44px">' + big + hum + '</div>'
-            + aqRow('CO₂', CO, 'ppm', V.co2_orange, V.co2_red)
-            + aqRow('PM2.5', PM, 'µg/m³', V.pm_orange, V.pm_red)
-            + '<div style="display:flex;gap:12px;margin-top:8px">'
-            + '<div style="flex:1;min-width:0">' + (tadPrimary ? tadRow + samRow : samRow + tadRow) + wRow + '</div>'
-            + '<div style="flex:none;width:60px">' + panel() + '</div>'
-            + '</div></div>';
-        ]]]
-
-views:
-  - title: Prototyp
-    path: prototyp
-    icon: mdi:home
-    cards:
-      - type: custom:button-card
-        template: klima_room
-        # tap = zatím jen detail ALPSTUGA (později Bubble Card popup)
-        entity: sensor.loznice_teplomer_loznice_temperature
-        variables:
-          name: Ložnice
-          e_temp: sensor.loznice_teplomer_loznice_temperature
-          e_hum: sensor.loznice_teplomer_loznice_humidity
-          e_co2: sensor.loznice_teplomer_loznice_carbon_dioxide
-          e_pm: sensor.loznice_teplomer_loznice_pm2_5
-          e_win: binary_sensor.loznice_okno_loznice_okno
-          e_tado_overlay: sensor.loznice_tado_ce_loznice_overlay
-          e_tado_target: sensor.loznice_tado_ce_loznice_target
-          e_tado_heating: sensor.loznice_tado_ce_loznice_heating
-          e_ac: climate.loznice_ac_loznice
-          e_cover: cover.loznice_zaluzie_loznice
-
-      # Další pokoje: zkopíruj kartu výše a přepiš jen hodnoty ve "variables".
-      # ID entit ostatních pokojů doplníme podle výstupu šablonového dotazu.
+# Thresholds default to the values in CURRENT_SPEC.md and rarely need changing.
+# thresholds:
+#   humidity_min: 35
+#   humidity_max: 70
+#   co2_warning: 1000
+#   co2_critical: 1500
+#   pm25_warning: 15
+#   pm25_critical: 35
+#   winter_min: 20
+#   winter_max: 24
+#   summer_min: 21
+#   summer_max: 25
