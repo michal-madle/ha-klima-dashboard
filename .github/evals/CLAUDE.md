@@ -92,13 +92,13 @@ Claude Code session, prefix `env -u CLAUDECODE` or the nested `claude` refuses t
 
 If a plugin stays loaded, `--setting-sources project` drops all user-level plugins; the `init`
 record's `skills` list shows what loaded. Run a prompt three times to get a rate. To test another
-description, copy `.claude-plugin/` and `skills/` (plus `evals/` for `claude plugin eval <dir>`),
+description, copy `.claude-plugin/` and `../skills` (plus `` for `claude plugin eval <dir>`),
 edit the copy and pass it as `--plugin-dir`. `local_model_eval.py --skill-dir` needs the whole
 skill folder, `references/` included.
 
 ## Local models
 
-`scripts/local_model_eval.py` runs cases against a local model the way ha-mcp serves the
+`../scripts` runs cases against a local model the way ha-mcp serves the
 skill: one `ha_get_skill_guide` tool on an OpenAI-compatible endpoint (LM Studio, llama.cpp,
 Ollama), without Claude Code's system prompt filling a small context. It scores only the regex
 graders, so its numbers do not compare with `claude plugin eval`; use it to compare two skill
@@ -112,7 +112,7 @@ uv run --no-project --with pyyaml python scripts/local_model_eval.py --model <mo
   --all-regex --runs 3 --out evals/results/<name>
 ```
 
-`scripts/summarise_runs.py` adds up those per-run files by label: for the command above run
+`../scripts` adds up those per-run files by label: for the command above run
 `python scripts/summarise_runs.py --out evals/results/<name> --label baseline,post`, which prints
 both arms' mean score, per-grader pass rate, and reads rate (fraction of runs that loaded the skill).
 

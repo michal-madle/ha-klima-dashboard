@@ -40,7 +40,7 @@ uvx --from skills-ref agentskills validate skills/<skill-name>
 ```
 
 Four more checks gate a merge. The required status checks on `main` are `validate`
-(`validate-skills.yml`: skills-ref, the eval-case checker, agnix and the version check),
+(`validate-skills.yml`: skills-ref, agnix and the version check),
 `internal-links` (lychee), `plugin-manifests` and `ha-examples` (below). A required check whose
 workflow a path filter skips never reports and blocks the PR, so none of these workflows has a
 `pull_request` path filter. `internal-links` runs in full on every PR; the other three skip
@@ -48,14 +48,14 @@ their work inside the job when their inputs did not change.
 CI installs `agnix` from PyPI unpinned, so
 it and `uvx agnix@latest` both run the latest release; a new agnix rule can fail a PR that did
 not cause it. `lychee` runs as a release binary pinned in `links.yml`; install that version (its release
-tag is `lychee-vX.Y.Z`, not `vX.Y.Z`). `claude plugin validate` ships with the Claude Code CLI;
-the eval-case checker is in-repo and needs only PyYAML (supplied by `uv run --with`):
+tag is `lychee-vX.Y.Z`, not `vX.Y.Z`). `claude plugin validate` ships with the Claude Code CLI.
+The eval-case checker is an optional local check for Copilot eval data; CI does not run it:
 
 ```bash
 uvx agnix@latest skills/ --target claude-code                         # spec conformance
 lychee --offline --include-fragments --no-progress './**/*.md'        # local links + #anchors
 claude plugin validate .                                              # plugin manifests
-uv run --no-project --with pyyaml python scripts/check_eval_cases.py  # evals/<case>/case.yaml
+uv run --no-project --with pyyaml python scripts/check_eval_cases.py  # optional local eval check
 ```
 
 agnix catches what skills-ref's unenforced `metadata: dict[str, str]` annotation lets pass —
