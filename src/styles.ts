@@ -183,24 +183,31 @@ export const styles = css`
       align-items: center;
       width: 100%;
       min-height: 22px;
-      gap: 6px;
+      gap: 8px;
       font-size: 14px;
       line-height: 22px;
       font-variant-numeric: tabular-nums;
     }
 
-    .air-row ha-icon {
-      width: 16px;
-      height: 16px;
-      flex: 0 0 16px;
+    /* Same 24 px icon column as the Topení, Klimatizace and window rows. */
+    .air-icon {
+      display: flex;
+      width: 24px;
+      height: 22px;
+      flex: 0 0 24px;
+      align-items: center;
+      justify-content: center;
       color: #9a9aa0;
     }
 
-    .air-label {
-      width: 44px;
-      flex: 0 0 44px;
-      color: #9a9aa0;
-      font-size: 12px;
+    .air-icon ha-icon {
+      --mdc-icon-size: 24px;
+    }
+
+    .air-icon svg {
+      display: block;
+      width: 20px;
+      height: 20px;
     }
 
     .air-value-unit {

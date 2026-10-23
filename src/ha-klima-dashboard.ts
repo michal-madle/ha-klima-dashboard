@@ -290,7 +290,7 @@ export class HaKlimaDashboard extends LitElement {
           <div class="info">
             ${this.renderAirRow(
               room,
-              "mdi:molecule-co2",
+              html`<ha-icon icon="mdi:molecule-co2"></ha-icon>`,
               "CO₂",
               co2,
               "ppm",
@@ -301,7 +301,7 @@ export class HaKlimaDashboard extends LitElement {
             )}
             ${this.renderAirRow(
               room,
-              "mdi:blur",
+              this.renderParticlesIcon(),
               "PM2.5",
               pm25,
               "µg/m³",
@@ -329,9 +329,30 @@ export class HaKlimaDashboard extends LitElement {
     `;
   }
 
+  /** PM2.5 icon: scattered dots of different sizes, no frame and no text (CURRENT_SPEC.md, Room Card). */
+  private renderParticlesIcon(): TemplateResult {
+    const dots: Array<[number, number, number]> = [
+      [5.5, 6, 1.9],
+      [12.5, 3.8, 1.4],
+      [19, 6.5, 2.1],
+      [9.5, 11, 2.3],
+      [16.5, 12.5, 1.5],
+      [4.5, 15.5, 1.5],
+      [20, 18.5, 1.7],
+      [11.5, 18, 1.7],
+      [7, 20.5, 1.9],
+      [15, 21, 1.4],
+    ];
+    return html`
+      <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+        ${dots.map(([cx, cy, r]) => svg`<circle cx=${cx} cy=${cy} r=${r}></circle>`)}
+      </svg>
+    `;
+  }
+
   private renderAirRow(
     room: RoomConfig,
-    icon: string,
+    icon: TemplateResult,
     label: string,
     reading: Reading,
     unit: string,
@@ -358,8 +379,7 @@ export class HaKlimaDashboard extends LitElement {
         aria-label=${`${room.name}: ${label}, graf CO₂ a PM2.5 za 24 hodin`}
         @click=${(event: Event) => this.openDialog("air", room, event)}
       >
-        <ha-icon icon=${icon}></ha-icon>
-        <span class="air-label">${label}</span>
+        <span class="air-icon" aria-hidden="true">${icon}</span>
         ${reading.value === undefined
           ? html`<span style=${`color: ${COLORS.label}`}>––</span>`
           : html`<span style=${`color: ${color}`}>${Math.round(reading.value)}</span>

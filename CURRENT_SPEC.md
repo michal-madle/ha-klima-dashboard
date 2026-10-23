@@ -28,8 +28,8 @@ Co není v Memory rozhodnuto, je uvedeno v sekci „Chybějící data“ a v `AU
 - Vpravo panel žaluzie (viz Žaluzie), začíná u řádku CO₂ a končí u řádku okna; nezasahuje do hlavičky ani k bloku teplota/vlhkost.
 - Teplota je dominantní; vlhkost vedle ní je sekundární, ve velikosti navazující na „°C“. Formát: „20,4 °C  46 %“, české formátování čísel.
 - Teplota, vlhkost, CO₂ a PM2.5 pocházejí výhradně z IKEA ALPSTUGA. Teplota z Topení se pro kartu nepoužívá (Topení měří u radiátoru pod oknem).
-- CO₂ a PM2.5 mají ikonu a popisek. Číslo se barví jen při překročení prahu.
-- Mikrotrendy (viz Historie a grafy): CO₂ a PM2.5 vedle hodnoty ve svém řádku; teplota jedním mikrotrendem napravo od řádků Topení a Klimatizace, přes výšku obou těchto HVAC řádků (pod řádky CO₂ a PM2.5).
+- CO₂ a PM2.5 mají jen ikonu, bez textového popisku. CO₂: ikona molekuly CO₂ (`mdi:molecule-co2`, schválená). PM2.5: vlastní ikona z rozptýlených teček různé velikosti, bez rámečku a bez textu. Ikona má barvu `#9A9AA0` a podle hodnoty se nemění; číslo se barví jen při překročení prahu. Význam ikony čtečkám obrazovky sděluje `aria-label` řádku.
+- Mikrotrendy (viz Historie a grafy) jsou na kartě právě tři: CO₂ a PM2.5 vedle hodnoty ve svém řádku; teplota jedním mikrotrendem napravo od řádků Topení a Klimatizace, přes výšku obou těchto HVAC řádků (pod řádky CO₂ a PM2.5).
 
 ## HVAC logika
 
@@ -37,6 +37,7 @@ Co není v Memory rozhodnuto, je uvedeno v sekci „Chybějící data“ a v `AU
 - Pořadí a váhu řádků určuje House Mode, nikoli to, který systém právě běží.
 - Topení je jediný zdroj vytápění. Klimatizace je primární chlazení.
 - Stav HVAC se čte z ikony a její barvy; všechny ikony mají stejnou velikost.
+- Řádky Topení a Klimatizace mají vždy ikonu: Topení 0–3 vlny, Klimatizace ikonu režimu. Ikona je vidět i při „Vypnuto“ (šedá) a při chybějících datech (přerušovaná, „––“).
 
 ## House Mode
 
@@ -100,7 +101,7 @@ Stav místnosti je lidské zhodnocení prostředí, ne příkaz. Platí první s
 
 ## Žaluzie
 
-- Ložnice, Pracovna, Maxík, Mikuláš mají žaluzie (Shelly); Obývák nemá.
+- Ložnice, Pracovna, Maxík, Mikuláš mají žaluzie (Shelly); Obývák nemá. Panel i tlačítka předvoleb se zobrazí jen u místnosti, která má v konfiguraci karty entitu `cover`.
 - Poloha: 100 % = otevřeno (nahoře), 0 % = zavřeno (dole). Naklopení: 100 % = lamely otevřené (vodorovně), 0 % = zavřené (svisle).
 - Panel je jeden svislý sloupec, miniatura reálné žaluzie viděné zevnitř; bez rámečku, textu, procent, popisků a slovních stavů.
 - Šířka ≈ původní dvojice ukazatelů zvětšená o 20–30 %. Stálý počet lamel.
@@ -108,7 +109,16 @@ Stav místnosti je lidské zhodnocení prostředí, ne příkaz. Platí první s
 - Poloha dělí sloupec: spuštěná horní část 100 % neprůhledná, dolní část představuje okno a zachovává strukturu lamel při 20 % neprůhlednosti. Poloha 100 % = zvýrazněna jen horní linka; poloha 0 % = zvýrazněno celé shora dolů.
 - Neznámá poloha nebo naklopení = přerušovaná silueta panelu; nikdy se nebere jako 0.
 - Panel je pouze zobrazení; klepnutí otevře standardní ovládání krytu.
-- Nad zobrazením žaluzie jsou 4 tlačítka s "presety" stavů. 0/0 - uplně zatemněno, 35/60 částečně povysunuto (ranní prosvětlení), 0/100 - sjeté dolů, ale otevřené lamely, 100/100 vysunuté nahoru. Texty: Tma (0/0), Ráno (35/60), Stín (0/100), Den (100/100). Rozložení 2×2 v šířce panelu žaluzie. Tlačítka jsou první verze a po vyzkoušení se mohou upravit (velikost, texty). Poloha/naklopení v %.
+- Nad panelem žaluzie jsou čtyři tlačítka s předvolbami, rozložená 2×2 v šířce panelu. Hodnoty jsou poloha / naklopení v %:
+
+| Tlačítko | Poloha / naklopení | Význam |
+|---|---|---|
+| Tma | 0 / 0 | úplné zatemnění |
+| Ráno | 35 / 60 | částečně povysunuto (ranní prosvětlení) |
+| Stín | 0 / 100 | sjeté dolů, lamely otevřené |
+| Den | 100 / 100 | vysunuto nahoru |
+
+- Tlačítka jsou první verze; po vyzkoušení se mohou upravit (velikost, texty).
 
 ## Detail místnosti
 
@@ -133,7 +143,8 @@ Stav místnosti je lidské zhodnocení prostředí, ne příkaz. Platí první s
 
 ## Vizuální pravidla
 
-- Jednotná velikost písma pro informační řádky (Topení, Klimatizace, okno, text stavu). Vlastní hierarchii mohou mít název místnosti, teplota, vlhkost a popisky CO₂/PM2.5.
+- Jednotná velikost písma pro informační řádky (Topení, Klimatizace, okno, text stavu). Vlastní hierarchii mohou mít název místnosti, teplota a vlhkost.
+- Všechny informační řádky (CO₂, PM2.5, Topení, Klimatizace, okno) mají ikonu ve stejném sloupci; hodnoty a texty řádků začínají ve stejné svislici.
 - Řádek, který nemá data, zachová svou ikonu a zobrazí „––“.
 - Normální stav nemá dominantní zelenou. Vypnuto je šedé. Topení Ručně je zřetelně zvýrazněné.
 - Okno: jeden řádek Zavřeno / Otevřeno. Zdroj stavu okna je výhradně IKEA MYGGBETT.
@@ -141,7 +152,7 @@ Stav místnosti je lidské zhodnocení prostředí, ne příkaz. Platí první s
 
 ## Barvy
 
-- Pouze testovací paleta (není finální; ověřit kontrast, čitelnost venku a vzhled na OLED): otevřené žaluzie `#D8D8DC`, popisky `#9A9AA0`, Klimatizace OFF `#8E8E93`, zavřené žaluzie `#6B6B70`.
+- Pouze testovací paleta (není finální; ověřit kontrast, čitelnost venku a vzhled na OLED): otevřené žaluzie `#D8D8DC`, ikony CO₂/PM2.5 a vedlejší texty `#9A9AA0`, Klimatizace OFF `#8E8E93`, zavřené žaluzie `#6B6B70`.
 - Oranžová = varování (CO₂ 1000+, PM2.5 15+), červená = kritické (CO₂ 1500+, PM2.5 35+).
 - Neznámá hodnota není nikdy červená ani alarm.
 - Ostatní barvy (režimy Klimatizace, Plán/Ručně, vlhkost) nejsou v Memory rozhodnuty, kromě pravidel výše: Větrání = barva Plánu; běžící Klimatizace ≠ OFF; křivka vlhkosti modrá.
