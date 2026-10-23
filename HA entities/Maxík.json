@@ -1,0 +1,332 @@
+[
+  {
+    "entity": "cover.maxik_zaluzie_maxik",
+    "name": "Žaluzie Maxík",
+    "state": "open"
+  },
+  {
+    "entity": "sensor.maxik_zaluzie_maxik_energy",
+    "name": "Žaluzie Maxík Energy",
+    "state": "0.228422"
+  },
+  {
+    "entity": "update.maxik_zaluzie_maxik_firmware",
+    "name": "Žaluzie Maxík Firmware",
+    "state": "off"
+  },
+  {
+    "entity": "binary_sensor.maxik_zaluzie_maxik_input_0",
+    "name": "Žaluzie Maxík Input 0",
+    "state": "off"
+  },
+  {
+    "entity": "binary_sensor.maxik_zaluzie_maxik_input_1",
+    "name": "Žaluzie Maxík Input 1",
+    "state": "off"
+  },
+  {
+    "entity": "binary_sensor.maxik_zaluzie_maxik_overcurrent",
+    "name": "Žaluzie Maxík Overcurrent",
+    "state": "off"
+  },
+  {
+    "entity": "binary_sensor.maxik_zaluzie_maxik_overheating",
+    "name": "Žaluzie Maxík Overheating",
+    "state": "off"
+  },
+  {
+    "entity": "binary_sensor.maxik_zaluzie_maxik_overpowering",
+    "name": "Žaluzie Maxík Overpowering",
+    "state": "off"
+  },
+  {
+    "entity": "binary_sensor.maxik_zaluzie_maxik_overvoltage",
+    "name": "Žaluzie Maxík Overvoltage",
+    "state": "off"
+  },
+  {
+    "entity": "sensor.maxik_zaluzie_maxik_power",
+    "name": "Žaluzie Maxík Power",
+    "state": "0.0"
+  },
+  {
+    "entity": "button.maxik_zaluzie_maxik_restart",
+    "name": "Žaluzie Maxík Restart",
+    "state": "unknown"
+  },
+  {
+    "entity": "binary_sensor.va4233889024_baterie",
+    "name": "VA4233889024 Battery",
+    "state": "off"
+  },
+  {
+    "entity": "binary_sensor.va4233889024_stav_pripojeni",
+    "name": "VA4233889024 Connection state",
+    "state": "on"
+  },
+  {
+    "entity": "climate.maxik_ac_maxik",
+    "name": "AC Maxík",
+    "state": "off"
+  },
+  {
+    "entity": "select.maxik_ac_maxik_dust_filter_alarm_threshold",
+    "name": "AC Maxík Dust filter alarm threshold",
+    "state": "500"
+  },
+  {
+    "entity": "sensor.maxik_ac_maxik_volume",
+    "name": "AC Maxík Volume",
+    "state": "0"
+  },
+  {
+    "entity": "sensor.maxik_ac_maxik_humidity",
+    "name": "AC Maxík Humidity",
+    "state": "42"
+  },
+  {
+    "entity": "sensor.maxik_ac_maxik_temperature",
+    "name": "AC Maxík Temperature",
+    "state": "21"
+  },
+  {
+    "entity": "sensor.maxik_okno_maxik_battery",
+    "name": "Okno Maxík Battery",
+    "state": "84"
+  },
+  {
+    "entity": "sensor.maxik_okno_maxik_battery_voltage",
+    "name": "Okno Maxík Battery voltage",
+    "state": "1.318"
+  },
+  {
+    "entity": "sensor.maxik_okno_maxik_battery_type",
+    "name": "Okno Maxík Battery type",
+    "state": "AAA"
+  },
+  {
+    "entity": "update.maxik_okno_maxik_firmware",
+    "name": "Okno Maxík Firmware",
+    "state": "off"
+  },
+  {
+    "entity": "button.maxik_okno_maxik_identify",
+    "name": "Okno Maxík Identify",
+    "state": "unknown"
+  },
+  {
+    "entity": "binary_sensor.maxik_okno_maxik",
+    "name": "Okno Maxík",
+    "state": "off"
+  },
+  {
+    "entity": "binary_sensor.maxik_tado_maxik_connectivity",
+    "name": "Tado Maxík Connectivity",
+    "state": "on"
+  },
+  {
+    "entity": "binary_sensor.maxik_tado_maxik_early_start",
+    "name": "Tado Maxík Early start",
+    "state": "off"
+  },
+  {
+    "entity": "sensor.maxik_tado_maxik_heating",
+    "name": "Tado Maxík Heating",
+    "state": "0.0"
+  },
+  {
+    "entity": "select.maxik_tado_maxik_heating_circuit",
+    "name": "Tado Maxík Heating circuit",
+    "state": "RU0800130304"
+  },
+  {
+    "entity": "sensor.maxik_tado_maxik_humidity",
+    "name": "Tado Maxík Humidity",
+    "state": "59.4"
+  },
+  {
+    "entity": "switch.maxik_tado_maxik_child_lock",
+    "name": "Tado Maxík Child lock",
+    "state": "off"
+  },
+  {
+    "entity": "binary_sensor.maxik_tado_maxik_overlay",
+    "name": "Tado Maxík Overlay",
+    "state": "off"
+  },
+  {
+    "entity": "binary_sensor.maxik_tado_maxik_power",
+    "name": "Tado Maxík Power",
+    "state": "on"
+  },
+  {
+    "entity": "climate.maxik_tado_maxik",
+    "name": "Tado Maxík",
+    "state": "auto"
+  },
+  {
+    "entity": "sensor.maxik_tado_maxik_tado_mode",
+    "name": "Tado Maxík Tado mode",
+    "state": "HOME"
+  },
+  {
+    "entity": "sensor.maxik_tado_maxik_temperature",
+    "name": "Tado Maxík Temperature",
+    "state": "22.2"
+  },
+  {
+    "entity": "binary_sensor.maxik_tado_maxik_window",
+    "name": "Tado Maxík Window",
+    "state": "off"
+  },
+  {
+    "entity": "button.maxik_identify",
+    "name": "Tado CE Maxík Identify",
+    "state": "unknown"
+  },
+  {
+    "entity": "sensor.maxik_tado_ce_maxik_absolute_humidity",
+    "name": "Tado CE Maxík Absolute Humidity",
+    "state": "11.6"
+  },
+  {
+    "entity": "sensor.maxik_tado_ce_maxik_battery",
+    "name": "Tado CE Maxík Battery",
+    "state": "Normal"
+  },
+  {
+    "entity": "button.maxik_tado_ce_maxik_boost",
+    "name": "Tado CE Maxík Boost",
+    "state": "unknown"
+  },
+  {
+    "entity": "sensor.maxik_tado_ce_maxik_comfort_level",
+    "name": "Tado CE Maxík Comfort Level",
+    "state": "Warm"
+  },
+  {
+    "entity": "sensor.maxik_tado_ce_maxik_comfort_target",
+    "name": "Tado CE Maxík Comfort Target",
+    "state": "20.0"
+  },
+  {
+    "entity": "sensor.maxik_tado_ce_maxik_condensation_risk",
+    "name": "Tado CE Maxík Condensation Risk",
+    "state": "Medium"
+  },
+  {
+    "entity": "binary_sensor.maxik_tado_ce_maxik_connection",
+    "name": "Tado CE Maxík Connection",
+    "state": "on"
+  },
+  {
+    "entity": "sensor.maxik_tado_ce_maxik_dew_point",
+    "name": "Tado CE Maxík Dew Point",
+    "state": "13.9"
+  },
+  {
+    "entity": "switch.maxik_tado_ce_maxik_early_start",
+    "name": "Tado CE Maxík Early Start",
+    "state": "off"
+  },
+  {
+    "entity": "sensor.maxik_tado_ce_maxik_heating",
+    "name": "Tado CE Maxík Heating",
+    "state": "0.0"
+  },
+  {
+    "entity": "sensor.maxik_tado_ce_maxik_humidity",
+    "name": "Tado CE Maxík Humidity",
+    "state": "59.4"
+  },
+  {
+    "entity": "switch.maxik_tado_ce_maxik_child_lock",
+    "name": "Tado CE Maxík Child Lock",
+    "state": "off"
+  },
+  {
+    "entity": "sensor.maxik_tado_ce_maxik_insights",
+    "name": "Tado CE Maxík Insights",
+    "state": "1"
+  },
+  {
+    "entity": "sensor.maxik_tado_ce_maxik_mold_risk",
+    "name": "Tado CE Maxík Mold Risk",
+    "state": "High"
+  },
+  {
+    "entity": "sensor.maxik_tado_ce_maxik_mold_risk_indicator",
+    "name": "Tado CE Maxík Mold Risk Indicator",
+    "state": "76"
+  },
+  {
+    "entity": "sensor.maxik_tado_ce_maxik_next_schedule",
+    "name": "Tado CE Maxík Next Schedule",
+    "state": "No schedule"
+  },
+  {
+    "entity": "sensor.maxik_tado_ce_maxik_next_schedule_temperature",
+    "name": "Tado CE Maxík Next Schedule Temperature",
+    "state": "No schedule"
+  },
+  {
+    "entity": "sensor.maxik_tado_ce_maxik_overlay",
+    "name": "Tado CE Maxík Overlay",
+    "state": "Schedule"
+  },
+  {
+    "entity": "sensor.maxik_tado_ce_maxik_preheat_advisor",
+    "name": "Tado CE Maxík Preheat Advisor",
+    "state": "No schedule"
+  },
+  {
+    "entity": "binary_sensor.maxik_tado_ce_maxik_preheat_now",
+    "name": "Tado CE Maxík Preheat Now",
+    "state": "off"
+  },
+  {
+    "entity": "button.maxik_tado_ce_maxik_refresh_schedule",
+    "name": "Tado CE Maxík Refresh Schedule",
+    "state": "unknown"
+  },
+  {
+    "entity": "sensor.maxik_tado_ce_maxik_schedule_deviation",
+    "name": "Tado CE Maxík Schedule Deviation",
+    "state": "0.6"
+  },
+  {
+    "entity": "button.maxik_tado_ce_maxik_smart_boost",
+    "name": "Tado CE Maxík Smart Boost",
+    "state": "unknown"
+  },
+  {
+    "entity": "sensor.maxik_tado_ce_maxik_surface_temp",
+    "name": "Tado CE Maxík Surface Temp",
+    "state": "18.2"
+  },
+  {
+    "entity": "climate.maxik_tado_ce_maxik",
+    "name": "Tado CE Maxík",
+    "state": "auto"
+  },
+  {
+    "entity": "sensor.maxik_tado_ce_maxik_target",
+    "name": "Tado CE Maxík Target",
+    "state": "22.0"
+  },
+  {
+    "entity": "sensor.maxik_tado_ce_maxik_temperature",
+    "name": "Tado CE Maxík Temperature",
+    "state": "22.2"
+  },
+  {
+    "entity": "binary_sensor.maxik_tado_ce_maxik_window",
+    "name": "Tado CE Maxík Window",
+    "state": "off"
+  },
+  {
+    "entity": "binary_sensor.maxik_tado_ce_maxik_window_predicted",
+    "name": "Tado CE Maxík Window Predicted",
+    "state": "off"
+  }
+]

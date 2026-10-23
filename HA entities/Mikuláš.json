@@ -1,0 +1,362 @@
+[
+  {
+    "entity": "binary_sensor.va4166780160_baterie",
+    "name": "VA4166780160 Battery",
+    "state": "off"
+  },
+  {
+    "entity": "binary_sensor.va4166780160_stav_pripojeni",
+    "name": "VA4166780160 Connection state",
+    "state": "on"
+  },
+  {
+    "entity": "cover.mikulas_zaluzie_mikulas",
+    "name": "Žaluzie Mikuláš",
+    "state": "open"
+  },
+  {
+    "entity": "sensor.mikulas_zaluzie_mikulas_energy",
+    "name": "Žaluzie Mikuláš Energy",
+    "state": "0.137793"
+  },
+  {
+    "entity": "update.mikulas_zaluzie_mikulas_firmware",
+    "name": "Žaluzie Mikuláš Firmware",
+    "state": "off"
+  },
+  {
+    "entity": "binary_sensor.mikulas_zaluzie_mikulas_input_0",
+    "name": "Žaluzie Mikuláš Input 0",
+    "state": "off"
+  },
+  {
+    "entity": "binary_sensor.mikulas_zaluzie_mikulas_input_1",
+    "name": "Žaluzie Mikuláš Input 1",
+    "state": "off"
+  },
+  {
+    "entity": "binary_sensor.mikulas_zaluzie_mikulas_overcurrent",
+    "name": "Žaluzie Mikuláš Overcurrent",
+    "state": "off"
+  },
+  {
+    "entity": "binary_sensor.mikulas_zaluzie_mikulas_overheating",
+    "name": "Žaluzie Mikuláš Overheating",
+    "state": "off"
+  },
+  {
+    "entity": "binary_sensor.mikulas_zaluzie_mikulas_overpowering",
+    "name": "Žaluzie Mikuláš Overpowering",
+    "state": "off"
+  },
+  {
+    "entity": "binary_sensor.mikulas_zaluzie_mikulas_overvoltage",
+    "name": "Žaluzie Mikuláš Overvoltage",
+    "state": "off"
+  },
+  {
+    "entity": "sensor.mikulas_zaluzie_mikulas_power",
+    "name": "Žaluzie Mikuláš Power",
+    "state": "0.0"
+  },
+  {
+    "entity": "button.mikulas_zaluzie_mikulas_restart",
+    "name": "Žaluzie Mikuláš Restart",
+    "state": "unknown"
+  },
+  {
+    "entity": "climate.mikulas_ac_mikulas",
+    "name": "AC Mikuláš",
+    "state": "off"
+  },
+  {
+    "entity": "select.mikulas_ac_mikulas_dust_filter_alarm_threshold",
+    "name": "AC Mikuláš Dust filter alarm threshold",
+    "state": "500"
+  },
+  {
+    "entity": "sensor.mikulas_ac_mikulas_humidity",
+    "name": "AC Mikuláš Humidity",
+    "state": "47"
+  },
+  {
+    "entity": "sensor.mikulas_ac_mikulas_temperature",
+    "name": "AC Mikuláš Temperature",
+    "state": "21"
+  },
+  {
+    "entity": "sensor.mikulas_ac_mikulas_volume",
+    "name": "AC Mikuláš Volume",
+    "state": "0"
+  },
+  {
+    "entity": "sensor.mikulas_okno_mikulas_battery",
+    "name": "Okno Mikuláš Battery",
+    "state": "58"
+  },
+  {
+    "entity": "sensor.mikulas_okno_mikulas_battery_type",
+    "name": "Okno Mikuláš Battery type",
+    "state": "AAA"
+  },
+  {
+    "entity": "sensor.mikulas_okno_mikulas_battery_voltage",
+    "name": "Okno Mikuláš Battery voltage",
+    "state": "1.278"
+  },
+  {
+    "entity": "update.mikulas_okno_mikulas_firmware",
+    "name": "Okno Mikuláš Firmware",
+    "state": "off"
+  },
+  {
+    "entity": "button.mikulas_okno_mikulas_identify",
+    "name": "Okno Mikuláš Identify",
+    "state": "unknown"
+  },
+  {
+    "entity": "binary_sensor.mikulas_okno_mikulas",
+    "name": "Okno Mikuláš",
+    "state": "off"
+  },
+  {
+    "entity": "binary_sensor.mikulas_tado_mikulas_connectivity",
+    "name": "Tado Mikuláš Connectivity",
+    "state": "on"
+  },
+  {
+    "entity": "binary_sensor.mikulas_tado_mikulas_early_start",
+    "name": "Tado Mikuláš Early start",
+    "state": "off"
+  },
+  {
+    "entity": "sensor.mikulas_tado_mikulas_heating",
+    "name": "Tado Mikuláš Heating",
+    "state": "0.0"
+  },
+  {
+    "entity": "select.mikulas_tado_mikulas_heating_circuit",
+    "name": "Tado Mikuláš Heating circuit",
+    "state": "RU0800130304"
+  },
+  {
+    "entity": "sensor.mikulas_tado_mikulas_humidity",
+    "name": "Tado Mikuláš Humidity",
+    "state": "57.5"
+  },
+  {
+    "entity": "switch.mikulas_tado_mikulas_child_lock",
+    "name": "Tado Mikuláš Child lock",
+    "state": "off"
+  },
+  {
+    "entity": "binary_sensor.mikulas_tado_mikulas_overlay",
+    "name": "Tado Mikuláš Overlay",
+    "state": "off"
+  },
+  {
+    "entity": "binary_sensor.mikulas_tado_mikulas_power",
+    "name": "Tado Mikuláš Power",
+    "state": "on"
+  },
+  {
+    "entity": "climate.mikulas_tado_mikulas",
+    "name": "Tado Mikuláš",
+    "state": "auto"
+  },
+  {
+    "entity": "sensor.mikulas_tado_mikulas_tado_mode",
+    "name": "Tado Mikuláš Tado mode",
+    "state": "HOME"
+  },
+  {
+    "entity": "sensor.mikulas_tado_mikulas_temperature",
+    "name": "Tado Mikuláš Temperature",
+    "state": "22.58"
+  },
+  {
+    "entity": "binary_sensor.mikulas_tado_mikulas_window",
+    "name": "Tado Mikuláš Window",
+    "state": "off"
+  },
+  {
+    "entity": "button.miki_identify",
+    "name": "Tado CE Mikuláš Identify",
+    "state": "unknown"
+  },
+  {
+    "entity": "sensor.mikulas_tado_ce_mikulas_absolute_humidity",
+    "name": "Tado CE Mikuláš Absolute Humidity",
+    "state": "11.5"
+  },
+  {
+    "entity": "sensor.mikulas_tado_ce_mikulas_approach_factor",
+    "name": "Tado CE Mikuláš Approach Factor",
+    "state": "unavailable"
+  },
+  {
+    "entity": "sensor.mikulas_tado_ce_mikulas_battery",
+    "name": "Tado CE Mikuláš Battery",
+    "state": "Normal"
+  },
+  {
+    "entity": "button.mikulas_tado_ce_mikulas_boost",
+    "name": "Tado CE Mikuláš Boost",
+    "state": "unknown"
+  },
+  {
+    "entity": "sensor.mikulas_tado_ce_mikulas_confidence",
+    "name": "Tado CE Mikuláš Confidence",
+    "state": "0.0"
+  },
+  {
+    "entity": "binary_sensor.mikulas_tado_ce_mikulas_connection",
+    "name": "Tado CE Mikuláš Connection",
+    "state": "on"
+  },
+  {
+    "entity": "sensor.mikulas_tado_ce_mikulas_dew_point",
+    "name": "Tado CE Mikuláš Dew Point",
+    "state": "13.7"
+  },
+  {
+    "entity": "switch.mikulas_tado_ce_mikulas_early_start",
+    "name": "Tado CE Mikuláš Early Start",
+    "state": "off"
+  },
+  {
+    "entity": "sensor.mikulas_tado_ce_mikulas_heating",
+    "name": "Tado CE Mikuláš Heating",
+    "state": "0.0"
+  },
+  {
+    "entity": "sensor.mikulas_tado_ce_mikulas_heating_acceleration",
+    "name": "Tado CE Mikuláš Heating Acceleration",
+    "state": "unavailable"
+  },
+  {
+    "entity": "sensor.mikulas_tado_ce_mikulas_heating_rate",
+    "name": "Tado CE Mikuláš Heating Rate",
+    "state": "unavailable"
+  },
+  {
+    "entity": "sensor.mikulas_tado_ce_mikulas_humidity",
+    "name": "Tado CE Mikuláš Humidity",
+    "state": "57.5"
+  },
+  {
+    "entity": "switch.mikulas_tado_ce_mikulas_child_lock",
+    "name": "Tado CE Mikuláš Child Lock",
+    "state": "off"
+  },
+  {
+    "entity": "sensor.mikulas_tado_ce_mikulas_mold_risk_indicator",
+    "name": "Tado CE Mikuláš Mold Risk Indicator",
+    "state": "74"
+  },
+  {
+    "entity": "sensor.mikulas_tado_ce_mikulas_next_schedule",
+    "name": "Tado CE Mikuláš Next Schedule",
+    "state": "No schedule"
+  },
+  {
+    "entity": "sensor.mikulas_tado_ce_mikulas_next_schedule_temperature",
+    "name": "Tado CE Mikuláš Next Schedule Temperature",
+    "state": "No schedule"
+  },
+  {
+    "entity": "sensor.mikulas_tado_ce_mikulas_overlay",
+    "name": "Tado CE Mikuláš Overlay",
+    "state": "Schedule"
+  },
+  {
+    "entity": "binary_sensor.mikulas_tado_ce_mikulas_preheat_now",
+    "name": "Tado CE Mikuláš Preheat Now",
+    "state": "off"
+  },
+  {
+    "entity": "sensor.mikulas_tado_ce_mikulas_preheat_time",
+    "name": "Tado CE Mikuláš Preheat Time",
+    "state": "unavailable"
+  },
+  {
+    "entity": "button.mikulas_tado_ce_mikulas_refresh_schedule",
+    "name": "Tado CE Mikuláš Refresh Schedule",
+    "state": "unknown"
+  },
+  {
+    "entity": "button.mikulas_tado_ce_mikulas_smart_boost",
+    "name": "Tado CE Mikuláš Smart Boost",
+    "state": "unknown"
+  },
+  {
+    "entity": "sensor.mikulas_tado_ce_mikulas_surface_temp",
+    "name": "Tado CE Mikuláš Surface Temp",
+    "state": "18.5"
+  },
+  {
+    "entity": "climate.mikulas_tado_ce_mikulas",
+    "name": "Tado CE Mikuláš",
+    "state": "auto"
+  },
+  {
+    "entity": "sensor.mikulas_tado_ce_mikulas_target",
+    "name": "Tado CE Mikuláš Target",
+    "state": "22.0"
+  },
+  {
+    "entity": "sensor.mikulas_tado_ce_mikulas_temperature",
+    "name": "Tado CE Mikuláš Temperature",
+    "state": "22.5"
+  },
+  {
+    "entity": "sensor.mikulas_tado_ce_mikulas_thermal_inertia",
+    "name": "Tado CE Mikuláš Thermal Inertia",
+    "state": "unavailable"
+  },
+  {
+    "entity": "binary_sensor.mikulas_tado_ce_mikulas_window",
+    "name": "Tado CE Mikuláš Window",
+    "state": "off"
+  },
+  {
+    "entity": "binary_sensor.mikulas_tado_ce_mikulas_window_predicted",
+    "name": "Tado CE Mikuláš Window Predicted",
+    "state": "off"
+  },
+  {
+    "entity": "sensor.mikulas_tado_ce_mikulas_insights",
+    "name": "Tado CE Mikuláš Insights",
+    "state": "1"
+  },
+  {
+    "entity": "sensor.mikulas_tado_ce_mikulas_mold_risk",
+    "name": "Tado CE Mikuláš Mold Risk",
+    "state": "High"
+  },
+  {
+    "entity": "sensor.mikulas_tado_ce_mikulas_comfort_level",
+    "name": "Tado CE Mikuláš Comfort Level",
+    "state": "Warm"
+  },
+  {
+    "entity": "sensor.mikulas_tado_ce_mikulas_condensation_risk",
+    "name": "Tado CE Mikuláš Condensation Risk",
+    "state": "Medium"
+  },
+  {
+    "entity": "sensor.mikulas_tado_ce_mikulas_schedule_deviation",
+    "name": "Tado CE Mikuláš Schedule Deviation",
+    "state": "0.5"
+  },
+  {
+    "entity": "sensor.mikulas_tado_ce_mikulas_preheat_advisor",
+    "name": "Tado CE Mikuláš Preheat Advisor",
+    "state": "No schedule"
+  },
+  {
+    "entity": "sensor.mikulas_tado_ce_mikulas_comfort_target",
+    "name": "Tado CE Mikuláš Comfort Target",
+    "state": "20.0"
+  }
+]

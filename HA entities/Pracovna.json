@@ -1,0 +1,652 @@
+[
+  {
+    "entity": "cover.pracovna_zaluzie_pracovna",
+    "name": "Žaluzie pracovna",
+    "state": "open"
+  },
+  {
+    "entity": "sensor.pracovna_zaluzie_pracovna_energy",
+    "name": "Žaluzie pracovna Energy",
+    "state": "0.127982"
+  },
+  {
+    "entity": "update.pracovna_zaluzie_pracovna_firmware",
+    "name": "Žaluzie pracovna Firmware",
+    "state": "off"
+  },
+  {
+    "entity": "binary_sensor.pracovna_zaluzie_pracovna_input_0",
+    "name": "Žaluzie pracovna Input 0",
+    "state": "off"
+  },
+  {
+    "entity": "binary_sensor.pracovna_zaluzie_pracovna_input_1",
+    "name": "Žaluzie pracovna Input 1",
+    "state": "on"
+  },
+  {
+    "entity": "binary_sensor.pracovna_zaluzie_pracovna_overcurrent",
+    "name": "Žaluzie pracovna Overcurrent",
+    "state": "off"
+  },
+  {
+    "entity": "binary_sensor.pracovna_zaluzie_pracovna_overheating",
+    "name": "Žaluzie pracovna Overheating",
+    "state": "off"
+  },
+  {
+    "entity": "binary_sensor.pracovna_zaluzie_pracovna_overpowering",
+    "name": "Žaluzie pracovna Overpowering",
+    "state": "off"
+  },
+  {
+    "entity": "binary_sensor.pracovna_zaluzie_pracovna_overvoltage",
+    "name": "Žaluzie pracovna Overvoltage",
+    "state": "off"
+  },
+  {
+    "entity": "sensor.pracovna_zaluzie_pracovna_power",
+    "name": "Žaluzie pracovna Power",
+    "state": "0.0"
+  },
+  {
+    "entity": "button.pracovna_zaluzie_pracovna_restart",
+    "name": "Žaluzie pracovna Restart",
+    "state": "unknown"
+  },
+  {
+    "entity": "binary_sensor.va1312229888_baterie",
+    "name": "VA1312229888 Battery",
+    "state": "on"
+  },
+  {
+    "entity": "binary_sensor.va1312229888_stav_pripojeni",
+    "name": "VA1312229888 Connection state",
+    "state": "on"
+  },
+  {
+    "entity": "binary_sensor.madlovi_drive_1_exceeded_max_bad_sectors",
+    "name": "madlovi (Drive 1) Exceeded max bad sectors",
+    "state": "off"
+  },
+  {
+    "entity": "binary_sensor.madlovi_drive_1_below_min_remaining_life",
+    "name": "madlovi (Drive 1) Below min remaining life",
+    "state": "off"
+  },
+  {
+    "entity": "sensor.madlovi_drive_1_status",
+    "name": "madlovi (Drive 1) Status",
+    "state": "normal"
+  },
+  {
+    "entity": "sensor.madlovi_drive_1_temperature",
+    "name": "madlovi (Drive 1) Temperature",
+    "state": "39"
+  },
+  {
+    "entity": "binary_sensor.madlovi_drive_2_exceeded_max_bad_sectors",
+    "name": "madlovi (Drive 2) Exceeded max bad sectors",
+    "state": "off"
+  },
+  {
+    "entity": "binary_sensor.madlovi_drive_2_below_min_remaining_life",
+    "name": "madlovi (Drive 2) Below min remaining life",
+    "state": "off"
+  },
+  {
+    "entity": "sensor.madlovi_drive_2_status",
+    "name": "madlovi (Drive 2) Status",
+    "state": "normal"
+  },
+  {
+    "entity": "sensor.madlovi_drive_2_temperature",
+    "name": "madlovi (Drive 2) Temperature",
+    "state": "37"
+  },
+  {
+    "entity": "climate.pracovna_ac_pracovna",
+    "name": "AC Pracovna",
+    "state": "off"
+  },
+  {
+    "entity": "select.pracovna_ac_pracovna_dust_filter_alarm_threshold",
+    "name": "AC Pracovna Dust filter alarm threshold",
+    "state": "500"
+  },
+  {
+    "entity": "sensor.pracovna_ac_pracovna_volume",
+    "name": "AC Pracovna Volume",
+    "state": "0"
+  },
+  {
+    "entity": "sensor.pracovna_ac_pracovna_humidity",
+    "name": "AC Pracovna Humidity",
+    "state": "43"
+  },
+  {
+    "entity": "sensor.pracovna_ac_pracovna_temperature",
+    "name": "AC Pracovna Temperature",
+    "state": "24"
+  },
+  {
+    "entity": "sensor.pracovna_okno_pracovna_battery",
+    "name": "Okno Pracovna Battery",
+    "state": "73"
+  },
+  {
+    "entity": "sensor.pracovna_okno_pracovna_battery_voltage",
+    "name": "Okno Pracovna Battery voltage",
+    "state": "1.293"
+  },
+  {
+    "entity": "sensor.pracovna_okno_pracovna_battery_type",
+    "name": "Okno Pracovna Battery type",
+    "state": "AAA"
+  },
+  {
+    "entity": "update.pracovna_okno_pracovna_firmware",
+    "name": "Okno Pracovna Firmware",
+    "state": "off"
+  },
+  {
+    "entity": "button.pracovna_okno_pracovna_identify",
+    "name": "Okno Pracovna Identify",
+    "state": "unknown"
+  },
+  {
+    "entity": "binary_sensor.pracovna_okno_pracovna",
+    "name": "Okno Pracovna",
+    "state": "off"
+  },
+  {
+    "entity": "sensor.pracovna_teplomer_pracovna_battery",
+    "name": "Teploměr Pracovna Battery",
+    "state": "73"
+  },
+  {
+    "entity": "sensor.pracovna_teplomer_pracovna_battery_voltage",
+    "name": "Teploměr Pracovna Battery voltage",
+    "state": "2.585"
+  },
+  {
+    "entity": "sensor.pracovna_teplomer_pracovna_battery_type",
+    "name": "Teploměr Pracovna Battery type",
+    "state": "AAA"
+  },
+  {
+    "entity": "update.pracovna_teplomer_pracovna_firmware",
+    "name": "Teploměr Pracovna Firmware",
+    "state": "off"
+  },
+  {
+    "entity": "button.pracovna_teplomer_pracovna_identify_1",
+    "name": "Teploměr Pracovna Identify (1)",
+    "state": "unknown"
+  },
+  {
+    "entity": "sensor.pracovna_teplomer_pracovna_temperature",
+    "name": "Teploměr Pracovna Temperature",
+    "state": "23.33"
+  },
+  {
+    "entity": "button.pracovna_teplomer_pracovna_identify_2",
+    "name": "Teploměr Pracovna Identify (2)",
+    "state": "unknown"
+  },
+  {
+    "entity": "sensor.pracovna_teplomer_pracovna_humidity",
+    "name": "Teploměr Pracovna Humidity",
+    "state": "53.97"
+  },
+  {
+    "entity": "update.pracovna_zasuvka_ikea_firmware",
+    "name": "Zásuvka IKEA Firmware",
+    "state": "off"
+  },
+  {
+    "entity": "button.pracovna_zasuvka_ikea_identify",
+    "name": "Zásuvka IKEA Identify",
+    "state": "unknown"
+  },
+  {
+    "entity": "select.pracovna_zasuvka_ikea_power_on_behavior",
+    "name": "Zásuvka IKEA Power-on behavior",
+    "state": "previous"
+  },
+  {
+    "entity": "switch.pracovna_zasuvka_ikea",
+    "name": "Zásuvka IKEA",
+    "state": "on"
+  },
+  {
+    "entity": "sensor.pracovna_zasuvka_ikea_power",
+    "name": "Zásuvka IKEA Power",
+    "state": "0.0"
+  },
+  {
+    "entity": "sensor.pracovna_zasuvka_ikea_apparent_power",
+    "name": "Zásuvka IKEA Apparent power",
+    "state": "0.0"
+  },
+  {
+    "entity": "sensor.pracovna_zasuvka_ikea_reactive_power",
+    "name": "Zásuvka IKEA Reactive power",
+    "state": "0.0"
+  },
+  {
+    "entity": "sensor.pracovna_zasuvka_ikea_voltage",
+    "name": "Zásuvka IKEA Voltage",
+    "state": "236.0"
+  },
+  {
+    "entity": "sensor.pracovna_zasuvka_ikea_effective_voltage",
+    "name": "Zásuvka IKEA Effective voltage",
+    "state": "236.0"
+  },
+  {
+    "entity": "sensor.pracovna_zasuvka_ikea_apparent_current",
+    "name": "Zásuvka IKEA Apparent current",
+    "state": "0.0"
+  },
+  {
+    "entity": "sensor.pracovna_zasuvka_ikea_active_current",
+    "name": "Zásuvka IKEA Active current",
+    "state": "0.0"
+  },
+  {
+    "entity": "sensor.pracovna_zasuvka_ikea_reactive_current",
+    "name": "Zásuvka IKEA Reactive current",
+    "state": "0.0"
+  },
+  {
+    "entity": "sensor.pracovna_zasuvka_ikea_effective_current",
+    "name": "Zásuvka IKEA Effective current",
+    "state": "0.0"
+  },
+  {
+    "entity": "sensor.pracovna_zasuvka_ikea_frequency",
+    "name": "Zásuvka IKEA Frequency",
+    "state": "0.05"
+  },
+  {
+    "entity": "sensor.pracovna_zasuvka_ikea_power_factor",
+    "name": "Zásuvka IKEA Power factor",
+    "state": "0.0"
+  },
+  {
+    "entity": "sensor.pracovna_zasuvka_ikea_energy",
+    "name": "Zásuvka IKEA Energy",
+    "state": "0.0"
+  },
+  {
+    "entity": "binary_sensor.pracovna_tado_pracovna_connectivity",
+    "name": "Tado Pracovna Connectivity",
+    "state": "on"
+  },
+  {
+    "entity": "binary_sensor.pracovna_tado_pracovna_early_start",
+    "name": "Tado Pracovna Early start",
+    "state": "off"
+  },
+  {
+    "entity": "sensor.pracovna_tado_pracovna_heating",
+    "name": "Tado Pracovna Heating",
+    "state": "0.0"
+  },
+  {
+    "entity": "select.pracovna_tado_pracovna_heating_circuit",
+    "name": "Tado Pracovna Heating circuit",
+    "state": "RU0800130304"
+  },
+  {
+    "entity": "sensor.pracovna_tado_pracovna_humidity",
+    "name": "Tado Pracovna Humidity",
+    "state": "57.5"
+  },
+  {
+    "entity": "switch.pracovna_tado_pracovna_child_lock",
+    "name": "Tado Pracovna Child lock",
+    "state": "off"
+  },
+  {
+    "entity": "binary_sensor.pracovna_tado_pracovna_overlay",
+    "name": "Tado Pracovna Overlay",
+    "state": "off"
+  },
+  {
+    "entity": "binary_sensor.pracovna_tado_pracovna_power",
+    "name": "Tado Pracovna Power",
+    "state": "on"
+  },
+  {
+    "entity": "sensor.pracovna_tado_pracovna_tado_mode",
+    "name": "Tado Pracovna Tado mode",
+    "state": "HOME"
+  },
+  {
+    "entity": "climate.pracovna_tado_pracovna",
+    "name": "Tado Pracovna",
+    "state": "auto"
+  },
+  {
+    "entity": "sensor.pracovna_tado_pracovna_temperature",
+    "name": "Tado Pracovna Temperature",
+    "state": "22.91"
+  },
+  {
+    "entity": "binary_sensor.pracovna_tado_pracovna_window",
+    "name": "Tado Pracovna Window",
+    "state": "off"
+  },
+  {
+    "entity": "button.yeelink_bslamp2_cd35_info",
+    "name": "Mi Bedside Lamp 2 Info",
+    "state": "unknown"
+  },
+  {
+    "entity": "button.yeelink_bslamp2_cd35_toggle",
+    "name": "Mi Bedside Lamp 2 Toggle",
+    "state": "unknown"
+  },
+  {
+    "entity": "light.yeelink_bslamp2_cd35_light",
+    "name": "Mi Bedside Lamp 2 Light",
+    "state": "off"
+  },
+  {
+    "entity": "number.pracovna_ikea_symfonisk_balance",
+    "name": "IKEA Symfonisk Balance",
+    "state": "0"
+  },
+  {
+    "entity": "number.pracovna_ikea_symfonisk_bass",
+    "name": "IKEA Symfonisk Bass",
+    "state": "0"
+  },
+  {
+    "entity": "switch.pracovna_ikea_symfonisk_crossfade",
+    "name": "IKEA Symfonisk Crossfade",
+    "state": "off"
+  },
+  {
+    "entity": "media_player.pracovna_ikea_symfonisk",
+    "name": "IKEA Symfonisk",
+    "state": "paused"
+  },
+  {
+    "entity": "switch.pracovna_ikea_symfonisk_loudness",
+    "name": "IKEA Symfonisk Loudness",
+    "state": "on"
+  },
+  {
+    "entity": "number.pracovna_ikea_symfonisk_treble",
+    "name": "IKEA Symfonisk Treble",
+    "state": "0"
+  },
+  {
+    "entity": "switch.pracovna_ikea_symfonisk_tv_autoplay",
+    "name": "IKEA Symfonisk TV autoplay",
+    "state": "off"
+  },
+  {
+    "entity": "switch.pracovna_ikea_symfonisk_ungroup_on_autoplay",
+    "name": "IKEA Symfonisk Ungroup on autoplay",
+    "state": "on"
+  },
+  {
+    "entity": "button.pracovna_identify",
+    "name": "Tado CE Pracovna Identify",
+    "state": "unknown"
+  },
+  {
+    "entity": "sensor.pracovna_tado_ce_pracovna_absolute_humidity",
+    "name": "Tado CE Pracovna Absolute Humidity",
+    "state": "11.7"
+  },
+  {
+    "entity": "sensor.pracovna_tado_ce_pracovna_battery",
+    "name": "Tado CE Pracovna Battery",
+    "state": "Low"
+  },
+  {
+    "entity": "button.pracovna_tado_ce_pracovna_boost",
+    "name": "Tado CE Pracovna Boost",
+    "state": "unknown"
+  },
+  {
+    "entity": "sensor.pracovna_tado_ce_pracovna_comfort_level",
+    "name": "Tado CE Pracovna Comfort Level",
+    "state": "Warm"
+  },
+  {
+    "entity": "sensor.pracovna_tado_ce_pracovna_comfort_target",
+    "name": "Tado CE Pracovna Comfort Target",
+    "state": "20.0"
+  },
+  {
+    "entity": "sensor.pracovna_tado_ce_pracovna_condensation_risk",
+    "name": "Tado CE Pracovna Condensation Risk",
+    "state": "Medium"
+  },
+  {
+    "entity": "binary_sensor.pracovna_tado_ce_pracovna_connection",
+    "name": "Tado CE Pracovna Connection",
+    "state": "on"
+  },
+  {
+    "entity": "sensor.pracovna_tado_ce_pracovna_dew_point",
+    "name": "Tado CE Pracovna Dew Point",
+    "state": "14.1"
+  },
+  {
+    "entity": "switch.pracovna_tado_ce_pracovna_early_start",
+    "name": "Tado CE Pracovna Early Start",
+    "state": "off"
+  },
+  {
+    "entity": "sensor.pracovna_tado_ce_pracovna_heating",
+    "name": "Tado CE Pracovna Heating",
+    "state": "0.0"
+  },
+  {
+    "entity": "sensor.pracovna_tado_ce_pracovna_humidity",
+    "name": "Tado CE Pracovna Humidity",
+    "state": "57.5"
+  },
+  {
+    "entity": "switch.pracovna_tado_ce_pracovna_child_lock",
+    "name": "Tado CE Pracovna Child Lock",
+    "state": "off"
+  },
+  {
+    "entity": "sensor.pracovna_tado_ce_pracovna_insights",
+    "name": "Tado CE Pracovna Insights",
+    "state": "2"
+  },
+  {
+    "entity": "sensor.pracovna_tado_ce_pracovna_mold_risk",
+    "name": "Tado CE Pracovna Mold Risk",
+    "state": "High"
+  },
+  {
+    "entity": "sensor.pracovna_tado_ce_pracovna_mold_risk_indicator",
+    "name": "Tado CE Pracovna Mold Risk Indicator",
+    "state": "74"
+  },
+  {
+    "entity": "sensor.pracovna_tado_ce_pracovna_next_schedule",
+    "name": "Tado CE Pracovna Next Schedule",
+    "state": "No schedule"
+  },
+  {
+    "entity": "sensor.pracovna_tado_ce_pracovna_next_schedule_temperature",
+    "name": "Tado CE Pracovna Next Schedule Temperature",
+    "state": "No schedule"
+  },
+  {
+    "entity": "sensor.pracovna_tado_ce_pracovna_overlay",
+    "name": "Tado CE Pracovna Overlay",
+    "state": "Schedule"
+  },
+  {
+    "entity": "sensor.pracovna_tado_ce_pracovna_preheat_advisor",
+    "name": "Tado CE Pracovna Preheat Advisor",
+    "state": "No schedule"
+  },
+  {
+    "entity": "binary_sensor.pracovna_tado_ce_pracovna_preheat_now",
+    "name": "Tado CE Pracovna Preheat Now",
+    "state": "off"
+  },
+  {
+    "entity": "button.pracovna_tado_ce_pracovna_refresh_schedule",
+    "name": "Tado CE Pracovna Refresh Schedule",
+    "state": "unknown"
+  },
+  {
+    "entity": "sensor.pracovna_tado_ce_pracovna_schedule_deviation",
+    "name": "Tado CE Pracovna Schedule Deviation",
+    "state": "0.2"
+  },
+  {
+    "entity": "button.pracovna_tado_ce_pracovna_smart_boost",
+    "name": "Tado CE Pracovna Smart Boost",
+    "state": "unknown"
+  },
+  {
+    "entity": "sensor.pracovna_tado_ce_pracovna_surface_temp",
+    "name": "Tado CE Pracovna Surface Temp",
+    "state": "18.8"
+  },
+  {
+    "entity": "climate.pracovna_tado_ce_pracovna",
+    "name": "Tado CE Pracovna",
+    "state": "auto"
+  },
+  {
+    "entity": "sensor.pracovna_tado_ce_pracovna_target",
+    "name": "Tado CE Pracovna Target",
+    "state": "21.5"
+  },
+  {
+    "entity": "sensor.pracovna_tado_ce_pracovna_temperature",
+    "name": "Tado CE Pracovna Temperature",
+    "state": "22.91"
+  },
+  {
+    "entity": "binary_sensor.pracovna_tado_ce_pracovna_window",
+    "name": "Tado CE Pracovna Window",
+    "state": "off"
+  },
+  {
+    "entity": "binary_sensor.pracovna_tado_ce_pracovna_window_predicted",
+    "name": "Tado CE Pracovna Window Predicted",
+    "state": "off"
+  },
+  {
+    "entity": "binary_sensor.madlovi_security_status",
+    "name": "madlovi Security status",
+    "state": "off"
+  },
+  {
+    "entity": "button.madlovi_restart",
+    "name": "madlovi Restart",
+    "state": "unknown"
+  },
+  {
+    "entity": "button.madlovi_shut_down",
+    "name": "madlovi Shut down",
+    "state": "unknown"
+  },
+  {
+    "entity": "select.madlovi_fan_speed_mode",
+    "name": "madlovi Fan speed mode",
+    "state": "low_power"
+  },
+  {
+    "entity": "sensor.madlovi_cpu_utilization_user",
+    "name": "madlovi CPU utilization (user)",
+    "state": "25"
+  },
+  {
+    "entity": "sensor.madlovi_cpu_utilization_total",
+    "name": "madlovi CPU utilization (total)",
+    "state": "66"
+  },
+  {
+    "entity": "sensor.madlovi_cpu_load_average_5_min",
+    "name": "madlovi CPU load average (5 min)",
+    "state": "0.32"
+  },
+  {
+    "entity": "sensor.madlovi_cpu_load_average_15_min",
+    "name": "madlovi CPU load average (15 min)",
+    "state": "0.37"
+  },
+  {
+    "entity": "sensor.madlovi_memory_usage_real",
+    "name": "madlovi Memory usage (real)",
+    "state": "43"
+  },
+  {
+    "entity": "sensor.madlovi_memory_available_swap",
+    "name": "madlovi Memory available (swap)",
+    "state": "1719.76704"
+  },
+  {
+    "entity": "sensor.madlovi_memory_available_real",
+    "name": "madlovi Memory available (real)",
+    "state": "193.51552"
+  },
+  {
+    "entity": "sensor.madlovi_memory_total_swap",
+    "name": "madlovi Memory total (swap)",
+    "state": "2147.414016"
+  },
+  {
+    "entity": "sensor.madlovi_memory_total_real",
+    "name": "madlovi Memory total (real)",
+    "state": "524.869632"
+  },
+  {
+    "entity": "sensor.madlovi_upload_throughput",
+    "name": "madlovi Upload throughput",
+    "state": "10.444"
+  },
+  {
+    "entity": "sensor.madlovi_download_throughput",
+    "name": "madlovi Download throughput",
+    "state": "7.736"
+  },
+  {
+    "entity": "sensor.madlovi_temperature",
+    "name": "madlovi Temperature",
+    "state": "40"
+  },
+  {
+    "entity": "update.madlovi_dsm_update",
+    "name": "madlovi DSM update",
+    "state": "off"
+  },
+  {
+    "entity": "sensor.madlovi_volume_1_status",
+    "name": "madlovi (Volume 1) Status",
+    "state": "normal"
+  },
+  {
+    "entity": "sensor.madlovi_volume_1_used_space",
+    "name": "madlovi (Volume 1) Used space",
+    "state": "2.795420327936"
+  },
+  {
+    "entity": "sensor.madlovi_volume_1_volume_used",
+    "name": "madlovi (Volume 1) Volume used",
+    "state": "47.0"
+  },
+  {
+    "entity": "sensor.madlovi_volume_1_average_disk_temp",
+    "name": "madlovi (Volume 1) Average disk temp",
+    "state": "38.0"
+  }
+]

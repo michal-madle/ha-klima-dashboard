@@ -1,0 +1,482 @@
+[
+  {
+    "entity": "binary_sensor.va2466266112_baterie",
+    "name": "VA2466266112 Battery",
+    "state": "off"
+  },
+  {
+    "entity": "binary_sensor.va2466266112_stav_pripojeni",
+    "name": "VA2466266112 Connection state",
+    "state": "on"
+  },
+  {
+    "entity": "cover.loznice_zaluzie_loznice",
+    "name": "Žaluzie ložnice",
+    "state": "open"
+  },
+  {
+    "entity": "sensor.loznice_zaluzie_loznice_energy",
+    "name": "Žaluzie ložnice Energy",
+    "state": "1.054568"
+  },
+  {
+    "entity": "update.loznice_zaluzie_loznice_firmware",
+    "name": "Žaluzie ložnice Firmware",
+    "state": "off"
+  },
+  {
+    "entity": "binary_sensor.loznice_zaluzie_loznice_input_0",
+    "name": "Žaluzie ložnice Input 0",
+    "state": "off"
+  },
+  {
+    "entity": "binary_sensor.loznice_zaluzie_loznice_input_1",
+    "name": "Žaluzie ložnice Input 1",
+    "state": "off"
+  },
+  {
+    "entity": "binary_sensor.loznice_zaluzie_loznice_overcurrent",
+    "name": "Žaluzie ložnice Overcurrent",
+    "state": "off"
+  },
+  {
+    "entity": "binary_sensor.loznice_zaluzie_loznice_overheating",
+    "name": "Žaluzie ložnice Overheating",
+    "state": "off"
+  },
+  {
+    "entity": "binary_sensor.loznice_zaluzie_loznice_overpowering",
+    "name": "Žaluzie ložnice Overpowering",
+    "state": "off"
+  },
+  {
+    "entity": "binary_sensor.loznice_zaluzie_loznice_overvoltage",
+    "name": "Žaluzie ložnice Overvoltage",
+    "state": "off"
+  },
+  {
+    "entity": "sensor.loznice_zaluzie_loznice_plan_zaluzie_loznice",
+    "name": "Žaluzie ložnice Plán žaluzie ložnice",
+    "state": "R 08:30 | V 18:07 | N 18:38"
+  },
+  {
+    "entity": "sensor.loznice_zaluzie_loznice_plan_zaluzie_maxik",
+    "name": "Žaluzie ložnice Plán žaluzie Maxík",
+    "state": "R 08:30 | V 17:07 | N 18:28"
+  },
+  {
+    "entity": "sensor.loznice_zaluzie_loznice_plan_zaluzie_miki",
+    "name": "Žaluzie ložnice Plán žaluzie Miki",
+    "state": "R 08:30 | V 17:07 | N 18:28"
+  },
+  {
+    "entity": "sensor.loznice_zaluzie_loznice_plan_zaluzie_pracovna",
+    "name": "Žaluzie ložnice Plán žaluzie pracovna",
+    "state": "R 08:30 | V 18:07 | N 18:28"
+  },
+  {
+    "entity": "sensor.loznice_zaluzie_loznice_power",
+    "name": "Žaluzie ložnice Power",
+    "state": "0.0"
+  },
+  {
+    "entity": "button.loznice_zaluzie_loznice_restart",
+    "name": "Žaluzie ložnice Restart",
+    "state": "unknown"
+  },
+  {
+    "entity": "climate.loznice_ac_loznice",
+    "name": "AC Ložnice",
+    "state": "off"
+  },
+  {
+    "entity": "select.loznice_ac_loznice_dust_filter_alarm_threshold",
+    "name": "AC Ložnice Dust filter alarm threshold",
+    "state": "500"
+  },
+  {
+    "entity": "sensor.loznice_ac_loznice_volume",
+    "name": "AC Ložnice Volume",
+    "state": "0"
+  },
+  {
+    "entity": "sensor.loznice_ac_loznice_humidity",
+    "name": "AC Ložnice Humidity",
+    "state": "46"
+  },
+  {
+    "entity": "sensor.loznice_ac_loznice_temperature",
+    "name": "AC Ložnice Temperature",
+    "state": "21"
+  },
+  {
+    "entity": "sensor.loznice_teplomer_loznice_air_quality",
+    "name": "Teploměr Ložnice Air quality",
+    "state": "poor"
+  },
+  {
+    "entity": "sensor.loznice_teplomer_loznice_carbon_dioxide",
+    "name": "Teploměr Ložnice Carbon dioxide",
+    "state": "1217.0"
+  },
+  {
+    "entity": "switch.loznice_teplomer_loznice_display",
+    "name": "Teploměr Ložnice Display",
+    "state": "on"
+  },
+  {
+    "entity": "update.loznice_teplomer_loznice_firmware",
+    "name": "Teploměr Ložnice Firmware",
+    "state": "off"
+  },
+  {
+    "entity": "sensor.loznice_teplomer_loznice_humidity",
+    "name": "Teploměr Ložnice Humidity",
+    "state": "58.1"
+  },
+  {
+    "entity": "button.loznice_teplomer_loznice_identify",
+    "name": "Teploměr Ložnice Identify",
+    "state": "unknown"
+  },
+  {
+    "entity": "sensor.loznice_teplomer_loznice_pm2_5",
+    "name": "Teploměr Ložnice PM2.5",
+    "state": "6.0"
+  },
+  {
+    "entity": "sensor.loznice_teplomer_loznice_temperature",
+    "name": "Teploměr Ložnice Temperature",
+    "state": "22.68"
+  },
+  {
+    "entity": "sensor.loznice_okno_loznice_battery",
+    "name": "Okno Ložnice Battery",
+    "state": "84"
+  },
+  {
+    "entity": "sensor.loznice_okno_loznice_battery_voltage",
+    "name": "Okno Ložnice Battery voltage",
+    "state": "1.317"
+  },
+  {
+    "entity": "sensor.loznice_okno_loznice_battery_type",
+    "name": "Okno Ložnice Battery type",
+    "state": "AAA"
+  },
+  {
+    "entity": "update.loznice_okno_loznice_firmware",
+    "name": "Okno Ložnice Firmware",
+    "state": "off"
+  },
+  {
+    "entity": "button.loznice_okno_loznice_identify",
+    "name": "Okno Ložnice Identify",
+    "state": "unknown"
+  },
+  {
+    "entity": "binary_sensor.loznice_okno_loznice",
+    "name": "Okno Ložnice",
+    "state": "off"
+  },
+  {
+    "entity": "binary_sensor.loznice_tado_loznice_connectivity",
+    "name": "Tado Ložnice Connectivity",
+    "state": "on"
+  },
+  {
+    "entity": "binary_sensor.loznice_tado_loznice_early_start",
+    "name": "Tado Ložnice Early start",
+    "state": "off"
+  },
+  {
+    "entity": "sensor.loznice_tado_loznice_heating",
+    "name": "Tado Ložnice Heating",
+    "state": "0.0"
+  },
+  {
+    "entity": "select.loznice_tado_loznice_heating_circuit",
+    "name": "Tado Ložnice Heating circuit",
+    "state": "RU0800130304"
+  },
+  {
+    "entity": "sensor.loznice_tado_loznice_humidity",
+    "name": "Tado Ložnice Humidity",
+    "state": "59.6"
+  },
+  {
+    "entity": "switch.loznice_tado_loznice_child_lock",
+    "name": "Tado Ložnice Child lock",
+    "state": "off"
+  },
+  {
+    "entity": "binary_sensor.loznice_tado_loznice_overlay",
+    "name": "Tado Ložnice Overlay",
+    "state": "off"
+  },
+  {
+    "entity": "binary_sensor.loznice_tado_loznice_power",
+    "name": "Tado Ložnice Power",
+    "state": "on"
+  },
+  {
+    "entity": "climate.loznice_tado_loznice",
+    "name": "Tado Ložnice",
+    "state": "auto"
+  },
+  {
+    "entity": "sensor.loznice_tado_loznice_tado_mode",
+    "name": "Tado Ložnice Tado mode",
+    "state": "HOME"
+  },
+  {
+    "entity": "sensor.loznice_tado_loznice_temperature",
+    "name": "Tado Ložnice Temperature",
+    "state": "22.73"
+  },
+  {
+    "entity": "binary_sensor.loznice_tado_loznice_window",
+    "name": "Tado Ložnice Window",
+    "state": "off"
+  },
+  {
+    "entity": "sensor.roborock_s5_ea9e_status",
+    "name": "Roborock 1.patro Status",
+    "state": "charging"
+  },
+  {
+    "entity": "sensor.roborock_s5_ea9e_battery_level",
+    "name": "Roborock 1.patro Battery Level",
+    "state": "100.0"
+  },
+  {
+    "entity": "sensor.roborock_s5_ea9e_charging_state",
+    "name": "Roborock 1.patro Charging State",
+    "state": "charging"
+  },
+  {
+    "entity": "sensor.roborock_s5_ea9e_props_clean_area",
+    "name": "Roborock 1.patro Clean Area",
+    "state": "0.0"
+  },
+  {
+    "entity": "sensor.roborock_s5_ea9e_props_clean_time",
+    "name": "Roborock 1.patro Clean Time",
+    "state": "0.5"
+  },
+  {
+    "entity": "select.roborock_s5_ea9e_mode",
+    "name": "Roborock 1.patro Mode",
+    "state": "Basic"
+  },
+  {
+    "entity": "button.roborock_s5_ea9e_info",
+    "name": "Roborock 1.patro Info",
+    "state": "unknown"
+  },
+  {
+    "entity": "button.roborock_s5_ea9e_start_sweep",
+    "name": "Roborock 1.patro Start Sweep",
+    "state": "unknown"
+  },
+  {
+    "entity": "button.roborock_s5_ea9e_stop_sweeping",
+    "name": "Roborock 1.patro Stop",
+    "state": "unknown"
+  },
+  {
+    "entity": "button.roborock_s5_ea9e_start_charge",
+    "name": "Roborock 1.patro Start Charge",
+    "state": "unknown"
+  },
+  {
+    "entity": "button.roborock_s5_ea9e_identify",
+    "name": "Roborock 1.patro Identify",
+    "state": "unknown"
+  },
+  {
+    "entity": "vacuum.roborock_s5_ea9e_robot_cleaner",
+    "name": "Roborock 1.patro Robot Cleaner",
+    "state": "docked"
+  },
+  {
+    "entity": "button.loznice_identify",
+    "name": "Tado CE Ložnice Identify",
+    "state": "unknown"
+  },
+  {
+    "entity": "sensor.loznice_tado_ce_loznice_absolute_humidity",
+    "name": "Tado CE Ložnice Absolute Humidity",
+    "state": "12.0"
+  },
+  {
+    "entity": "sensor.loznice_tado_ce_loznice_approach_factor",
+    "name": "Tado CE Ložnice Approach Factor",
+    "state": "unavailable"
+  },
+  {
+    "entity": "sensor.loznice_tado_ce_loznice_battery",
+    "name": "Tado CE Ložnice Battery",
+    "state": "Normal"
+  },
+  {
+    "entity": "button.loznice_tado_ce_loznice_boost",
+    "name": "Tado CE Ložnice Boost",
+    "state": "unknown"
+  },
+  {
+    "entity": "sensor.loznice_tado_ce_loznice_comfort_level",
+    "name": "Tado CE Ložnice Comfort Level",
+    "state": "Warm"
+  },
+  {
+    "entity": "sensor.loznice_tado_ce_loznice_comfort_target",
+    "name": "Tado CE Ložnice Comfort Target",
+    "state": "20.0"
+  },
+  {
+    "entity": "sensor.loznice_tado_ce_loznice_condensation_risk",
+    "name": "Tado CE Ložnice Condensation Risk",
+    "state": "Medium"
+  },
+  {
+    "entity": "sensor.loznice_tado_ce_loznice_confidence",
+    "name": "Tado CE Ložnice Confidence",
+    "state": "30.0"
+  },
+  {
+    "entity": "binary_sensor.loznice_tado_ce_loznice_connection",
+    "name": "Tado CE Ložnice Connection",
+    "state": "on"
+  },
+  {
+    "entity": "sensor.loznice_tado_ce_loznice_dew_point",
+    "name": "Tado CE Ložnice Dew Point",
+    "state": "14.5"
+  },
+  {
+    "entity": "switch.loznice_tado_ce_loznice_early_start",
+    "name": "Tado CE Ložnice Early Start",
+    "state": "off"
+  },
+  {
+    "entity": "sensor.loznice_tado_ce_loznice_heating",
+    "name": "Tado CE Ložnice Heating",
+    "state": "0.0"
+  },
+  {
+    "entity": "sensor.loznice_tado_ce_loznice_heating_acceleration",
+    "name": "Tado CE Ložnice Heating Acceleration",
+    "state": "2.11"
+  },
+  {
+    "entity": "sensor.loznice_tado_ce_loznice_heating_rate",
+    "name": "Tado CE Ložnice Heating Rate",
+    "state": "1.7"
+  },
+  {
+    "entity": "sensor.loznice_tado_ce_loznice_humidity",
+    "name": "Tado CE Ložnice Humidity",
+    "state": "59.6"
+  },
+  {
+    "entity": "switch.loznice_tado_ce_loznice_child_lock",
+    "name": "Tado CE Ložnice Child Lock",
+    "state": "off"
+  },
+  {
+    "entity": "sensor.loznice_tado_ce_loznice_insights",
+    "name": "Tado CE Ložnice Insights",
+    "state": "1"
+  },
+  {
+    "entity": "sensor.loznice_tado_ce_loznice_mold_risk",
+    "name": "Tado CE Ložnice Mold Risk",
+    "state": "High"
+  },
+  {
+    "entity": "sensor.loznice_tado_ce_loznice_mold_risk_indicator",
+    "name": "Tado CE Ložnice Mold Risk Indicator",
+    "state": "77"
+  },
+  {
+    "entity": "sensor.loznice_tado_ce_loznice_next_schedule",
+    "name": "Tado CE Ložnice Next Schedule",
+    "state": "No schedule"
+  },
+  {
+    "entity": "sensor.loznice_tado_ce_loznice_next_schedule_temperature",
+    "name": "Tado CE Ložnice Next Schedule Temperature",
+    "state": "No schedule"
+  },
+  {
+    "entity": "sensor.loznice_tado_ce_loznice_overlay",
+    "name": "Tado CE Ložnice Overlay",
+    "state": "Schedule"
+  },
+  {
+    "entity": "sensor.loznice_tado_ce_loznice_preheat_advisor",
+    "name": "Tado CE Ložnice Preheat Advisor",
+    "state": "No schedule"
+  },
+  {
+    "entity": "binary_sensor.loznice_tado_ce_loznice_preheat_now",
+    "name": "Tado CE Ložnice Preheat Now",
+    "state": "off"
+  },
+  {
+    "entity": "sensor.loznice_tado_ce_loznice_preheat_time",
+    "name": "Tado CE Ložnice Preheat Time",
+    "state": "0.0"
+  },
+  {
+    "entity": "button.loznice_tado_ce_loznice_refresh_schedule",
+    "name": "Tado CE Ložnice Refresh Schedule",
+    "state": "unknown"
+  },
+  {
+    "entity": "sensor.loznice_tado_ce_loznice_schedule_deviation",
+    "name": "Tado CE Ložnice Schedule Deviation",
+    "state": "1.0"
+  },
+  {
+    "entity": "button.loznice_tado_ce_loznice_smart_boost",
+    "name": "Tado CE Ložnice Smart Boost",
+    "state": "unknown"
+  },
+  {
+    "entity": "sensor.loznice_tado_ce_loznice_surface_temp",
+    "name": "Tado CE Ložnice Surface Temp",
+    "state": "18.6"
+  },
+  {
+    "entity": "climate.loznice_tado_ce_loznice",
+    "name": "Tado CE Ložnice",
+    "state": "auto"
+  },
+  {
+    "entity": "sensor.loznice_tado_ce_loznice_target",
+    "name": "Tado CE Ložnice Target",
+    "state": "22.0"
+  },
+  {
+    "entity": "sensor.loznice_tado_ce_loznice_temperature",
+    "name": "Tado CE Ložnice Temperature",
+    "state": "22.73"
+  },
+  {
+    "entity": "sensor.loznice_tado_ce_loznice_thermal_inertia",
+    "name": "Tado CE Ložnice Thermal Inertia",
+    "state": "3.6"
+  },
+  {
+    "entity": "binary_sensor.loznice_tado_ce_loznice_window",
+    "name": "Tado CE Ložnice Window",
+    "state": "off"
+  },
+  {
+    "entity": "binary_sensor.loznice_tado_ce_loznice_window_predicted",
+    "name": "Tado CE Ložnice Window Predicted",
+    "state": "off"
+  }
+]

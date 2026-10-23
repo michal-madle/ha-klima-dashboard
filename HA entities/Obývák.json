@@ -1,0 +1,352 @@
+[
+  {
+    "entity": "binary_sensor.ru0800130304_baterie",
+    "name": "RU0800130304 Battery",
+    "state": "off"
+  },
+  {
+    "entity": "binary_sensor.ru0800130304_stav_pripojeni",
+    "name": "RU0800130304 Connection state",
+    "state": "on"
+  },
+  {
+    "entity": "binary_sensor.va1059588608_baterie",
+    "name": "VA1059588608 Battery",
+    "state": "off"
+  },
+  {
+    "entity": "binary_sensor.va1059588608_stav_pripojeni",
+    "name": "VA1059588608 Connection state",
+    "state": "on"
+  },
+  {
+    "entity": "climate.obyvak_ac_obyvak",
+    "name": "AC Obývák",
+    "state": "off"
+  },
+  {
+    "entity": "select.obyvak_ac_obyvak_dust_filter_alarm_threshold",
+    "name": "AC Obývák Dust filter alarm threshold",
+    "state": "500"
+  },
+  {
+    "entity": "sensor.obyvak_ac_obyvak_energy",
+    "name": "AC Obývák Energy",
+    "state": "333.634"
+  },
+  {
+    "entity": "sensor.obyvak_ac_obyvak_energy_difference",
+    "name": "AC Obývák Energy difference",
+    "state": "0.0"
+  },
+  {
+    "entity": "sensor.obyvak_ac_obyvak_energy_saved",
+    "name": "AC Obývák Energy saved",
+    "state": "0.0"
+  },
+  {
+    "entity": "sensor.obyvak_ac_obyvak_humidity",
+    "name": "AC Obývák Humidity",
+    "state": "44"
+  },
+  {
+    "entity": "sensor.obyvak_ac_obyvak_power",
+    "name": "AC Obývák Power",
+    "state": "0"
+  },
+  {
+    "entity": "sensor.obyvak_ac_obyvak_power_energy",
+    "name": "AC Obývák Power energy",
+    "state": "0.0"
+  },
+  {
+    "entity": "sensor.obyvak_ac_obyvak_temperature",
+    "name": "AC Obývák Temperature",
+    "state": "22"
+  },
+  {
+    "entity": "sensor.obyvak_ac_obyvak_volume",
+    "name": "AC Obývák Volume",
+    "state": "0"
+  },
+  {
+    "entity": "media_player.miprojm05",
+    "name": "MiProjM05",
+    "state": "unavailable"
+  },
+  {
+    "entity": "remote.miprojm05",
+    "name": "MiProjM05",
+    "state": "unavailable"
+  },
+  {
+    "entity": "media_player.miprojm05_2",
+    "name": "MiProjM05",
+    "state": "unavailable"
+  },
+  {
+    "entity": "sensor.obyvak_dvere_zahrada_battery",
+    "name": "Dveře Zahrada Battery",
+    "state": "34"
+  },
+  {
+    "entity": "sensor.obyvak_dvere_zahrada_battery_voltage",
+    "name": "Dveře Zahrada Battery voltage",
+    "state": "1.251"
+  },
+  {
+    "entity": "sensor.obyvak_dvere_zahrada_battery_type",
+    "name": "Dveře Zahrada Battery type",
+    "state": "AAA"
+  },
+  {
+    "entity": "update.obyvak_dvere_zahrada_firmware",
+    "name": "Dveře Zahrada Firmware",
+    "state": "off"
+  },
+  {
+    "entity": "button.obyvak_dvere_zahrada_identify",
+    "name": "Dveře Zahrada Identify",
+    "state": "unknown"
+  },
+  {
+    "entity": "binary_sensor.obyvak_dvere_zahrada",
+    "name": "Dveře Zahrada",
+    "state": "off"
+  },
+  {
+    "entity": "binary_sensor.obyvak_tado_obyvak_connectivity",
+    "name": "Tado Obývák Connectivity",
+    "state": "on"
+  },
+  {
+    "entity": "binary_sensor.obyvak_tado_obyvak_early_start",
+    "name": "Tado Obývák Early start",
+    "state": "off"
+  },
+  {
+    "entity": "sensor.obyvak_tado_obyvak_heating",
+    "name": "Tado Obývák Heating",
+    "state": "0.0"
+  },
+  {
+    "entity": "select.obyvak_tado_obyvak_heating_circuit",
+    "name": "Tado Obývák Heating circuit",
+    "state": "RU0800130304"
+  },
+  {
+    "entity": "sensor.obyvak_tado_obyvak_humidity",
+    "name": "Tado Obývák Humidity",
+    "state": "55.9"
+  },
+  {
+    "entity": "binary_sensor.obyvak_tado_obyvak_overlay",
+    "name": "Tado Obývák Overlay",
+    "state": "off"
+  },
+  {
+    "entity": "binary_sensor.obyvak_tado_obyvak_power",
+    "name": "Tado Obývák Power",
+    "state": "on"
+  },
+  {
+    "entity": "sensor.obyvak_tado_obyvak_tado_mode",
+    "name": "Tado Obývák Tado mode",
+    "state": "HOME"
+  },
+  {
+    "entity": "climate.obyvak_tado_obyvak",
+    "name": "Tado Obývák",
+    "state": "auto"
+  },
+  {
+    "entity": "sensor.obyvak_tado_obyvak_temperature",
+    "name": "Tado Obývák Temperature",
+    "state": "22.35"
+  },
+  {
+    "entity": "binary_sensor.obyvak_tado_obyvak_window",
+    "name": "Tado Obývák Window",
+    "state": "off"
+  },
+  {
+    "entity": "button.obyvak_identify_ru01",
+    "name": "Tado CE Obývák Identify RU01",
+    "state": "unknown"
+  },
+  {
+    "entity": "button.obyvak_identify_va01",
+    "name": "Tado CE Obývák Identify VA01",
+    "state": "unknown"
+  },
+  {
+    "entity": "sensor.obyvak_tado_ce_obyvak_absolute_humidity",
+    "name": "Tado CE Obývák Absolute Humidity",
+    "state": "11.1"
+  },
+  {
+    "entity": "sensor.obyvak_tado_ce_obyvak_approach_factor",
+    "name": "Tado CE Obývák Approach Factor",
+    "state": "unavailable"
+  },
+  {
+    "entity": "sensor.obyvak_tado_ce_obyvak_battery_ru01",
+    "name": "Tado CE Obývák Battery RU01",
+    "state": "Normal"
+  },
+  {
+    "entity": "sensor.obyvak_tado_ce_obyvak_battery_va01",
+    "name": "Tado CE Obývák Battery VA01",
+    "state": "Normal"
+  },
+  {
+    "entity": "button.obyvak_tado_ce_obyvak_boost",
+    "name": "Tado CE Obývák Boost",
+    "state": "unknown"
+  },
+  {
+    "entity": "sensor.obyvak_tado_ce_obyvak_comfort_level",
+    "name": "Tado CE Obývák Comfort Level",
+    "state": "Warm"
+  },
+  {
+    "entity": "sensor.obyvak_tado_ce_obyvak_comfort_target",
+    "name": "Tado CE Obývák Comfort Target",
+    "state": "20.0"
+  },
+  {
+    "entity": "sensor.obyvak_tado_ce_obyvak_condensation_risk",
+    "name": "Tado CE Obývák Condensation Risk",
+    "state": "Low"
+  },
+  {
+    "entity": "binary_sensor.obyvak_tado_ce_obyvak_connection_ru01",
+    "name": "Tado CE Obývák Connection RU01",
+    "state": "on"
+  },
+  {
+    "entity": "binary_sensor.obyvak_tado_ce_obyvak_connection_va01",
+    "name": "Tado CE Obývák Connection VA01",
+    "state": "on"
+  },
+  {
+    "entity": "sensor.obyvak_tado_ce_obyvak_dew_point",
+    "name": "Tado CE Obývák Dew Point",
+    "state": "13.1"
+  },
+  {
+    "entity": "switch.obyvak_tado_ce_obyvak_early_start",
+    "name": "Tado CE Obývák Early Start",
+    "state": "off"
+  },
+  {
+    "entity": "sensor.obyvak_tado_ce_obyvak_heating",
+    "name": "Tado CE Obývák Heating",
+    "state": "0.0"
+  },
+  {
+    "entity": "sensor.obyvak_tado_ce_obyvak_heating_acceleration",
+    "name": "Tado CE Obývák Heating Acceleration",
+    "state": "unavailable"
+  },
+  {
+    "entity": "sensor.obyvak_tado_ce_obyvak_humidity",
+    "name": "Tado CE Obývák Humidity",
+    "state": "55.9"
+  },
+  {
+    "entity": "switch.obyvak_tado_ce_obyvak_child_lock",
+    "name": "Tado CE Obývák Child Lock",
+    "state": "off"
+  },
+  {
+    "entity": "sensor.obyvak_tado_ce_obyvak_insights",
+    "name": "Tado CE Obývák Insights",
+    "state": "0"
+  },
+  {
+    "entity": "sensor.obyvak_tado_ce_obyvak_mold_risk",
+    "name": "Tado CE Obývák Mold Risk",
+    "state": "Medium"
+  },
+  {
+    "entity": "sensor.obyvak_tado_ce_obyvak_mold_risk_indicator",
+    "name": "Tado CE Obývák Mold Risk Indicator",
+    "state": "72"
+  },
+  {
+    "entity": "sensor.obyvak_tado_ce_obyvak_next_schedule",
+    "name": "Tado CE Obývák Next Schedule",
+    "state": "No schedule"
+  },
+  {
+    "entity": "sensor.obyvak_tado_ce_obyvak_next_schedule_temperature",
+    "name": "Tado CE Obývák Next Schedule Temperature",
+    "state": "No schedule"
+  },
+  {
+    "entity": "sensor.obyvak_tado_ce_obyvak_overlay",
+    "name": "Tado CE Obývák Overlay",
+    "state": "Schedule"
+  },
+  {
+    "entity": "sensor.obyvak_tado_ce_obyvak_preheat_advisor",
+    "name": "Tado CE Obývák Preheat Advisor",
+    "state": "No schedule"
+  },
+  {
+    "entity": "binary_sensor.obyvak_tado_ce_obyvak_preheat_now",
+    "name": "Tado CE Obývák Preheat Now",
+    "state": "off"
+  },
+  {
+    "entity": "button.obyvak_tado_ce_obyvak_refresh_schedule",
+    "name": "Tado CE Obývák Refresh Schedule",
+    "state": "unknown"
+  },
+  {
+    "entity": "sensor.obyvak_tado_ce_obyvak_schedule_deviation",
+    "name": "Tado CE Obývák Schedule Deviation",
+    "state": "-0.8"
+  },
+  {
+    "entity": "button.obyvak_tado_ce_obyvak_smart_boost",
+    "name": "Tado CE Obývák Smart Boost",
+    "state": "unknown"
+  },
+  {
+    "entity": "sensor.obyvak_tado_ce_obyvak_surface_temp",
+    "name": "Tado CE Obývák Surface Temp",
+    "state": "18.3"
+  },
+  {
+    "entity": "climate.obyvak_tado_ce_obyvak",
+    "name": "Tado CE Obývák",
+    "state": "auto"
+  },
+  {
+    "entity": "sensor.obyvak_tado_ce_obyvak_target",
+    "name": "Tado CE Obývák Target",
+    "state": "21.0"
+  },
+  {
+    "entity": "sensor.obyvak_tado_ce_obyvak_temperature",
+    "name": "Tado CE Obývák Temperature",
+    "state": "22.35"
+  },
+  {
+    "entity": "sensor.obyvak_tado_ce_obyvak_thermal_inertia",
+    "name": "Tado CE Obývák Thermal Inertia",
+    "state": "unavailable"
+  },
+  {
+    "entity": "binary_sensor.obyvak_tado_ce_obyvak_window",
+    "name": "Tado CE Obývák Window",
+    "state": "off"
+  },
+  {
+    "entity": "binary_sensor.obyvak_tado_ce_obyvak_window_predicted",
+    "name": "Tado CE Obývák Window Predicted",
+    "state": "off"
+  }
+]
