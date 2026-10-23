@@ -1,0 +1,80 @@
+type: custom:ha-klima-dashboard
+title: Domov
+house_mode_entity: input_select.house_mode
+
+# Outside entity IDs are not mapped yet; add them when confirmed.
+# outside:
+#   temperature: sensor.outdoor_temperature
+#   minimum: sensor.outdoor_temperature_min
+#   maximum: sensor.outdoor_temperature_max
+#   rain_probability: sensor.rain_probability
+#   pm25: sensor.outdoor_pm2_5
+
+rooms:
+  - name: Ložnice
+    temperature: sensor.loznice_teplomer_loznice_temperature
+    humidity: sensor.loznice_teplomer_loznice_humidity
+    carbon_dioxide: sensor.loznice_teplomer_loznice_carbon_dioxide
+    pm25: sensor.loznice_teplomer_loznice_pm2_5
+    window: binary_sensor.loznice_okno_loznice
+    cover: cover.loznice_zaluzie_loznice
+    tado:
+      climate: climate.loznice_tado_ce_loznice
+      overlay: sensor.loznice_tado_ce_loznice_overlay
+      target: sensor.loznice_tado_ce_loznice_target
+      heating: sensor.loznice_tado_ce_loznice_heating
+    samsung: climate.loznice_ac_loznice
+
+  - name: Pracovna
+    temperature: sensor.pracovna_teplomer_pracovna_temperature
+    humidity: sensor.pracovna_teplomer_pracovna_humidity
+    window: binary_sensor.pracovna_okno_pracovna
+    cover: cover.pracovna_zaluzie_pracovna
+    tado:
+      climate: climate.pracovna_tado_ce_pracovna
+      overlay: sensor.pracovna_tado_ce_pracovna_overlay
+      target: sensor.pracovna_tado_ce_pracovna_target
+      heating: sensor.pracovna_tado_ce_pracovna_heating
+    samsung: climate.pracovna_ac_pracovna
+
+  - name: Maxík
+    window: binary_sensor.maxik_okno_maxik
+    cover: cover.maxik_zaluzie_maxik
+    tado:
+      climate: climate.maxik_tado_ce_maxik
+      overlay: sensor.maxik_tado_ce_maxik_overlay
+      target: sensor.maxik_tado_ce_maxik_target
+      heating: sensor.maxik_tado_ce_maxik_heating
+    samsung: climate.maxik_ac_maxik
+
+  - name: Mikuláš
+    window: binary_sensor.mikulas_okno_mikulas
+    cover: cover.mikulas_zaluzie_mikulas
+    tado:
+      climate: climate.mikulas_tado_ce_mikulas
+      overlay: sensor.mikulas_tado_ce_mikulas_overlay
+      target: sensor.mikulas_tado_ce_mikulas_target
+      heating: sensor.mikulas_tado_ce_mikulas_heating
+    samsung: climate.mikulas_ac_mikulas
+
+  - name: Obývací pokoj
+    window: binary_sensor.obyvak_dvere_zahrada
+    tado:
+      climate: climate.obyvak_tado_ce_obyvak
+      overlay: sensor.obyvak_tado_ce_obyvak_overlay
+      target: sensor.obyvak_tado_ce_obyvak_target
+      heating: sensor.obyvak_tado_ce_obyvak_heating
+    samsung: climate.obyvak_ac_obyvak
+
+# Thresholds default to the values in CURRENT_SPEC.md and rarely need changing.
+# thresholds:
+#   humidity_min: 35
+#   humidity_max: 70
+#   co2_warning: 1000
+#   co2_critical: 1500
+#   pm25_warning: 15
+#   pm25_critical: 35
+#   winter_min: 20
+#   winter_max: 24
+#   summer_min: 21
+#   summer_max: 25
