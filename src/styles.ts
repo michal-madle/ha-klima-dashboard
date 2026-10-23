@@ -51,6 +51,12 @@ export const styles = css`
     }
 
     .room {
+      /* Micro trends start at the same x in every row and are as wide as the blind panel. */
+      --trend-x: 120px;
+      --col: 60px;
+      --preset-col: 36px;
+      position: relative;
+      overflow: hidden;
       display: block;
       box-sizing: border-box;
       width: 100%;
@@ -62,6 +68,37 @@ export const styles = css`
       color: #ffffff;
       font: inherit;
       text-align: left;
+    }
+
+    .room > *:not(.scene) {
+      position: relative;
+    }
+
+    /* Decorative illustration in the free top-right corner, faded out towards the content. */
+    .scene {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 64%;
+      height: 150px;
+      color: var(--scene-tone);
+      background: radial-gradient(
+        ellipse 85% 100% at 100% 0%,
+        color-mix(in srgb, currentColor 16%, transparent),
+        transparent 70%
+      );
+      pointer-events: none;
+    }
+
+    .scene svg {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 135px;
+      height: 101px;
+      opacity: 0.6;
+      -webkit-mask-image: radial-gradient(ellipse 125% 130% at 100% 0%, #000 38%, transparent 92%);
+      mask-image: radial-gradient(ellipse 125% 130% at 100% 0%, #000 38%, transparent 92%);
     }
 
     .plain-button {
@@ -123,10 +160,22 @@ export const styles = css`
       font-variant-numeric: tabular-nums;
     }
 
+    /* Temperature value and its micro trend, one button that opens the entity detail. */
+    .temp-block {
+      display: grid;
+      grid-template-columns: var(--trend-x) var(--col);
+      align-items: center;
+    }
+
+    .temp-block .spark {
+      align-self: center;
+    }
+
     .temperature {
       font-size: 38px;
       letter-spacing: -0.5px;
       line-height: 44px;
+      white-space: nowrap;
     }
 
     .temperature-unit {
@@ -135,8 +184,9 @@ export const styles = css`
       letter-spacing: 0;
     }
 
+    /* Humidity is deliberately uncoloured. */
     .humidity {
-      color: #7dbce0;
+      color: #c7c7cc;
       font-size: 18px;
       line-height: 28px;
     }
@@ -146,62 +196,45 @@ export const styles = css`
     }
 
     /*
-     * Lower part: info rows | micro trends | blind presets | blind panel.
-     * The trend column and the blind panel are equally wide (--col); the panel is as
-     * tall as the info rows (--info-height), so it starts at the CO₂ row.
+     * Lower part: info rows | blind presets | blind panel. The blind panel is as tall as the
+     * info rows (--info-height), so it starts at the CO₂ row. Micro trends sit inside the rows,
+     * right after the values, at --trend-x.
      */
     .lower {
-      --col: 60px;
-      --preset-col: 32px;
       --air-height: 22px;
       --primary-height: 28px;
       --secondary-height: 24px;
       display: grid;
-      grid-template-columns: minmax(0, 1fr) var(--col) var(--preset-col) var(--col);
+      grid-template-columns: minmax(0, 1fr) var(--preset-col) var(--col);
       align-items: stretch;
-      column-gap: 6px;
+      column-gap: 8px;
     }
 
     .info {
       min-width: 0;
     }
 
-    .trends {
-      display: grid;
-      grid-template-rows:
-        var(--air-height) var(--air-height)
-        calc(var(--primary-height) + var(--secondary-height));
-      min-width: 0;
-    }
-
-    .trend-cell {
-      display: flex;
-      align-items: center;
-      min-width: 0;
-    }
-
     .spark {
       display: block;
-      width: 100%;
-    }
-
-    .trend-cell.air .spark {
-      height: 18px;
-    }
-
-    .trend-cell.hvac .spark {
-      height: 44px;
+      width: var(--col);
     }
 
     .air-row {
-      display: flex;
+      display: grid;
+      grid-template-columns: var(--trend-x) var(--col);
       align-items: center;
       width: 100%;
       height: var(--air-height);
-      gap: 8px;
       font-size: 14px;
       line-height: 22px;
       font-variant-numeric: tabular-nums;
+    }
+
+    .air-main {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
     }
 
     /* Same 24 px icon column as the Topení, Klimatizace and window rows. */
@@ -212,7 +245,6 @@ export const styles = css`
       flex: 0 0 24px;
       align-items: center;
       justify-content: center;
-      color: #5bd6b5;
     }
 
     .air-icon ha-icon {
@@ -234,6 +266,7 @@ export const styles = css`
       display: flex;
       align-items: center;
       box-sizing: border-box;
+      width: 100%;
       gap: 8px;
       min-width: 0;
       height: 24px;
@@ -285,21 +318,33 @@ export const styles = css`
       font-size: 14px;
     }
 
-    /* One column of four icon buttons, as tall as the blind panel. */
+    /*
+     * One column of three round Shelly-style buttons (ring + glyph), spread over the panel height.
+     * They are pressed by a long press or a double tap; the ring fills while the button is held.
+     */
     .presets {
-      display: grid;
-      grid-template-rows: repeat(4, 1fr);
-      gap: 4px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
     }
 
     .preset {
+      position: relative;
       display: flex;
       align-items: center;
       justify-content: center;
-      border: 1px solid rgb(255 255 255 / 8%);
-      border-radius: 10px;
-      background: rgb(255 255 255 / 5%);
+      width: 34px;
+      height: 34px;
+      flex: 0 0 34px;
+      border: 2.5px solid rgb(255 255 255 / 15%);
+      border-radius: 50%;
+      background: #2c2c2e;
       color: var(--tone);
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
     }
 
     .preset svg {
@@ -308,9 +353,49 @@ export const styles = css`
       height: 18px;
     }
 
+    .preset .progress {
+      position: absolute;
+      top: -2.5px;
+      left: -2.5px;
+      width: calc(100% + 5px);
+      height: calc(100% + 5px);
+      transform: rotate(-90deg);
+      fill: none;
+      stroke: var(--tone);
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-dasharray: 100;
+      stroke-dashoffset: 100;
+      opacity: 0;
+    }
+
+    .preset:active .progress {
+      opacity: 1;
+      animation: hold 550ms linear forwards;
+    }
+
     .preset[aria-pressed="true"] {
-      border-color: color-mix(in srgb, var(--tone) 55%, transparent);
-      background: color-mix(in srgb, var(--tone) 20%, transparent);
+      border-color: color-mix(in srgb, var(--tone) 60%, transparent);
+      background: color-mix(in srgb, var(--tone) 22%, #2c2c2e);
+    }
+
+    .preset.sent {
+      animation: sent 700ms ease-out;
+    }
+
+    @keyframes hold {
+      to {
+        stroke-dashoffset: 0;
+      }
+    }
+
+    @keyframes sent {
+      0% {
+        box-shadow: 0 0 0 0 color-mix(in srgb, var(--tone) 70%, transparent);
+      }
+      100% {
+        box-shadow: 0 0 0 10px transparent;
+      }
     }
 
     .cover-panel {
@@ -330,87 +415,184 @@ export const styles = css`
       z-index: 9;
       inset: 0;
       display: flex;
-      align-items: center;
+      align-items: flex-end;
       justify-content: center;
-      padding: 12px;
       background: rgb(0 0 0 / 60%);
     }
 
-    .dialog {
+    .sheet {
       box-sizing: border-box;
       width: 100%;
-      max-width: 420px;
+      max-width: 460px;
       max-height: 90vh;
       overflow: auto;
-      padding: 16px;
+      padding: 16px 16px max(16px, env(safe-area-inset-bottom));
       border: 1px solid rgb(255 255 255 / 10%);
-      border-radius: 20px;
+      border-bottom: 0;
+      border-radius: 24px 24px 0 0;
       background: #1c1c1e;
       color: #ffffff;
+      animation: rise 220ms ease-out;
     }
 
-    .dialog-head {
+    @keyframes rise {
+      from {
+        transform: translateY(24px);
+        opacity: 0;
+      }
+    }
+
+    @media (min-width: 600px) {
+      .backdrop {
+        align-items: center;
+      }
+
+      .sheet {
+        border-bottom: 1px solid rgb(255 255 255 / 10%);
+        border-radius: 24px;
+      }
+    }
+
+    .sheet-head {
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       justify-content: space-between;
       gap: 8px;
-      margin-bottom: 8px;
+      margin-bottom: 12px;
     }
 
-    .dialog h2 {
+    .sheet h2 {
       margin: 0;
-      font-size: 16px;
-      font-weight: 500;
-      line-height: 22px;
+      font-size: 20px;
+      font-weight: 600;
+      line-height: 26px;
+    }
+
+    .sheet-sub {
+      color: #9a9aa0;
+      font-size: 14px;
+      line-height: 20px;
     }
 
     .close {
       width: 44px;
       height: 44px;
       flex: 0 0 44px;
+      margin: -8px -8px 0 0;
       color: #9a9aa0;
       font-size: 18px;
       text-align: center;
     }
 
-    .dialog-message {
-      margin: 24px 0;
+    .sheet-message {
+      margin: 16px 0;
       color: #9a9aa0;
       font-size: 14px;
     }
 
-    .chart {
-      display: block;
-      width: 100%;
-      height: auto;
+    .sheet-message.error {
+      color: #ff9f0a;
     }
 
-    .legend {
+    .sheet-label {
+      margin: 16px 0 8px;
+      color: #9a9aa0;
+      font-size: 13px;
+    }
+
+    .options {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .option {
       display: flex;
-      flex-wrap: wrap;
-      gap: 4px 12px;
-      margin-top: 6px;
+      align-items: center;
+      gap: 10px;
+      min-height: 56px;
+      padding: 8px 12px;
+      border: 1px solid rgb(255 255 255 / 8%);
+      border-radius: 16px;
+      background: rgb(255 255 255 / 5%);
+      color: #ffffff;
+      font-size: 15px;
+    }
+
+    .option-icon {
+      display: flex;
+      width: 28px;
+      height: 28px;
+      flex: 0 0 28px;
+      align-items: center;
+      justify-content: center;
+      color: var(--tone);
+    }
+
+    .option-icon svg {
+      display: block;
+      width: 22px;
+      height: 22px;
+    }
+
+    .option-text {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+
+    .option-hint {
       color: #9a9aa0;
       font-size: 11px;
+      line-height: 14px;
     }
 
-    .legend-item {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
+    .option[aria-pressed="true"] {
+      border-color: color-mix(in srgb, var(--tone) 70%, transparent);
+      background: color-mix(in srgb, var(--tone) 18%, transparent);
     }
 
-    .legend-swatch {
-      box-sizing: border-box;
-      width: 12px;
-      height: 8px;
-      border-radius: 2px;
+    .option:disabled {
+      opacity: 0.45;
     }
 
-    .legend-swatch.dashed {
-      height: 0;
-      border-top: 2px dashed;
-      border-radius: 0;
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .chip {
+      min-height: 44px;
+      padding: 0 16px;
+      border: 1px solid rgb(255 255 255 / 8%);
+      border-radius: 22px;
+      background: rgb(255 255 255 / 5%);
+      color: #ffffff;
+      font-size: 14px;
+    }
+
+    .chip[aria-pressed="true"] {
+      border-color: rgb(100 210 255 / 70%);
+      background: rgb(100 210 255 / 18%);
+    }
+
+    .sheet-link {
+      display: block;
+      width: 100%;
+      min-height: 44px;
+      margin-top: 16px;
+      border-radius: 14px;
+      color: #64d2ff;
+      font-size: 15px;
+      text-align: center;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .sheet,
+      .preset.sent {
+        animation: none;
+      }
     }
 
     @media (max-width: 380px) {
@@ -418,10 +600,13 @@ export const styles = css`
         padding: 14px;
       }
 
-      .lower {
+      .room {
         --col: 52px;
-        --preset-col: 30px;
-        column-gap: 5px;
+        --preset-col: 34px;
+      }
+
+      .lower {
+        column-gap: 6px;
       }
     }
 `;

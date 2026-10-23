@@ -2,31 +2,30 @@ import { LitElement, html, nothing, svg } from "lit";
 import { property, state } from "lit/decorators.js";
 import type { PropertyValues, TemplateResult } from "lit";
 import { BLIND_HEIGHT, BLIND_WIDTH, renderBlindShape } from "./blind";
-import { hasChartData, renderAirChart, renderRoomChart } from "./charts";
 import { DEFAULT_THRESHOLDS, HOUSE_MODE_ENTITY, normalizeConfig } from "./config";
-import { renderParticlesIcon, renderPresetIcon } from "./icons";
+import { renderHeatingOptionIcon, renderParticlesIcon, renderPresetIcon } from "./icons";
+import type { HeatingOptionId } from "./icons";
+import { SCENE_TONES, renderScene } from "./scenes";
 import {
-  HOUR_MS,
   TREND_SAMPLES,
   TREND_WINDOW_MS,
   fetchHistory,
   normalizeTrend,
   sampleNumeric,
 } from "./history";
-import type { HistoryMap } from "./history";
 import { styles } from "./styles";
 import type {
   BlindPreset,
   DashboardConfig,
   DashboardThresholds,
-  DialogKind,
-  DialogState,
   EntityId,
   HassEntity,
   HomeAssistant,
   Reading,
   RoomConfig,
   ClimateMode,
+  SheetKind,
+  SheetState,
 } from "./types";
 import {
   BLIND_PRESETS,
@@ -35,6 +34,7 @@ import {
   CLIMATE_COLORS,
   CLIMATE_LABELS,
   TREND_MIN_SPAN,
+  climateModeFromState,
   configuredEntityIds,
   formatHalf,
   formatOne,
@@ -44,6 +44,7 @@ import {
   isUnavailable,
   numberAttribute,
   sameAttributes,
+  stringList,
   trendEntityIds,
 } from "./utils";
 
@@ -51,7 +52,29 @@ const TREND_REFRESH_MS = 5 * 60_000;
 const NOTICE_MS = 8_000;
 const NBSP = " ";
 
-type DialogStatus = "loading" | "ready" | "error";
+/** Blind presets are sent only by a long press or a double tap, never by a single tap. */
+const LONG_PRESS_MS = 550;
+const DOUBLE_TAP_MS = 400;
+const FLASH_MS = 700;
+
+interface SystemRowAction {
+  label: string;
+  onClick: (event: Event) => void;
+}
+
+/** One choice in the Topení / Klimatizace popup. */
+interface SheetOption {
+  id: string;
+  label: string;
+  icon: TemplateResult;
+  color: string;
+  active: boolean;
+  /** Shown under the label when the entity cannot do this (the option is then disabled). */
+  unsupported?: string;
+  run: () => Promise<void>;
+}
+
+const CLIMATE_MODE_ORDER = ["off", "cool", "dry", "fan_only", "auto", "heat"];
 
 export class HaKlimaDashboard extends LitElement {
   static styles = styles;
@@ -63,16 +86,14 @@ export class HaKlimaDashboard extends LitElement {
   hass?: HomeAssistant;
 
   @state()
-  private _dialog?: DialogState;
+  private _sheet?: SheetState;
 
   @state()
-  private _dialogStatus: DialogStatus = "loading";
+  private _sheetError?: string;
 
+  /** Key of the blind preset that was just sent (brief confirmation flash). */
   @state()
-  private _dialogHistory: HistoryMap = {};
-
-  @state()
-  private _dialogRange = { startMs: 0, endMs: 0 };
+  private _flash?: string;
 
   @state()
   private _trends: Record<EntityId, Array<number | undefined>> = {};
@@ -84,8 +105,12 @@ export class HaKlimaDashboard extends LitElement {
   private _noticeTimer?: number;
   private _trendsLoading = false;
   private _trendsStarted = false;
-  private _dialogRequest = 0;
   private _opener?: HTMLElement;
+  private _pressTimer?: number;
+  private _flashTimer?: number;
+  private _pressing = false;
+  private _pressFired = false;
+  private _lastTap?: { key: string; time: number };
 
   setConfig(config: DashboardConfig): void {
     this._config = normalizeConfig(config);
@@ -102,8 +127,12 @@ export class HaKlimaDashboard extends LitElement {
     super.disconnectedCallback();
     window.clearInterval(this._trendTimer);
     window.clearTimeout(this._noticeTimer);
+    window.clearTimeout(this._pressTimer);
+    window.clearTimeout(this._flashTimer);
     this._trendTimer = undefined;
     this._noticeTimer = undefined;
+    this._pressTimer = undefined;
+    this._flashTimer = undefined;
     this._trendsStarted = false;
   }
 
@@ -121,8 +150,11 @@ export class HaKlimaDashboard extends LitElement {
       window.clearInterval(this._trendTimer);
       this._trendTimer = window.setInterval(() => void this.loadTrends(), TREND_REFRESH_MS);
     }
-    if (changedProperties.has("_dialog") && this._dialog) {
-      this.renderRoot.querySelector<HTMLElement>(".dialog .close")?.focus();
+    if (changedProperties.has("_sheet") && this._sheet && !changedProperties.get("_sheet")) {
+      const first =
+        this.renderRoot.querySelector<HTMLElement>(".sheet .option[aria-pressed='true']") ??
+        this.renderRoot.querySelector<HTMLElement>(".sheet button:not([disabled])");
+      first?.focus();
     }
   }
 
@@ -171,7 +203,7 @@ export class HaKlimaDashboard extends LitElement {
             )}
           </div>
         </div>
-        ${this.renderDialog(thresholds)}
+        ${this.renderSheet()}
       </ha-card>
     `;
   }
@@ -256,7 +288,14 @@ export class HaKlimaDashboard extends LitElement {
     const primaryIsClimate = isSummer;
 
     return html`
-      <article class="room" aria-label=${room.name}>
+      <article
+        class="room"
+        aria-label=${room.name}
+        style=${room.scene ? `--scene-tone: ${SCENE_TONES[room.scene]}` : nothing}
+      >
+        ${room.scene
+          ? html`<div class="scene" aria-hidden="true">${renderScene(room.scene)}</div>`
+          : nothing}
         <div class="room-title">${room.name}</div>
         <div class="status-line">
           <span
@@ -272,65 +311,61 @@ export class HaKlimaDashboard extends LitElement {
         <div class="measurements">
           <button
             type="button"
-            class="plain-button temperature"
+            class="plain-button temp-block"
             ?disabled=${!room.temperature}
-            aria-label=${`${room.name}: historie místnosti za 24 hodin`}
-            @click=${(event: Event) => this.openDialog("room", room, event)}
+            aria-label=${`${room.name}: teplota, detail a historie`}
+            @click=${() => this.showMoreInfo(room.temperature)}
           >
-            ${temperature.value === undefined
-              ? html`<span class="missing">––</span>`
-              : html`${formatOne(temperature.value)}<span class="temperature-unit">${NBSP}°C</span>`}
+            <span class="temperature">
+              ${temperature.value === undefined
+                ? html`<span class="missing">––</span>`
+                : html`${formatOne(temperature.value)}<span class="temperature-unit">${NBSP}°C</span>`}
+            </span>
+            ${this.renderSpark(room.temperature, TREND_MIN_SPAN.temperature, "Trend teploty", 32, COLORS.peach)}
           </button>
-          <span class="humidity">
+          <button
+            type="button"
+            class="plain-button humidity"
+            ?disabled=${!room.humidity}
+            aria-label=${`${room.name}: vlhkost, detail a historie`}
+            @click=${() => this.showMoreInfo(room.humidity)}
+          >
             ${humidity.value === undefined
               ? html`<span class="missing">––</span>`
               : html`${Math.round(humidity.value)}${NBSP}%`}
-          </span>
+          </button>
         </div>
         <div class="lower">
           <div class="info">
             ${this.renderAirRow(
               room,
+              room.carbon_dioxide,
               html`<ha-icon icon="mdi:molecule-co2"></ha-icon>`,
               "CO₂",
               co2,
               "ppm",
               thresholds.co2_warning,
               thresholds.co2_critical,
+              TREND_MIN_SPAN.co2,
             )}
             ${this.renderAirRow(
               room,
+              room.pm25,
               renderParticlesIcon(),
               "PM2.5",
               pm25,
               "µg/m³",
               thresholds.pm25_warning,
               thresholds.pm25_critical,
+              TREND_MIN_SPAN.pm25,
             )}
             ${primaryIsClimate
-              ? this.renderClimate(room.air_conditioner, true)
-              : this.renderHeating(room.heating, true)}
+              ? this.renderClimate(room, true)
+              : this.renderHeating(room, true)}
             ${primaryIsClimate
-              ? this.renderHeating(room.heating, false)
-              : this.renderClimate(room.air_conditioner, false)}
-            ${this.renderWindow(room.window)}
-          </div>
-          <div class="trends">
-            <div class="trend-cell air">
-              ${this.renderSpark(room.carbon_dioxide, TREND_MIN_SPAN.co2, "Trend CO₂", 18, COLORS.mint)}
-            </div>
-            <div class="trend-cell air">
-              ${this.renderSpark(room.pm25, TREND_MIN_SPAN.pm25, "Trend PM2.5", 18, COLORS.mint)}
-            </div>
-            <div class="trend-cell hvac">
-              ${this.renderSpark(
-                room.temperature,
-                TREND_MIN_SPAN.temperature,
-                "Trend teploty",
-                44,
-                COLORS.peach,
-              )}
-            </div>
+              ? this.renderHeating(room, false)
+              : this.renderClimate(room, false)}
+            ${this.renderWindow(room)}
           </div>
           ${room.cover
             ? this.renderCover(room, room.cover)
@@ -341,15 +376,20 @@ export class HaKlimaDashboard extends LitElement {
     `;
   }
 
+  /** CO₂ / PM2.5 row: icon, value and micro trend; opens the entity detail with its history. */
   private renderAirRow(
     room: RoomConfig,
+    entityId: EntityId | undefined,
     icon: TemplateResult,
     label: string,
     reading: Reading,
     unit: string,
     warningThreshold: number,
     criticalThreshold: number,
+    minSpan: number,
   ): TemplateResult {
+    // Without a reading the icon is neutral grey and no trend is drawn (never coloured).
+    const hasValue = reading.value !== undefined;
     const color =
       reading.value === undefined
         ? COLORS.label
@@ -358,21 +398,25 @@ export class HaKlimaDashboard extends LitElement {
           : reading.value >= warningThreshold
             ? COLORS.warning
             : COLORS.white;
-    const disabled = !room.carbon_dioxide && !room.pm25;
 
     return html`
       <button
         type="button"
         class="plain-button air-row"
-        ?disabled=${disabled}
-        aria-label=${`${room.name}: ${label}, graf CO₂ a PM2.5 za 24 hodin`}
-        @click=${(event: Event) => this.openDialog("air", room, event)}
+        ?disabled=${!entityId}
+        aria-label=${`${room.name}: ${label}, detail a historie`}
+        @click=${() => this.showMoreInfo(entityId)}
       >
-        <span class="air-icon" aria-hidden="true">${icon}</span>
-        ${reading.value === undefined
-          ? html`<span style=${`color: ${COLORS.label}`}>––</span>`
-          : html`<span style=${`color: ${color}`}>${Math.round(reading.value)}</span>
-              <span class="air-value-unit">${unit}</span>`}
+        <span class="air-main">
+          <span class="air-icon" style=${`color: ${hasValue ? COLORS.mint : COLORS.off}`} aria-hidden="true">
+            ${icon}
+          </span>
+          ${hasValue
+            ? html`<span style=${`color: ${color}`}>${Math.round(reading.value ?? 0)}</span>
+                <span class="air-value-unit">${unit}</span>`
+            : html`<span style=${`color: ${COLORS.label}`}>––</span>`}
+        </span>
+        ${hasValue ? this.renderSpark(entityId, minSpan, `Trend ${label}`, 18, COLORS.mint) : nothing}
       </button>
     `;
   }
@@ -436,7 +480,8 @@ export class HaKlimaDashboard extends LitElement {
 
   // --------------------------------------------------------------- Topení
 
-  private renderHeating(config: RoomConfig["heating"], primary: boolean): TemplateResult {
+  private renderHeating(room: RoomConfig, primary: boolean): TemplateResult {
+    const config = room.heating;
     const climateState = this.entityState(config?.climate)?.toLowerCase();
     const overlay = this.entityState(config?.overlay)?.toLowerCase();
     const unavailable = overlay === undefined || isUnavailable(overlay);
@@ -482,6 +527,7 @@ export class HaKlimaDashboard extends LitElement {
       primary && strong,
       extra,
       primary,
+      config?.climate ? this.sheetAction("heating", room, "Topení") : undefined,
     );
   }
 
@@ -507,8 +553,8 @@ export class HaKlimaDashboard extends LitElement {
 
   // ----------------------------------------------------------- Klimatizace
 
-  private renderClimate(entityId: EntityId | undefined, primary: boolean): TemplateResult {
-    const entity = this.getState(entityId);
+  private renderClimate(room: RoomConfig, primary: boolean): TemplateResult {
+    const entity = this.getState(room.air_conditioner);
     let mode: ClimateMode = "unknown";
     let target: number | undefined;
     let label: string | undefined;
@@ -550,6 +596,7 @@ export class HaKlimaDashboard extends LitElement {
       primary && active,
       extra,
       primary,
+      room.air_conditioner ? this.sheetAction("climate", room, "Klimatizace") : undefined,
     );
   }
 
@@ -604,6 +651,14 @@ export class HaKlimaDashboard extends LitElement {
     `;
   }
 
+  /** Row action: opens the control popup of Topení / Klimatizace. */
+  private sheetAction(kind: SheetKind, room: RoomConfig, name: string): SystemRowAction {
+    return {
+      label: `${room.name}: ${name}, ovládání`,
+      onClick: (event: Event) => this.openSheet(kind, room, event),
+    };
+  }
+
   private renderSystemRow(
     icon: TemplateResult,
     label: string,
@@ -611,22 +666,28 @@ export class HaKlimaDashboard extends LitElement {
     strong: boolean,
     extra: string,
     primary: boolean,
+    action?: SystemRowAction,
   ): TemplateResult {
     return html`
-      <div
-        class="system-row ${primary ? "primary" : ""} ${strong ? "strong" : ""}"
+      <button
+        type="button"
+        class="plain-button system-row ${primary ? "primary" : ""} ${strong ? "strong" : ""}"
         style=${`--row-color: ${color}`}
+        ?disabled=${!action}
+        aria-label=${action ? action.label : nothing}
+        @click=${action?.onClick}
       >
         <span class="system-icon">${icon}</span>
         <span class="system-text">${label}</span>
         ${extra ? html`<span class="system-extra">${extra}</span>` : nothing}
-      </div>
+      </button>
     `;
   }
 
   // ---------------------------------------------------------------- window
 
-  private renderWindow(entityId: EntityId | undefined): TemplateResult {
+  private renderWindow(room: RoomConfig): TemplateResult {
+    const entityId = room.window;
     const state = this.entityState(entityId)?.toLowerCase();
     const unavailable = state === undefined || isUnavailable(state);
     const opened = state === "on";
@@ -636,7 +697,14 @@ export class HaKlimaDashboard extends LitElement {
     const label = unavailable ? "––" : opened ? "Otevřeno" : "Zavřeno";
 
     return html`
-      <div class="system-row window-row ${opened ? "strong" : ""}" style=${`--row-color: ${color}`}>
+      <button
+        type="button"
+        class="plain-button system-row window-row ${opened ? "strong" : ""}"
+        style=${`--row-color: ${color}`}
+        ?disabled=${!entityId}
+        aria-label=${`${room.name}: okno, detail a historie`}
+        @click=${() => this.showMoreInfo(entityId)}
+      >
         <span class="system-icon">
           <svg
             viewBox="0 0 24 24"
@@ -653,7 +721,7 @@ export class HaKlimaDashboard extends LitElement {
           </svg>
         </span>
         <span class="system-text">${label}</span>
-      </div>
+      </button>
     `;
   }
 
@@ -701,20 +769,75 @@ export class HaKlimaDashboard extends LitElement {
       tilt !== undefined &&
       Math.abs(position - preset.position) <= 2 &&
       Math.abs(tilt - preset.tilt) <= 2;
+    const key = `${room.name}|${preset.id}`;
 
+    // No visible label: the name is in title / aria-label. A single tap does nothing; the
+    // preset is sent by a double tap or a long press (pointer events), or by the keyboard
+    // (a keyboard click has detail 0).
     return html`
       <button
         type="button"
-        class="plain-button preset"
+        class="plain-button preset ${this._flash === key ? "sent" : ""}"
         style=${`--tone: ${preset.tone}`}
         title=${preset.label}
         aria-pressed=${active ? "true" : "false"}
-        aria-label=${`${room.name}: žaluzie ${preset.label}, ${preset.description} (poloha ${preset.position} %, naklopení ${preset.tilt} %)`}
-        @click=${() => void this.applyPreset(room, preset)}
+        aria-label=${`${room.name}: žaluzie ${preset.label}, ${preset.description}. Spustí se dvojitým klepnutím nebo dlouhým stiskem.`}
+        @pointerdown=${(event: PointerEvent) => this.pressStart(event, room, preset)}
+        @pointerup=${() => this.pressEnd(room, preset)}
+        @pointercancel=${() => this.pressCancel()}
+        @pointerleave=${() => this.pressCancel()}
+        @contextmenu=${(event: Event) => event.preventDefault()}
+        @click=${(event: MouseEvent) => {
+          if (event.detail === 0) {
+            void this.applyPreset(room, preset);
+          }
+        }}
       >
+        <svg class="progress" viewBox="0 0 36 36" aria-hidden="true">
+          <circle cx="18" cy="18" r="16.75" pathLength="100"></circle>
+        </svg>
         ${renderPresetIcon(preset.id)}
       </button>
     `;
+  }
+
+  private pressStart(event: PointerEvent, room: RoomConfig, preset: BlindPreset): void {
+    if (event.button !== 0) {
+      return;
+    }
+    window.clearTimeout(this._pressTimer);
+    this._pressing = true;
+    this._pressFired = false;
+    this._pressTimer = window.setTimeout(() => {
+      this._pressFired = true;
+      this._lastTap = undefined;
+      void this.applyPreset(room, preset);
+    }, LONG_PRESS_MS);
+  }
+
+  private pressEnd(room: RoomConfig, preset: BlindPreset): void {
+    window.clearTimeout(this._pressTimer);
+    const wasPressing = this._pressing;
+    const fired = this._pressFired;
+    this._pressing = false;
+    this._pressFired = false;
+    if (!wasPressing || fired) {
+      return;
+    }
+    const key = `${room.name}|${preset.id}`;
+    const now = performance.now();
+    if (this._lastTap && this._lastTap.key === key && now - this._lastTap.time <= DOUBLE_TAP_MS) {
+      this._lastTap = undefined;
+      void this.applyPreset(room, preset);
+    } else {
+      this._lastTap = { key, time: now };
+    }
+  }
+
+  private pressCancel(): void {
+    window.clearTimeout(this._pressTimer);
+    this._pressing = false;
+    this._pressFired = false;
   }
 
   private async applyPreset(room: RoomConfig, preset: BlindPreset): Promise<void> {
@@ -727,6 +850,11 @@ export class HaKlimaDashboard extends LitElement {
         pos: preset.position,
         tilt: preset.tilt,
       });
+      this._flash = `${room.name}|${preset.id}`;
+      window.clearTimeout(this._flashTimer);
+      this._flashTimer = window.setTimeout(() => {
+        this._flash = undefined;
+      }, FLASH_MS);
     } catch (error) {
       console.error("Klima Dashboard: skript žaluzií selhal", error);
       this.showNotice(`${room.name}: skript žaluzií se nepodařilo spustit.`);
@@ -741,122 +869,259 @@ export class HaKlimaDashboard extends LitElement {
     }, NOTICE_MS);
   }
 
-  // ---------------------------------------------------------------- dialog
+  // ----------------------------------------------------------------- sheet
 
-  private renderDialog(thresholds: DashboardThresholds): TemplateResult | typeof nothing {
-    const dialog = this._dialog;
-    if (!dialog) {
+  /** Popup with the controls of Topení (Vypnuto / Plán / Ručně / Boost) or Klimatizace (režimy). */
+  private renderSheet(): TemplateResult | typeof nothing {
+    const sheet = this._sheet;
+    if (!sheet) {
       return nothing;
     }
-    const title =
-      dialog.kind === "room" ? "Historie místnosti – 24 h" : "CO₂ a PM2.5 – 24 h";
-    const entityIds =
-      dialog.kind === "room"
-        ? [dialog.room.temperature, dialog.room.humidity]
-        : [dialog.room.carbon_dioxide, dialog.room.pm25];
+    const isHeating = sheet.kind === "heating";
+    const entityId = isHeating ? sheet.room.heating?.climate : sheet.room.air_conditioner;
+    const entity = this.getState(entityId);
+    const available = entity !== undefined && !isUnavailable(entity.state.toLowerCase());
+    const hvacModes = stringList(entity?.attributes.hvac_modes);
+    const presetModes = stringList(entity?.attributes.preset_modes);
+    const state = entity?.state.toLowerCase();
+    const preset = String(entity?.attributes.preset_mode ?? "none").toLowerCase();
 
-    let body: TemplateResult;
-    if (this._dialogStatus === "loading") {
-      body = html`<p class="dialog-message">Načítám historii…</p>`;
-    } else if (this._dialogStatus === "error") {
-      body = html`<p class="dialog-message" role="alert">
-        Historii se nepodařilo načíst.
-      </p>`;
-    } else if (!hasChartData(this._dialogHistory, entityIds)) {
-      body = html`<p class="dialog-message">Za posledních 24 hodin nejsou k dispozici data.</p>`;
-    } else if (dialog.kind === "room") {
-      body = renderRoomChart(this._dialogHistory, dialog.room, this._dialogRange);
-    } else {
-      body = renderAirChart(this._dialogHistory, dialog.room, thresholds, this._dialogRange);
-    }
+    const options = !available || !entityId
+      ? []
+      : isHeating
+        ? this.heatingOptions(entityId, hvacModes, presetModes, state, preset)
+        : this.climateOptions(entityId, hvacModes, state);
+    const presets =
+      !isHeating && available && entityId
+        ? presetModes.filter((mode) => mode !== "none")
+        : [];
 
     return html`
-      <div class="backdrop" @click=${() => this.closeDialog()} @keydown=${this.handleDialogKeydown}>
+      <div class="backdrop" @click=${() => this.closeSheet()} @keydown=${this.handleSheetKeydown}>
         <div
-          class="dialog"
+          class="sheet"
           role="dialog"
           aria-modal="true"
-          aria-labelledby="dialog-title"
+          aria-labelledby="sheet-title"
           @click=${(event: Event) => event.stopPropagation()}
         >
-          <div class="dialog-head">
-            <h2 id="dialog-title">${title} · ${dialog.room.name}</h2>
+          <div class="sheet-head">
+            <div>
+              <h2 id="sheet-title">${isHeating ? "Topení" : "Klimatizace"}</h2>
+              <div class="sheet-sub">${sheet.room.name}</div>
+            </div>
             <button
               type="button"
               class="plain-button close"
               aria-label="Zavřít"
-              @click=${() => this.closeDialog()}
+              @click=${() => this.closeSheet()}
             >
               ✕
             </button>
           </div>
-          ${body}
+          ${!available
+            ? html`<p class="sheet-message">Entita je nedostupná.</p>`
+            : options.length === 0
+              ? html`<p class="sheet-message">Entita neuvádí podporované režimy.</p>`
+              : html`<div class="options" role="group" aria-label="Režim">
+                  ${options.map((option) => this.renderOption(option))}
+                </div>`}
+          ${presets.length > 0
+            ? html`<div class="sheet-label" id="preset-label">Předvolby</div>
+                <div class="chips" role="group" aria-labelledby="preset-label">
+                  ${presets.map((mode) =>
+                    this.renderPresetChip(entityId as EntityId, mode, preset, state, presetModes),
+                  )}
+                </div>`
+            : nothing}
+          ${this._sheetError
+            ? html`<p class="sheet-message error" role="alert">${this._sheetError}</p>`
+            : nothing}
+          <button
+            type="button"
+            class="plain-button sheet-link"
+            ?disabled=${!entityId}
+            @click=${() => {
+              this.closeSheet(false);
+              this.showMoreInfo(entityId);
+            }}
+          >
+            Detail a historie
+          </button>
         </div>
       </div>
     `;
   }
 
-  private handleDialogKeydown = (event: KeyboardEvent): void => {
+  private renderOption(option: SheetOption): TemplateResult {
+    return html`
+      <button
+        type="button"
+        class="plain-button option"
+        style=${`--tone: ${option.color}`}
+        aria-pressed=${option.active ? "true" : "false"}
+        ?disabled=${option.unsupported !== undefined}
+        @click=${() => void this.runSheetAction(option.run)}
+      >
+        <span class="option-icon">${option.icon}</span>
+        <span class="option-text">
+          ${option.label}
+          ${option.unsupported ? html`<span class="option-hint">${option.unsupported}</span>` : nothing}
+        </span>
+      </button>
+    `;
+  }
+
+  private renderPresetChip(
+    entityId: EntityId,
+    mode: string,
+    current: string,
+    state: string | undefined,
+    presetModes: string[],
+  ): TemplateResult {
+    const active = current === mode && state !== "off";
+    // Choosing the active preset again clears it, when the entity has a "none" preset.
+    const target = active && presetModes.includes("none") ? "none" : mode;
+    return html`
+      <button
+        type="button"
+        class="plain-button chip"
+        aria-pressed=${active ? "true" : "false"}
+        @click=${() => void this.runSheetAction(() => this.setPresetMode(entityId, target))}
+      >
+        ${formatPreset(mode)}
+      </button>
+    `;
+  }
+
+  /**
+   * Topení options come from the entity's own `hvac_modes`: Vypnuto (off), Plán (auto) and
+   * Ručně (heat). Boost needs a `boost` preset; without it the option is shown but disabled.
+   */
+  private heatingOptions(
+    entityId: EntityId,
+    hvacModes: string[],
+    presetModes: string[],
+    state: string | undefined,
+    preset: string,
+  ): SheetOption[] {
+    const options: SheetOption[] = [];
+    const add = (
+      id: HeatingOptionId,
+      label: string,
+      color: string,
+      active: boolean,
+      run: () => Promise<void>,
+      unsupported?: string,
+    ): void => {
+      options.push({ id, label, icon: renderHeatingOptionIcon(id), color, active, run, unsupported });
+    };
+    if (hvacModes.includes("off")) {
+      add("off", "Vypnuto", COLORS.off, state === "off", () => this.setHvacMode(entityId, "off"));
+    }
+    if (hvacModes.includes("auto")) {
+      add("auto", "Plán", COLORS.plan, state === "auto", () => this.setHvacMode(entityId, "auto"));
+    }
+    if (hvacModes.includes("heat")) {
+      add("heat", "Ručně", COLORS.warning, state === "heat" && preset !== "boost", () =>
+        this.setHvacMode(entityId, "heat"),
+      );
+    }
+    if (options.length > 0) {
+      const boost = presetModes.includes("boost");
+      add(
+        "boost",
+        "Boost",
+        COLORS.alert,
+        boost && preset === "boost" && state !== "off",
+        () => this.setPresetMode(entityId, "boost"),
+        boost ? undefined : "entita nenabízí",
+      );
+    }
+    return options;
+  }
+
+  private climateOptions(
+    entityId: EntityId,
+    hvacModes: string[],
+    state: string | undefined,
+  ): SheetOption[] {
+    return CLIMATE_MODE_ORDER.filter((mode) => hvacModes.includes(mode)).map((mode) => {
+      const climateMode = climateModeFromState(mode);
+      const color = CLIMATE_COLORS[climateMode];
+      return {
+        id: mode,
+        label: CLIMATE_LABELS[climateMode],
+        icon: this.renderClimateIcon(climateMode, color, false),
+        color,
+        active: state === mode,
+        run: () => this.setHvacMode(entityId, mode),
+      };
+    });
+  }
+
+  private setHvacMode(entityId: EntityId, hvacMode: string): Promise<void> {
+    return this.callClimate("set_hvac_mode", { entity_id: entityId, hvac_mode: hvacMode });
+  }
+
+  private setPresetMode(entityId: EntityId, presetMode: string): Promise<void> {
+    return this.callClimate("set_preset_mode", { entity_id: entityId, preset_mode: presetMode });
+  }
+
+  private async callClimate(service: string, data: Record<string, unknown>): Promise<void> {
+    if (!this.hass) {
+      throw new Error("Home Assistant není připojen.");
+    }
+    await this.hass.callService("climate", service, data);
+  }
+
+  private async runSheetAction(run: () => Promise<void>): Promise<void> {
+    this._sheetError = undefined;
+    try {
+      await run();
+    } catch (error) {
+      console.error("Klima Dashboard: příkaz klimatu selhal", error);
+      this._sheetError = "Příkaz se nepodařilo odeslat.";
+    }
+  }
+
+  private handleSheetKeydown = (event: KeyboardEvent): void => {
     if (event.key === "Escape") {
       event.stopPropagation();
-      this.closeDialog();
-    } else if (event.key === "Tab") {
-      // The close button is the only focusable element in the dialog.
-      event.preventDefault();
-      this.renderRoot.querySelector<HTMLElement>(".dialog .close")?.focus();
-    }
-  };
-
-  private openDialog(kind: DialogKind, room: RoomConfig, event: Event): void {
-    this._opener = event.currentTarget instanceof HTMLElement ? event.currentTarget : undefined;
-    this._dialog = { kind, room };
-    this._dialogStatus = "loading";
-    this._dialogHistory = {};
-    void this.loadDialogHistory(kind, room);
-  }
-
-  private closeDialog(): void {
-    this._dialogRequest += 1;
-    this._dialog = undefined;
-    this._opener?.focus();
-    this._opener = undefined;
-  }
-
-  private async loadDialogHistory(kind: DialogKind, room: RoomConfig): Promise<void> {
-    const request = ++this._dialogRequest;
-    if (!this.hass) {
-      this._dialogStatus = "error";
+      this.closeSheet();
       return;
     }
-    const entityIds =
-      kind === "room"
-        ? [
-            room.temperature,
-            room.humidity,
-            room.heating?.overlay,
-            room.heating?.climate,
-            room.heating?.intensity,
-            room.air_conditioner,
-          ]
-        : [room.carbon_dioxide, room.pm25];
-    const ids = entityIds.filter((entityId): entityId is EntityId => Boolean(entityId));
-    const endMs = Date.now();
-    const startMs = endMs - 24 * HOUR_MS;
-
-    try {
-      const history = await fetchHistory(this.hass, ids, startMs, endMs);
-      if (request !== this._dialogRequest) {
-        return;
-      }
-      this._dialogHistory = history;
-      this._dialogRange = { startMs, endMs };
-      this._dialogStatus = "ready";
-    } catch (error) {
-      console.error("Klima Dashboard: načtení historie selhalo", error);
-      if (request === this._dialogRequest) {
-        this._dialogStatus = "error";
-      }
+    if (event.key !== "Tab") {
+      return;
     }
+    const items = [
+      ...this.renderRoot.querySelectorAll<HTMLElement>(".sheet button:not([disabled])"),
+    ];
+    if (items.length === 0) {
+      return;
+    }
+    const current = (this.renderRoot as ShadowRoot).activeElement as HTMLElement | null;
+    const index = current ? items.indexOf(current) : -1;
+    const next = event.shiftKey
+      ? items[index <= 0 ? items.length - 1 : index - 1]
+      : items[index === -1 || index === items.length - 1 ? 0 : index + 1];
+    event.preventDefault();
+    next.focus();
+  };
+
+  private openSheet(kind: SheetKind, room: RoomConfig, event: Event): void {
+    this._opener = event.currentTarget instanceof HTMLElement ? event.currentTarget : undefined;
+    this._sheetError = undefined;
+    this._sheet = { kind, room };
+  }
+
+  private closeSheet(restoreFocus = true): void {
+    this._sheet = undefined;
+    this._sheetError = undefined;
+    if (restoreFocus) {
+      this._opener?.focus();
+    }
+    this._opener = undefined;
   }
 
   // ---------------------------------------------------------------- trends

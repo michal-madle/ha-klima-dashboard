@@ -32,7 +32,12 @@ export interface RoomConfig {
   };
   /** Klimatizace: air conditioner climate entity. */
   air_conditioner?: EntityId;
+  /** Decorative illustration in the top-right corner of the room card. */
+  scene?: RoomScene;
 }
+
+export const ROOM_SCENES = ["bedroom", "office", "kids", "living"] as const;
+export type RoomScene = (typeof ROOM_SCENES)[number];
 
 export interface OutsideConfig {
   temperature?: EntityId;
@@ -84,7 +89,7 @@ export type ClimateMode =
   | "auto"
   | "unknown";
 
-export type BlindPresetId = "dark" | "shade" | "morning" | "open";
+export type BlindPresetId = "dark" | "shade" | "open";
 
 export interface BlindPreset {
   id: BlindPresetId;
@@ -97,10 +102,11 @@ export interface BlindPreset {
   tone: string;
 }
 
-export type DialogKind = "room" | "air";
+/** Control popup opened from the Topení or Klimatizace row. */
+export type SheetKind = "heating" | "climate";
 
-export interface DialogState {
-  kind: DialogKind;
+export interface SheetState {
+  kind: SheetKind;
   room: RoomConfig;
 }
 

@@ -24,28 +24,58 @@ export function renderParticlesIcon(): TemplateResult {
 }
 
 /**
- * Blind preset icons, one family of line icons that reads as light through the day:
- * night (moon), shade (parasol), morning (sunrise), day (sun). They take their colour
- * from `currentColor`.
+ * Blind preset glyphs, drawn like the Shelly cover buttons: a top rail with the blind below it.
+ * Den = only the rail (blind raised), Stín = lowered blind with open slats (spaced lines),
+ * Tma = lowered blind with closed slats (tight, heavy lines). They take their colour from
+ * `currentColor`.
  */
 export function renderPresetIcon(id: BlindPresetId): TemplateResult {
   let shape: TemplateResult;
   switch (id) {
     case "dark":
-      shape = svg`<path d="M19.6 14.4A8.2 8.2 0 1 1 9.6 4.4a6.6 6.6 0 0 0 10 10z"></path>`;
+      shape = svg`<path d="M5 5.5h14" stroke-width="2.4"></path>
+        <path d="M6 10.5h12M6 14h12M6 17.5h12M6 21h12" stroke-width="2.6"></path>`;
       break;
     case "shade":
-      shape = svg`<path d="M3.5 12.5a8.5 8.5 0 0 1 17 0z"></path>
-        <path d="M12 4V2.6M12 12.5v6a2 2 0 0 1-4 0"></path>`;
-      break;
-    case "morning":
-      shape = svg`<path d="M3 18h18M7.5 18a4.5 4.5 0 0 1 9 0M12 9.6V7.4M17.2 12.8l1.5-1.5M6.8 12.8l-1.5-1.5M8 21.5h8"></path>`;
+      shape = svg`<path d="M5 5.5h14" stroke-width="2.4"></path>
+        <path d="M6 11h12M6 15.5h12M6 20h12" stroke-width="1.8"></path>`;
       break;
     default:
-      shape = svg`<circle cx="12" cy="12" r="4"></circle>
-        ${[0, 1, 2, 3, 4, 5, 6, 7].map(
-          (index) => svg`<path d="M12 2.8v2.4" transform=${`rotate(${45 * index} 12 12)`}></path>`,
-        )}`;
+      shape = svg`<path d="M5 5.5h14" stroke-width="2.4"></path>
+        <path d="M12 5.5v8.5" stroke-width="1.8"></path>`;
+  }
+  return html`
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      ${shape}
+    </svg>
+  `;
+}
+
+export type HeatingOptionId = "off" | "auto" | "heat" | "boost";
+
+/** Small line icons for the Topení popup options. */
+export function renderHeatingOptionIcon(id: HeatingOptionId): TemplateResult {
+  let shape: TemplateResult;
+  switch (id) {
+    case "off":
+      shape = svg`<path d="M12 3.5v8M7.2 6.6a7.5 7.5 0 1 0 9.6 0"></path>`;
+      break;
+    case "auto":
+      shape = svg`<rect x="4" y="5" width="16" height="15" rx="2.5"></rect>
+        <path d="M4 10h16M8.5 3v4M15.5 3v4"></path>`;
+      break;
+    case "heat":
+      shape = svg`<path d="M12 3c.6 3.4 5.2 5 5.2 10a5.2 5.2 0 0 1-10.4 0c0-2 1-3.4 2.4-4.4.3 1.6 1 2.3 1.8 2.5C11.2 8.6 11 5.6 12 3z"></path>`;
+      break;
+    default:
+      shape = svg`<path d="M13.2 2.5 5.5 13.2h5.6L10.2 21.5l8.3-11.2h-5.7z"></path>`;
   }
   return html`
     <svg

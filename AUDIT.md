@@ -24,6 +24,7 @@ Stav k 23. 10. 2026: všech 16 konfliktů je uzavřeno rozhodnutím uživatele; 
 | 14 | **Stavy**: starší seznam vs. finální seznam. | Finální seznam. |
 | 15 | **Kořenový `DESIGN_HISTORY.md`** tvrdil, že Topení je potvrzeno jen pro Ložnici. | Exporty (potvrzují všech pět místností). |
 | 16 | **WindFree**: spínače `switch.windfree_*` vs. preset `wind_free`. | Preset `wind_free`. |
+| 17 | **Boost u Topení**: uživatel chce ovládání Vypnuto / Plán / Ručně / Boost, ale mechanismus Boostu u integrace Topení (preset `boost`, nebo vlastní služba) není potvrzen. | Karta nabízí Boost jen tehdy, když `climate` entita uvádí `preset_modes` s `boost`; jinak je volba zašedlá. Čeká na ověření atributů entity v Nástroje → Stavy. |
 
 ## 2. Zastaralé informace vhodné ke smazání
 

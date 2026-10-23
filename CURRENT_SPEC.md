@@ -8,7 +8,7 @@ Co není v Memory rozhodnuto, je uvedeno v sekci „Chybějící data“ a v `AU
 - Rychlý stavový přehled domu na mobilu (iPhone 14 Pro), ne technický monitoring. Stav je důležitější než číslo.
 - Pět místností, vlastní karta (custom card) hostovaná na GitHubu přes HACS, laděná uživatelem.
 - Priority: pohodlí v místnosti, HVAC (Klimatizace + Topení), žaluzie (stejně důležité jako HVAC), okna. Historie jen v detailu.
-- Nikdy se nic nepřepíná ani nevypíná z karty klepnutím na hodnotu; karta nic nevypíná sama.
+- Klepnutí na hodnotu nic nepřepíná ani nevypíná; karta nic nevypíná sama. Ovládat lze jen přes popup Topení / Klimatizace (viz Ovládání Topení a Klimatizace) a presety žaluzií.
 
 ## Dashboard Domov
 
@@ -24,12 +24,15 @@ Co není v Memory rozhodnuto, je uvedeno v sekci „Chybějící data“ a v `AU
 
 - Všechny karty mají stejné rozložení. Obývák má stejné rozložení bez žaluzií (prázdné místo se akceptuje).
 - Hlavička karty: název místnosti + stav místnosti, přes celou šířku. Název místnosti je největší text karty po teplotě (26 px, polotučně).
-- Pod hlavičkou je blok teplota + vlhkost (vedle sebe) a pod ním čtyři sloupce zleva doprava: informační řádky | mikrotrendy | tlačítka předvoleb žaluzií | panel žaluzie. Informační řádky jsou v pořadí CO₂ → PM2.5 → první HVAC řádek → druhý HVAC řádek → okno.
+- Pod hlavičkou je blok teplota + mikrotrend teploty + vlhkost (vedle sebe) a pod ním tři sloupce zleva doprava: informační řádky | tlačítka předvoleb žaluzií | panel žaluzie. Informační řádky jsou v pořadí CO₂ → PM2.5 → první HVAC řádek → druhý HVAC řádek → okno.
 - Panel žaluzie (viz Žaluzie) začíná u řádku CO₂ a končí u řádku okna; má stejnou výšku jako informační řádky a nezasahuje do hlavičky ani k bloku teplota/vlhkost.
 - Teplota je dominantní; vlhkost vedle ní je sekundární, ve velikosti navazující na „°C“. Formát: „20,4 °C  46 %“, české formátování čísel.
 - Teplota, vlhkost, CO₂ a PM2.5 pocházejí výhradně z IKEA ALPSTUGA. Teplota z Topení se pro kartu nepoužívá (Topení měří u radiátoru pod oknem).
-- CO₂ a PM2.5 mají jen ikonu, bez textového popisku. CO₂: ikona molekuly CO₂ (`mdi:molecule-co2`, schválená). PM2.5: vlastní ikona z rozptýlených teček různé velikosti, bez rámečku a bez textu. Obě ikony mají jemnou mátovou barvu (testovací `#5BD6B5`) a podle hodnoty se nemění; číslo se barví jen při překročení prahu. Význam ikony čtečkám obrazovky sděluje `aria-label` řádku.
-- Mikrotrendy (viz Historie a grafy) jsou na kartě právě tři, zarovnané pod sebou v jednom sloupci vpravo za informačními řádky (za textem „Plán · 21 °C“), a sloupec je stejně široký jako panel žaluzie. CO₂ a PM2.5 leží každý ve výšce svého řádku, teplota jedním mikrotrendem přes výšku obou HVAC řádků.
+- CO₂ a PM2.5 mají jen ikonu, bez textového popisku. CO₂: ikona molekuly CO₂ (`mdi:molecule-co2`, schválená). PM2.5: vlastní ikona z rozptýlených teček různé velikosti, bez rámečku a bez textu. Obě ikony mají jemnou mátovou barvu (testovací `#5BD6B5`) jen tehdy, když řádek má hodnotu; bez dat jsou ikona i „––“ neutrálně šedé (bez barvy, bez mikrotrendu). Podle hodnoty se barva ikony nemění; číslo se barví jen při překročení prahu. Význam ikony čtečkám obrazovky sděluje `aria-label` řádku.
+- Vlhkost je bez barvy (neutrální světle šedá); chybí-li, je „––“ šedé.
+- Mikrotrendy (viz Historie a grafy) jsou na kartě právě tři, u svých hodnot, ne u žaluzií: teplota hned za číslem teploty, CO₂ a PM2.5 hned za svou hodnotou. Všechny tři začínají na stejné svislici (120 px zleva) a jsou stejně široké jako panel žaluzie (60 px, na užších displejích 52 px), takže jsou zarovnané pod sebou. Do řádků Topení, Klimatizace a okna nezasahují.
+- Detail hodnot: klepnutí na teplotu (i její mikrotrend), vlhkost, CO₂, PM2.5 a okno otevře standardní detail entity Home Assistantu (`more-info`) s grafem historie. Karta nemá vlastní grafy.
+- Volitelná ilustrace místnosti (`scene`: `bedroom`, `office`, `kids`, `living`): jemná čárová kresba v pravém horním rohu karty, v tónu `bedroom` `#A5A1F2`, `office` `#7FC8F8`, `kids` `#FFB36B`, `living` `#E8D9B5`, plynule zeslabená směrem k obsahu (maska + měkká záře). Je jen dekorativní (`aria-hidden`), nepřekrývá text a bez klíče `scene` se nezobrazí.
 
 ## HVAC logika
 
@@ -37,7 +40,7 @@ Co není v Memory rozhodnuto, je uvedeno v sekci „Chybějící data“ a v `AU
 - Pořadí a váhu řádků určuje House Mode, nikoli to, který systém právě běží.
 - Topení je jediný zdroj vytápění. Klimatizace je primární chlazení.
 - Stav HVAC se čte z ikony a její barvy; všechny ikony mají stejnou velikost.
-- Řádky Topení a Klimatizace mají vždy ikonu: Topení 0–3 vlny, Klimatizace ikonu režimu. Ikona je vidět i při „Vypnuto“ (šedá) a při chybějících datech (přerušovaná, „––“).
+- Řádky Topení, Klimatizace a okna jsou klikací (Topení a Klimatizace otevírají popup, okno detail entity). Řádky Topení a Klimatizace mají vždy ikonu: Topení 0–3 vlny, Klimatizace ikonu režimu. Ikona je vidět i při „Vypnuto“ (šedá) a při chybějících datech (přerušovaná, „––“).
 
 ## House Mode
 
@@ -99,7 +102,16 @@ Stav místnosti je lidské zhodnocení prostředí, ne příkaz. Platí první s
 - Intenzita vytápění (heating %) se zobrazuje ikonou 0–3 teplých vln, bez čísel a procent: 0 % = 0 vln, 1–34 % = 1, 35–67 % = 2, 68–100 % = 3. Meze jsou v konfiguraci.
 - Předpověď otevřeného okna z Topení se ignoruje.
 
+## Ovládání Topení a Klimatizace
+
+- Klepnutí na řádek Topení nebo Klimatizace otevře popup (na mobilu spodní panel, na širokém displeji dialog uprostřed) s titulkem systému a názvem místnosti. Zavře se tlačítkem ✕, klepnutím mimo panel nebo klávesou Escape. Dole je odkaz „Detail a historie“, který popup zavře a otevře standardní detail `climate` entity.
+- Volby vycházejí z atributů entity `hvac_modes` a `preset_modes`; karta nevolá režim, který entita nenabízí. Volba volá `climate.set_hvac_mode` nebo `climate.set_preset_mode`; popup zůstává otevřený a aktivní volba se podle stavu entity zvýrazní. Chyba služby se ukáže v popupu.
+- Topení: Vypnuto (`off`), Plán (`auto`), Ručně (`heat`) a Boost (předvolba `boost`). Boost se nabízí jen tehdy, když entita předvolbu `boost` uvádí; jinak je volba vidět zašedlá s textem „entita nenabízí“. Mechanismus Boostu u integrace Topení není potvrzen (viz AUDIT.md).
+- Klimatizace: režimy Vypnuto, Chlazení, Sušení, Větrání, Auto, Topení (podle `hvac_modes`) a předvolby podle `preset_modes` (Sleep, Boost, WindFree, WindFree Sleep; „none“ se nenabízí). Zvolit režim zároveň klimatizaci zapne. Opětovné zvolení aktivní předvolby ji zruší, pokud entita nabízí předvolbu `none`.
+- Dotykové cíle voleb mají nejméně 44 px na výšku.
+
 ## Žaluzie
+
 
 - Ložnice, Pracovna, Maxík, Mikuláš mají žaluzie (Shelly); Obývák nemá. Panel i tlačítka předvoleb se zobrazí jen u místnosti, která má v konfiguraci karty entitu `cover`.
 - Poloha: 100 % = otevřeno (nahoře), 0 % = zavřeno (dole). Naklopení: 100 % = lamely otevřené (vodorovně), 0 % = zavřené (svisle).
@@ -109,38 +121,37 @@ Stav místnosti je lidské zhodnocení prostředí, ne příkaz. Platí první s
 - Poloha dělí sloupec: spuštěná horní část (žaluzie) je 100 % neprůhledná, dolní část představuje okno, zachovává strukturu lamel a je v barvě oblohy při přibližně 28 % neprůhlednosti. Poloha 100 % = zvýrazněna jen horní linka; poloha 0 % = zvýrazněno celé shora dolů.
 - Neznámá poloha nebo naklopení = přerušovaná silueta panelu; nikdy se nebere jako 0.
 - Panel je pouze zobrazení; klepnutí otevře standardní ovládání krytu.
-- Vlevo od panelu žaluzie je jeden sloupec čtyř tlačítek s předvolbami, přes stejnou výšku jako panel, v pořadí shora dolů Tma, Stín, Ráno, Den. Tlačítka mají jen ikonu, bez textu; název je v `aria-label` a v `title`. Ikony tvoří jednu rodinu čárových ikon (stejná tloušťka čáry, zaoblené konce) a vyprávějí světlo během dne. Hodnoty jsou poloha / naklopení v %:
+- Vlevo od panelu žaluzie je jeden sloupec tří kulatých tlačítek s předvolbami (ve stylu ovládání Shelly: kruh s okrajem a glyf žaluzie), rozložených přes výšku panelu, v pořadí shora dolů Tma, Stín, Den. Tlačítka mají jen ikonu, bez textu; název je v `aria-label` a v `title`. Glyf je horní kolejnice žaluzie: Den jen kolejnice (vytaženo), Stín kolejnice a řídké čáry (lamely otevřené), Tma kolejnice a husté tlustší čáry (zavřeno). Hodnoty jsou poloha / naklopení v %:
 
 | Pořadí | Tlačítko | Ikona | Poloha / naklopení | Význam |
 |---|---|---|---|---|
-| 1 | Tma | měsíc | 0 / 0 | úplné zatemnění |
-| 2 | Stín | slunečník | 0 / 100 | sjeté dolů, lamely otevřené |
-| 3 | Ráno | východ slunce | 35 / 60 | částečně povysunuto (ranní prosvětlení) |
-| 4 | Den | slunce | 100 / 100 | vysunuto nahoru |
+| 1 | Tma | kolejnice + husté čáry | 0 / 0 | úplné zatemnění |
+| 2 | Stín | kolejnice + řídké čáry | 0 / 100 | sjeté dolů, lamely otevřené |
+| 3 | Den | jen horní kolejnice | 100 / 100 | vysunuto nahoru |
 
-- Tlačítko, jehož hodnoty odpovídají aktuálnímu stavu žaluzie (tolerance ±2 %), je zvýrazněné barvou své ikony.
-- Tlačítka jsou první verze; po vyzkoušení se mohou upravit (velikost, ikony).
+- Předvolba se odešle až **dvojitým klepnutím (do 400 ms) nebo dlouhým stiskem (550 ms)**; jednoduché klepnutí nic neodešle. Během držení se kolem tlačítka vyplňuje kroužek (zpětná vazba pro dlouhý stisk), po odeslání tlačítko krátce zableskne. Z klávesnice se předvolba odešle klávesou Enter nebo mezerník.
+- Tlačítko, jehož hodnoty odpovídají aktuálnímu stavu žaluzie (tolerance ±2 %), má okraj a podklad v barvě své ikony.
+- Předvolba Ráno (35 / 60) byla zrušena; Shelly ikony odpovídají třem polohám.
 
 ## Detail místnosti
 
-- Karta nemá vlastní popup s ovládáním. Detail tvoří tři zobrazení otevíraná klepnutím (viz Klikací akce): historie místnosti, graf CO₂/PM2.5 a standardní ovládání žaluzie.
+- Karta nemá vlastní grafy ani vlastní detail hodnot: hodnoty, okno a žaluzie otevírají standardní detail entity Home Assistantu s historií. Vlastní popup má jen ovládání Topení a Klimatizace (viz Ovládání Topení a Klimatizace).
 
 ## Historie a grafy
 
-- „Historie místnosti – 24 h“ (inspirace iOS aplikací pro ovládání topení): plošné šedé pozadí + hlavní křivka teploty; modrá přerušovaná křivka vlhkosti; dole časové vrstvy Topení (Plán / Ručně / Vypnuto) a Klimatizace (barvy podle režimu); intenzita vytápění jako intenzita výplně 0–3 vln mezi časovou vrstvou a křivkou teploty.
-- CO₂ a PM2.5: jeden společný 24h graf.
-- Mikrotrendy (jen CO₂, PM2.5 a teplota; umístění viz Room Card): posledních 120 minut, 12 vzorků, normalizace na lokální minimum/maximum zobrazeného období; bez os, popisků, rámečku, bublin a interakce; každý jednou jemnou barvou (CO₂ a PM2.5 mátová, teplota broskvová), tenká čára s velmi jemnou plochou pod ní a tečkou na posledním vzorku; na první pohled patrné zlepšování / zhoršování / stabilita.
+- Vlastní 24h grafy („Historie místnosti – 24 h“, společný graf CO₂/PM2.5) byly nahrazeny standardním detailem entity s historií (viz Klikací akce).
+- Mikrotrendy (jen CO₂, PM2.5 a teplota; umístění viz Room Card; klepnutí na ně otevře detail své entity): posledních 120 minut, 12 vzorků, normalizace na lokální minimum/maximum zobrazeného období; bez os, popisků, rámečku, bublin a interakce; každý jednou jemnou barvou (CO₂ a PM2.5 mátová, teplota broskvová), tenká čára s velmi jemnou plochou pod ní a tečkou na posledním vzorku; na první pohled patrné zlepšování / zhoršování / stabilita.
 
 ## Klikací akce
 
 | Klepnutí na | Výsledek |
 |---|---|
-| teplota | „Historie místnosti – 24 h“ |
+| teplota (i mikrotrend), vlhkost, CO₂, PM2.5, okno | standardní detail entity (`more-info`) s grafem historie |
 | panel žaluzie | standardní ovládání krytu (`current_position`, `current_tilt_position`) |
-| CO₂ nebo PM2.5 | společný 24h graf |
-| preset žaluzie | okamžitě zavolá `script.zaluzie_posun` s daty `entity` (žaluzie této místnosti), `pos` a `tilt`; ovlivní jen žaluzii dané místnosti |
+| řádek Topení / Klimatizace | popup s ovládáním (viz Ovládání Topení a Klimatizace) |
+| preset žaluzie (dvojité klepnutí nebo dlouhý stisk) | zavolá `script.zaluzie_posun` s daty `entity` (žaluzie této místnosti), `pos` a `tilt`; ovlivní jen žaluzii dané místnosti; jednoduché klepnutí nic neudělá |
 
-- Klepnutí nic nepřepíná.
+- Klepnutí na hodnotu nic nepřepíná.
 
 ## Vizuální pravidla
 
@@ -153,11 +164,11 @@ Stav místnosti je lidské zhodnocení prostředí, ne příkaz. Platí první s
 
 ## Barvy
 
-- Pouze testovací paleta (není finální; ověřit kontrast, čitelnost venku a vzhled na OLED): spuštěná žaluzie šampaňská `#E8D9B5`, okno za žaluzií a otevřené okno obloha `#64D2FF`, vedlejší texty `#9A9AA0`, Klimatizace OFF `#8E8E93`, zavřené žaluzie `#6B6B70`, ikony CO₂/PM2.5 a jejich mikrotrendy máta `#5BD6B5`, mikrotrend teploty broskev `#FFB36B`, vlhkost jemně modrá `#7DBCE0`.
-- Ikony předvoleb žaluzií mají každá svou barvu: Tma `#A5A1F2`, Stín `#7FC8F8`, Ráno `#FFAA66`, Den `#FFD84A`.
+- Pouze testovací paleta (není finální; ověřit kontrast, čitelnost venku a vzhled na OLED): spuštěná žaluzie šampaňská `#E8D9B5`, okno za žaluzií a otevřené okno obloha `#64D2FF`, vedlejší texty `#9A9AA0`, Klimatizace OFF `#8E8E93`, zavřené žaluzie `#6B6B70`, ikony CO₂/PM2.5 a jejich mikrotrendy máta `#5BD6B5`, mikrotrend teploty broskev `#FFB36B`. Vlhkost je bez barvy (`#C7C7CC`); ikony CO₂/PM2.5 bez dat jsou šedé `#8E8E93`.
+- Ikony předvoleb žaluzií mají každá svou barvu: Tma `#A5A1F2`, Stín `#7FC8F8`, Den `#FFD84A`.
 - Oranžová = varování (CO₂ 1000+, PM2.5 15+), červená = kritické (CO₂ 1500+, PM2.5 35+).
 - Neznámá hodnota není nikdy červená ani alarm.
-- Ostatní barvy (režimy Klimatizace, Plán/Ručně, vlhkost) nejsou v Memory rozhodnuty, kromě pravidel výše: Větrání = barva Plánu; běžící Klimatizace ≠ OFF; křivka vlhkosti modrá.
+- Ostatní barvy (režimy Klimatizace, Plán/Ručně) nejsou v Memory rozhodnuty, kromě pravidel výše: Větrání = barva Plánu; běžící Klimatizace ≠ OFF.
 
 ## Chybějící data
 

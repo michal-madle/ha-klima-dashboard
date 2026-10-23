@@ -12,6 +12,7 @@ house_mode_entity: input_select.house_mode
 
 rooms:
   - name: Ložnice
+    scene: bedroom
     temperature: sensor.loznice_teplomer_loznice_temperature
     humidity: sensor.loznice_teplomer_loznice_humidity
     carbon_dioxide: sensor.loznice_teplomer_loznice_carbon_dioxide
@@ -26,6 +27,7 @@ rooms:
     air_conditioner: climate.loznice_ac_loznice
 
   - name: Pracovna
+    scene: office
     temperature: sensor.pracovna_teplomer_pracovna_temperature
     humidity: sensor.pracovna_teplomer_pracovna_humidity
     window: binary_sensor.pracovna_okno_pracovna
@@ -38,6 +40,7 @@ rooms:
     air_conditioner: climate.pracovna_ac_pracovna
 
   - name: Maxík
+    scene: kids
     window: binary_sensor.maxik_okno_maxik
     cover: cover.maxik_zaluzie_maxik
     heating:
@@ -48,6 +51,7 @@ rooms:
     air_conditioner: climate.maxik_ac_maxik
 
   - name: Mikuláš
+    scene: kids
     window: binary_sensor.mikulas_okno_mikulas
     cover: cover.mikulas_zaluzie_mikulas
     heating:
@@ -58,6 +62,7 @@ rooms:
     air_conditioner: climate.mikulas_ac_mikulas
 
   - name: Obývák
+    scene: living
     window: binary_sensor.obyvak_dvere_zahrada
     heating:
       climate: climate.obyvak_tado_ce_obyvak
