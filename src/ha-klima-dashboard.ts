@@ -1,434 +1,67 @@
-import { LitElement, css, html, nothing, type TemplateResult } from "lit";
+import { LitElement, html, nothing } from "lit";
+import { property, state } from "lit/decorators.js";
+import type { PropertyValues, TemplateResult } from "lit";
+import { DEFAULT_THRESHOLDS, HOUSE_MODE_ENTITY, normalizeConfig } from "./config";
+import { styles } from "./styles";
+import type {
+  DashboardConfig,
+  DashboardThresholds,
+  EntityId,
+  HassEntity,
+  HomeAssistant,
+  Reading,
+  RoomConfig,
+  SamsungMode,
+} from "./types";
+import {
+  COLORS,
+  SAMSUNG_COLORS,
+  SAMSUNG_LABELS,
+  configuredEntityIds,
+  formatHalf,
+  formatOne,
+  getRoomStatus,
+  heatingWaveCount,
+  isUnavailable,
+  numberAttribute,
+  sameAttributes,
+} from "./utils";
 
-type EntityId = string;
+export class HaKlimaDashboard extends LitElement {
+  static styles = styles;
 
-interface HassEntity {
-  state: string;
-  attributes: Record<string, unknown>;
-}
-
-interface HomeAssistant {
-  states: Record<EntityId, HassEntity>;
-}
-
-interface RoomConfig {
-  name: string;
-  temperature?: EntityId;
-  humidity?: EntityId;
-  carbon_dioxide?: EntityId;
-  pm25?: EntityId;
-  window?: EntityId;
-  cover?: EntityId;
-  tado?: {
-    climate?: EntityId;
-    overlay?: EntityId;
-    target?: EntityId;
-    heating?: EntityId;
-  };
-  samsung?: EntityId;
-}
-
-interface OutsideConfig {
-  temperature?: EntityId;
-  minimum?: EntityId;
-  maximum?: EntityId;
-  rain_probability?: EntityId;
-  pm25?: EntityId;
-}
-
-interface DashboardThresholds {
-  humidity_min: number;
-  humidity_max: number;
-  co2_warning: number;
-  co2_critical: number;
-  pm25_warning: number;
-  pm25_critical: number;
-  winter_min: number;
-  winter_max: number;
-  summer_min: number;
-  summer_max: number;
-}
-
-interface DashboardConfig {
-  type: string;
-  title?: string;
-  house_mode_entity?: EntityId;
-  outside?: OutsideConfig;
-  rooms: RoomConfig[];
-  thresholds?: Partial<DashboardThresholds>;
-}
-
-interface Reading {
-  value?: number;
-}
-
-interface RoomStatus {
-  label: string;
-  color: string;
-  kind: "normal" | "warning" | "critical" | "unknown";
-}
-
-type SamsungMode = "off" | "cool" | "wind_free" | "dry" | "fan" | "heat" | "auto" | "unknown";
-
-const HOUSE_MODE_ENTITY = "input_select.house_mode";
-
-const COLORS = {
-  background: "#1C1C1E",
-  open: "#D8D8DC",
-  closed: "#6B6B70",
-  label: "#9A9AA0",
-  off: "#8E8E93",
-  white: "#FFFFFF",
-  plan: "#F2F2F7",
-  warning: "#FF9F0A",
-  alert: "#FF453A",
-  cold: "#64D2FF",
-  cool: "#64D2FF",
-  dry: "#FFD60A",
-  heat: "#FF9F0A",
-  auto: "#BF5AF2",
-};
-
-const DEFAULT_THRESHOLDS: DashboardThresholds = {
-  humidity_min: 35,
-  humidity_max: 70,
-  co2_warning: 1000,
-  co2_critical: 1500,
-  pm25_warning: 15,
-  pm25_critical: 35,
-  winter_min: 20,
-  winter_max: 24,
-  summer_min: 21,
-  summer_max: 25,
-};
-
-const SAMSUNG_COLORS: Record<SamsungMode, string> = {
-  off: COLORS.off,
-  cool: COLORS.cool,
-  wind_free: COLORS.cool,
-  dry: COLORS.dry,
-  fan: COLORS.plan,
-  heat: COLORS.heat,
-  auto: COLORS.auto,
-  unknown: COLORS.off,
-};
-
-const SAMSUNG_LABELS: Record<SamsungMode, string> = {
-  off: "Vypnuto",
-  cool: "Chlazení",
-  wind_free: "WindFree",
-  dry: "Sušení",
-  fan: "Větrání",
-  heat: "Topení",
-  auto: "Auto",
-  unknown: "––",
-};
-
-class HaKlimaDashboard extends LitElement {
-  static styles = css`
-    :host {
-      display: block;
-      color: var(--primary-text-color);
-    }
-
-    ha-card {
-      overflow: visible;
-      border: 0;
-      background: transparent;
-      box-shadow: none;
-    }
-
-    .dashboard {
-      display: grid;
-      gap: 12px;
-    }
-
-    .dashboard-header {
-      padding: 0 4px;
-    }
-
-    h1 {
-      margin: 0;
-      font-size: 1.5rem;
-      font-weight: 650;
-      line-height: 1.2;
-    }
-
-    .outside {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 4px 10px;
-      margin-top: 5px;
-      color: var(--secondary-text-color);
-      font-size: 0.9rem;
-    }
-
-    .rooms {
-      display: grid;
-      gap: 12px;
-    }
-
-    .room {
-      display: block;
-      box-sizing: border-box;
-      width: 100%;
-      padding: 16px;
-      border: 1px solid rgb(255 255 255 / 7%);
-      border-radius: 24px;
-      background: #1c1c1e;
-      box-shadow: none;
-      color: #ffffff;
-      cursor: pointer;
-      font: inherit;
-      text-align: left;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    .room:focus-visible {
-      outline: 2px solid var(--primary-color, #64b5f6);
-      outline-offset: 2px;
-    }
-
-    .room-title {
-      overflow: hidden;
-      font-size: 19px;
-      font-weight: 500;
-      line-height: 24px;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .status-line {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      min-height: 18px;
-      font-size: 13px;
-      line-height: 18px;
-    }
-
-    .status-dot {
-      box-sizing: border-box;
-      width: 7px;
-      height: 7px;
-      flex: 0 0 7px;
-      border-radius: 50%;
-    }
-
-    .measurements {
-      display: flex;
-      align-items: baseline;
-      gap: 14px;
-      min-height: 44px;
-      margin: 8px 0;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .temperature {
-      font-size: 38px;
-      letter-spacing: -0.5px;
-      line-height: 44px;
-    }
-
-    .temperature-unit {
-      color: #9a9aa0;
-      font-size: 18px;
-      letter-spacing: 0;
-    }
-
-    .humidity {
-      color: #9a9aa0;
-      font-size: 20px;
-      line-height: 28px;
-    }
-
-    .missing {
-      color: #8e8e93;
-    }
-
-    .air {
-      display: grid;
-      gap: 0;
-    }
-
-    .air-row {
-      display: flex;
-      align-items: center;
-      min-height: 20px;
-      gap: 6px;
-      font-size: 14px;
-      line-height: 20px;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .air-row ha-icon {
-      width: 16px;
-      height: 16px;
-      flex: 0 0 16px;
-      color: #9a9aa0;
-    }
-
-    .air-label {
-      width: 44px;
-      flex: 0 0 44px;
-      color: #9a9aa0;
-      font-size: 12px;
-    }
-
-    .air-value-unit {
-      color: #9a9aa0;
-      font-size: 11px;
-    }
-
-    .lower {
-      display: flex;
-      gap: 12px;
-      margin-top: 8px;
-    }
-
-    .system-list {
-      min-width: 0;
-      flex: 1;
-    }
-
-    .system-row {
-      display: flex;
-      align-items: center;
-      box-sizing: border-box;
-      gap: 8px;
-      min-width: 0;
-      height: 24px;
-      color: var(--row-color);
-      font-size: 14px;
-      line-height: 20px;
-    }
-
-    .system-row.primary {
-      height: 28px;
-      font-size: 15px;
-    }
-
-    .system-row.strong {
-      font-weight: 500;
-    }
-
-    .system-icon {
-      display: flex;
-      width: 24px;
-      height: 24px;
-      flex: 0 0 24px;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .system-icon svg {
-      display: block;
-      width: 20px;
-      height: 20px;
-    }
-
-    .system-text {
-      min-width: 0;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .system-extra {
-      flex: 0 0 auto;
-      color: #9a9aa0;
-      font-weight: 400;
-    }
-
-    .window-row {
-      height: 20px;
-      margin-top: 6px;
-      font-size: 13px;
-    }
-
-    .cover {
-      width: 60px;
-      height: 78px;
-      flex: 0 0 60px;
-    }
-
-    .cover-placeholder {
-      width: 60px;
-      flex: 0 0 60px;
-    }
-
-    .cover svg {
-      display: block;
-      width: 60px;
-      height: 78px;
-    }
-
-    @media (max-width: 380px) {
-      .room {
-        padding: 14px;
-      }
-
-      .lower {
-        gap: 8px;
-      }
-
-      .cover,
-      .cover svg {
-        width: 52px;
-      }
-
-      .cover {
-        flex-basis: 52px;
-      }
-
-      .cover-placeholder {
-        width: 52px;
-        flex-basis: 52px;
-      }
-    }
-  `;
-
+  @state()
   private _config?: DashboardConfig;
-  private _hass?: HomeAssistant;
+
+  @property({ attribute: false })
+  hass?: HomeAssistant;
 
   setConfig(config: DashboardConfig): void {
-    if (!config || !Array.isArray(config.rooms) || config.rooms.length === 0) {
-      throw new Error("Klima Dashboard requires a non-empty rooms list.");
-    }
-    if (
-      config.house_mode_entity !== undefined &&
-      (typeof config.house_mode_entity !== "string" || !config.house_mode_entity.trim())
-    ) {
-      throw new Error("house_mode_entity must be a non-empty entity ID.");
-    }
-    for (const room of config.rooms) {
-      if (!room || typeof room.name !== "string" || !room.name.trim()) {
-        throw new Error("Each Klima Dashboard room requires a name.");
-      }
-    }
-    for (const [key, value] of Object.entries(config.thresholds ?? {})) {
-      if (typeof value !== "number" || !Number.isFinite(value)) {
-        throw new Error(`Threshold "${key}" must be a finite number.`);
-      }
-    }
-
-    const thresholds = { ...DEFAULT_THRESHOLDS, ...config.thresholds };
-    if (
-      thresholds.humidity_min >= thresholds.humidity_max ||
-      thresholds.co2_warning >= thresholds.co2_critical ||
-      thresholds.pm25_warning >= thresholds.pm25_critical ||
-      thresholds.winter_min > thresholds.winter_max ||
-      thresholds.summer_min > thresholds.summer_max
-    ) {
-      throw new Error("Threshold ranges must be in ascending order.");
-    }
-
-    this._config = config;
+    this._config = normalizeConfig(config);
   }
 
-  set hass(hass: HomeAssistant) {
-    this._hass = hass;
-    this.requestUpdate();
+  protected shouldUpdate(changedProperties: PropertyValues<this>): boolean {
+    if (!changedProperties.has("hass") || changedProperties.has("_config")) {
+      return super.shouldUpdate(changedProperties);
+    }
+    return this.hasRelevantEntityChanged(changedProperties.get("hass"));
+  }
+
+  private hasRelevantEntityChanged(previousHass: HomeAssistant | undefined): boolean {
+    if (!previousHass || !this.hass || !this._config) {
+      return true;
+    }
+    for (const entityId of configuredEntityIds(this._config)) {
+      const previousEntity = previousHass.states[entityId];
+      const currentEntity = this.hass.states[entityId];
+      if (
+        previousEntity?.state !== currentEntity?.state ||
+        !sameAttributes(previousEntity?.attributes, currentEntity?.attributes)
+      ) {
+        return true;
+      }
+    }
+    return false;
   }
 
   getCardSize(): number {
@@ -498,7 +131,7 @@ class HaKlimaDashboard extends LitElement {
     const humidity = this.reading(room.humidity, "%", 0);
     const co2 = this.reading(room.carbon_dioxide, "ppm", 0);
     const pm25 = this.reading(room.pm25, "µg/m³", 0);
-    const status = this.roomStatus(
+    const status = getRoomStatus(
       temperature.value,
       humidity.value,
       co2.value,
@@ -535,7 +168,7 @@ class HaKlimaDashboard extends LitElement {
           <span class="temperature">
             ${temperature.value === undefined
               ? html`<span class="missing">––</span>`
-              : html`${this.formatOne(temperature.value)}<span class="temperature-unit">
+              : html`${formatOne(temperature.value)}<span class="temperature-unit">
                   &nbsp;°C
                 </span>`}
           </span>
@@ -611,7 +244,7 @@ class HaKlimaDashboard extends LitElement {
   private renderTado(config: RoomConfig["tado"], primary: boolean): TemplateResult {
     const climateState = this.entityState(config?.climate)?.toLowerCase();
     const overlay = this.entityState(config?.overlay)?.toLowerCase();
-    const unavailable = overlay === undefined || this.isUnavailable(overlay);
+    const unavailable = overlay === undefined || isUnavailable(overlay);
     const disabled = climateState === "off" || overlay === "off";
     const heating = this.numberState(config?.heating);
     const target = this.numberState(config?.target);
@@ -624,21 +257,21 @@ class HaKlimaDashboard extends LitElement {
     if (disabled) {
       label = "Vypnuto";
       color = COLORS.off;
-    } else if (!unavailable && (climateState === undefined || this.isUnavailable(climateState))) {
+    } else if (!unavailable && (climateState === undefined || isUnavailable(climateState))) {
       label = "––";
     } else if (overlay === "schedule") {
       label = "Plán";
       color = COLORS.plan;
       strong = true;
       if (target !== undefined) {
-        extra = `· ${this.formatHalf(target)}\u00a0°C`;
+        extra = `· ${formatHalf(target)}\u00a0°C`;
       }
     } else if (overlay === "manual") {
       label = "Ručně";
       color = COLORS.warning;
       strong = true;
       if (target !== undefined) {
-        extra = `· ${this.formatHalf(target)}\u00a0°C`;
+        extra = `· ${formatHalf(target)}\u00a0°C`;
       }
     } else if (!unavailable && overlay) {
       label = overlay;
@@ -646,7 +279,7 @@ class HaKlimaDashboard extends LitElement {
       strong = true;
     }
 
-    const count = disabled || unavailable ? 0 : this.heatingWaveCount(heating);
+    const count = disabled || unavailable ? 0 : heatingWaveCount(heating);
     return this.renderSystemRow(
       this.renderTadoWaves(count, unavailable),
       label,
@@ -662,7 +295,7 @@ class HaKlimaDashboard extends LitElement {
     let mode: SamsungMode = "unknown";
     let target: number | undefined;
 
-    if (entity && !this.isUnavailable(entity.state.toLowerCase())) {
+    if (entity && !isUnavailable(entity.state.toLowerCase())) {
       const state = entity.state.toLowerCase();
       const preset = String(entity.attributes.preset_mode ?? "none").toLowerCase();
       if (state === "off") {
@@ -680,14 +313,14 @@ class HaKlimaDashboard extends LitElement {
       } else if (state !== "unknown" && state !== "unavailable") {
         mode = "unknown";
       }
-      target = this.numberAttribute(entity.attributes.temperature);
+      target = numberAttribute(entity.attributes.temperature);
     }
 
     const color = SAMSUNG_COLORS[mode];
     const label = SAMSUNG_LABELS[mode];
     const hasTarget = ["cool", "wind_free", "dry", "heat", "auto"].includes(mode);
     const extra =
-      hasTarget && target !== undefined ? `· ${this.formatHalf(target)}\u00a0°C` : "";
+      hasTarget && target !== undefined ? `· ${formatHalf(target)}\u00a0°C` : "";
     const active = mode !== "off" && mode !== "unknown";
 
     return this.renderSystemRow(
@@ -795,7 +428,7 @@ class HaKlimaDashboard extends LitElement {
 
   private renderWindow(entityId: EntityId | undefined): TemplateResult {
     const state = this.entityState(entityId)?.toLowerCase();
-    const unavailable = state === undefined || this.isUnavailable(state);
+    const unavailable = state === undefined || isUnavailable(state);
     const opened = state === "on";
     const color = unavailable ? COLORS.label : opened ? COLORS.alert : COLORS.label;
     const label = unavailable ? "––" : opened ? "Otevřeno" : "Zavřeno";
@@ -827,8 +460,8 @@ class HaKlimaDashboard extends LitElement {
 
   private renderCover(entityId: EntityId): TemplateResult {
     const entity = this.getState(entityId);
-    const position = this.numberAttribute(entity?.attributes.current_position);
-    const tilt = this.numberAttribute(entity?.attributes.current_tilt_position);
+    const position = numberAttribute(entity?.attributes.current_position);
+    const tilt = numberAttribute(entity?.attributes.current_tilt_position);
     const width = 26;
     const gap = 8;
     const height = 78;
@@ -918,51 +551,6 @@ class HaKlimaDashboard extends LitElement {
     `;
   }
 
-  private roomStatus(
-    temperature: number | undefined,
-    humidity: number | undefined,
-    co2: number | undefined,
-    pm25: number | undefined,
-    isSummer: boolean,
-    modeKnown: boolean,
-    thresholds: DashboardThresholds,
-  ): RoomStatus {
-    if (
-      temperature === undefined ||
-      humidity === undefined ||
-      co2 === undefined ||
-      pm25 === undefined ||
-      !modeKnown
-    ) {
-      return { label: "Bez dat", color: COLORS.label, kind: "unknown" };
-    }
-    if (pm25 >= thresholds.pm25_critical) {
-      return { label: "Znečištěný vzduch", color: COLORS.alert, kind: "critical" };
-    }
-    if (co2 >= thresholds.co2_critical) {
-      return { label: "Silně vydýchaný vzduch", color: COLORS.alert, kind: "critical" };
-    }
-    if (co2 >= thresholds.co2_warning) {
-      return { label: "Vydýchaný vzduch", color: COLORS.warning, kind: "warning" };
-    }
-    if (humidity > thresholds.humidity_max) {
-      return { label: "Vlhko", color: COLORS.warning, kind: "warning" };
-    }
-    if (humidity < thresholds.humidity_min) {
-      return { label: "Sucho", color: COLORS.warning, kind: "warning" };
-    }
-
-    const minimum = isSummer ? thresholds.summer_min : thresholds.winter_min;
-    const maximum = isSummer ? thresholds.summer_max : thresholds.winter_max;
-    if (temperature > maximum) {
-      return { label: "Teplo", color: COLORS.warning, kind: "warning" };
-    }
-    if (temperature < minimum) {
-      return { label: "Chladno", color: COLORS.cold, kind: "warning" };
-    }
-    return { label: "Příjemné", color: COLORS.label, kind: "normal" };
-  }
-
   private reading(
     entityId: EntityId | undefined,
     fallbackUnit: string,
@@ -983,7 +571,7 @@ class HaKlimaDashboard extends LitElement {
 
   private numberState(entityId: EntityId | undefined): number | undefined {
     const state = this.entityState(entityId);
-    if (state === undefined || this.isUnavailable(state.toLowerCase())) {
+    if (state === undefined || isUnavailable(state.toLowerCase())) {
       return undefined;
     }
 
@@ -992,49 +580,11 @@ class HaKlimaDashboard extends LitElement {
   }
 
   private getState(entityId: EntityId | undefined): HassEntity | undefined {
-    return entityId ? this._hass?.states[entityId] : undefined;
+    return entityId ? this.hass?.states[entityId] : undefined;
   }
 
   private entityState(entityId: EntityId | undefined): string | undefined {
     return this.getState(entityId)?.state;
-  }
-
-  private isUnavailable(state: string): boolean {
-    return state === "" || state === "unknown" || state === "unavailable" || state === "none";
-  }
-
-  private numberAttribute(value: unknown): number | undefined {
-    if (value === undefined || value === null || value === "") {
-      return undefined;
-    }
-    const number = typeof value === "number" ? value : Number.parseFloat(String(value));
-    return Number.isFinite(number) && number >= 0 && number <= 100 ? number : undefined;
-  }
-
-  private formatOne(value: number): string {
-    return new Intl.NumberFormat("cs-CZ", {
-      minimumFractionDigits: 1,
-      maximumFractionDigits: 1,
-    }).format(value);
-  }
-
-  private formatHalf(value: number): string {
-    return new Intl.NumberFormat("cs-CZ", { maximumFractionDigits: 1 }).format(
-      Math.round(value * 2) / 2,
-    );
-  }
-
-  private heatingWaveCount(value: number | undefined): number {
-    if (value === undefined || value <= 0) {
-      return 0;
-    }
-    if (value <= 34) {
-      return 1;
-    }
-    if (value <= 67) {
-      return 2;
-    }
-    return 3;
   }
 
   private showMoreInfo(entityId: EntityId | undefined): void {
@@ -1056,29 +606,4 @@ class HaKlimaDashboard extends LitElement {
       this.showMoreInfo(entityId);
     }
   }
-}
-
-declare global {
-  interface Window {
-    customCards?: Array<{
-      type: string;
-      name: string;
-      description: string;
-      preview: boolean;
-    }>;
-  }
-}
-
-if (!customElements.get("ha-klima-dashboard")) {
-  customElements.define("ha-klima-dashboard", HaKlimaDashboard);
-}
-
-window.customCards = window.customCards ?? [];
-if (!window.customCards.some((card) => card.type === "ha-klima-dashboard")) {
-  window.customCards.push({
-    type: "ha-klima-dashboard",
-    name: "Klima Dashboard",
-    description: "Přehled teploty, kvality vzduchu, vytápění a žaluzií v místnostech.",
-    preview: false,
-  });
 }

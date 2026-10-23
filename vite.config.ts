@@ -3,7 +3,7 @@ import { defineConfig } from "vite";
 export default defineConfig({
   build: {
     lib: {
-      entry: "src/ha-klima-dashboard.ts",
+      entry: "src/index.ts",
       formats: ["es"],
       fileName: "ha-klima-dashboard",
     },

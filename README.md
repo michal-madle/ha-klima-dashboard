@@ -4,7 +4,7 @@ Vlastní Lovelace karta pro přehled klimatu v pěti místnostech. Je to **front
 
 ## Který soubor je správný?
 
-- `src/ha-klima-dashboard.ts` je zdrojový kód v TypeScriptu určený pro vývoj.
+- `src/` obsahuje TypeScriptový zdrojový kód; `index.ts` registruje kartu a `ha-klima-dashboard.ts` obsahuje hlavní Lit komponentu.
 - `ha-klima-dashboard.js` v kořeni repozitáře je připravený JavaScriptový modul, který načítá Home Assistant.
 
 Home Assistant TypeScript přímo nenačte. Pro běžnou instalaci tedy použijte HACS nebo soubor `ha-klima-dashboard.js`; soubor `.ts` nepřejmenovávejte ani nekopírujte do Home Assistantu. Připravený `.js` soubor už je součástí tohoto repozitáře — instalaci není potřeba kompilovat.
