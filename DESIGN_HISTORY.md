@@ -136,6 +136,24 @@ Formát každého bodu: **Navrženo** → **Opuštěno, protože** → **Nahraze
 40. **Cílová předvolba bez odezvy, dokud žaluzie nedojede**
     - Opuštěno, protože: uživatel (24. 10.) – po klepnutí trvá, než žaluzie sjede, a ikona do té doby nic neříká.
     - Nahrazeno: ikona cílové předvolby pulzuje (podsvícení se objevuje a mizí), dokud žaluzie nedojede; končí i po 5 s beze změny stavu, polohy a naklopení (ruční zastavení jinde) nebo chybou skriptu.
+41. **Podsvícení aktivní předvolby (zaoblený čtvereček, pulzující záře)**
+    - Opuštěno, protože: uživatel (24. 10.) – podbarvení se mu nelíbí, stačí změna barvy ikony.
+    - Nahrazeno: aktivní ikona jen změní barvu (tmavě šedá → tlumená šampaňská `#C9C0A8`); po odeslání cílová ikona pulzuje barvou. `::before` tlačítka je už jen neviditelné rozšíření dotykové plochy.
+42. **CO₂ zelená `#A6E36B` a PM2.5 fialová `#B8A6FF`**
+    - Opuštěno, protože: uživatel (24. 10.) – příliš agresivní barvy, chtěl méně výrazné.
+    - Nahrazeno: šalvějová zelená `#8FBF9F` (sytost 27 %) a levandulová `#A59DCF` (34 %); kontrast k pozadí aspoň 6 : 1, test hlídá sytost do 40 %.
+43. **Mikrotrend CO₂ a PM2.5 v pravém sloupci, začátek 28 px před sloupcem, blednutí do 55 %**
+    - Opuštěno, protože: uživatel (24. 10.) – trend má navazovat přímo na hodnotu a jednotku, aby ho nemusel hledat.
+    - Nahrazeno: trend CO₂ a PM2.5 začíná 70 px od levého okraje řádků (pod koncem i nejkratší hodnoty), blednutí do 80 % šířky, číslo a jednotka se nezalamují. Trend teploty zůstává v pravém sloupci.
+44. **Vlhkost a teplota bez barvy, i když rozhodly o stavu místnosti**
+    - Opuštěno, protože: u „Vlhko“ zůstalo „76 %“ šedé a uživatel musel hledat, proč je místnost „Vlhko“ (TODO P2.15, schváleno 24. 10.).
+    - Nahrazeno: hodnota, která stav určila, má barvu stavu; ostatní zůstávají neutrální.
+45. **Dotykové cíle: CO₂ a PM2.5 dva řádky po 26 px, okno 26 px, vlhkost 38 × 28 px, předvolby 36 × 47 px**
+    - Opuštěno, protože: HIG žádá aspoň 44 × 44 pt (TODO P1.2, schváleno 24. 10.).
+    - Nahrazeno: CO₂ + PM2.5 jeden cíl 52 px s popupem „Kvalita vzduchu“; okno 32 px s neviditelnou plochou do 44 px; vlhkost, předvolby a přepínač zvětšeny neviditelným rozšířením. Test měří skutečnou plochu hit-testem. Při psaní testu se ukázalo, že řádek okna měl kvůli přebití CSS jen 26 px; opraveno.
+46. **Všechny místnosti vždy jako celé karty**
+    - Opuštěno, protože: pět karet je skoro dvě obrazovky iPhonu (TODO P2.1; uživatel 24. 10.: přepínač nahoře, vzhled ponechán na mně).
+    - Nahrazeno: přepínač Přehled | Detail vpravo od titulku; v Přehledu je klidná místnost jeden řádek, odchylka (stav jiný než Příjemné, konflikt, neznámá data) drží celou kartu; zapamatováno v zařízení.
 
 ## Zamítnuté návrhy
 
@@ -154,6 +172,8 @@ Formát každého bodu: **Navrženo** → **Opuštěno, protože** → **Nahraze
 13. **Desktopové rozložení / čtyři místnosti v jednom řádku** – zamítnuto; priorita je iPhone, bez vodorovného posouvání. Od 24. 10. smí být na šířku telefonu dvě karty vedle sebe (v14); tři a více sloupců zůstává zamítnuto.
 14. **Vlastní plán žaluzií `plan_zaluzie` (virtuální řadič)** – nesouvisí s dashboardem, ignoruje se.
 15. **Venkovní kvalita vzduchu jako AQI/index** – zamítnuto; použije se PM2.5 ve stejné veličině jako ALPSTUGA.
+16. **Podbarvení čtverečkem pod aktivní předvolbou žaluzie** – zamítnuto 24. 10.; stačí změna barvy ikony.
+17. **Pátá místnost (Obývák) roztažená přes celou šířku ve dvou sloupcích** – zamítnuto 24. 10.; zůstává stejně velká sama vlevo.
 
 ## Vývoj UX
 
@@ -183,4 +203,5 @@ Formát každého bodu: **Navrženo** → **Opuštěno, protože** → **Nahraze
 11. **v11 – opravy z testu a automatické testy (24. 10.):** cíl Topení / Klimatizace přes celý levý sloupec, přístupné názvy, předvolby u nedostupné žaluzie, šipky v přepínači, šířka grafu po otočení; `npm test` (Playwright, axe-core).
 12. **v12 – panel a předvolby žaluzií, barvy (24. 10.):** 11 lamel (nejtenčí 2 px), lamely okna stálé, předvolby vpravo od panelu shora Den, Stín, Tma, ikony žaluzie bez rámečku (šedé, bílá podle stavu), ilustrace výš, CO₂ zelená a PM2.5 fialová.
 13. **v13 – tlumené předvolby a pulzování (24. 10.):** ikony tmavě šedé, aktivní tlumeně šampaňská na podsvíceném čtverečku, cílová předvolba pulzuje do dojezdu žaluzie (konec při 5 s beze změny).
-14. **v14 – dva sloupce na šířku (aktuální návrh, 24. 10.):** telefon na výšku jeden sloupec přes celou šířku displeje, na šířku (od šířky karty 680 px) dvě karty vedle sebe; úzký režim podle šířky místnosti místo okna (kontejnerový dotaz), ilustrace se v úzké místnosti zmenšuje.
+14. **v14 – dva sloupce na šířku (24. 10.):** telefon na výšku jeden sloupec přes celou šířku displeje, na šířku (od šířky karty 680 px) dvě karty vedle sebe; úzký režim podle šířky místnosti místo okna (kontejnerový dotaz), ilustrace se v úzké místnosti zmenšuje.
+15. **v15 – kolo z 24. 10. odpoledne (aktuální návrh):** předvolby žaluzií jen barvou ikony (bez podbarvení), tlumenější CO₂ a PM2.5, trend CO₂ a PM2.5 navazuje na hodnotu, hodnota určující stav má barvu stavu, konflikty (okno + topí / chladí se, chladí se i když je chladno), dotykové cíle 44 × 44 px, popup „Kvalita vzduchu“, přepínač Přehled | Detail nahoře.

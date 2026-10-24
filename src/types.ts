@@ -100,6 +100,8 @@ export interface RoomStatus {
   label: string;
   color: string;
   kind: "normal" | "warning" | "critical" | "unknown";
+  /** The measurement that decided the status (it is drawn in the status colour); none for normal / unknown. */
+  cause?: "temperature" | "humidity" | "co2" | "pm25";
 }
 
 export type ClimateMode =
@@ -127,7 +129,7 @@ export interface BlindPreset {
  * Popup of a room: controls of Topení or Klimatizace (opened from their rows), or the
  * 24 h room history (opened from the temperature).
  */
-export type SheetKind = "heating" | "climate" | "history";
+export type SheetKind = "heating" | "climate" | "history" | "air";
 
 export interface SheetState {
   kind: SheetKind;

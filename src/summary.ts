@@ -2,7 +2,7 @@ import type { EntityId, HassEntity, RoomConfig } from "./types";
 import { climateView, heatingView } from "./systems";
 import { COLORS, isUnavailable, plural } from "./utils";
 
-export type SummaryKind = "windows" | "manual" | "heating" | "climate";
+export type SummaryKind = "windows" | "manual" | "heating" | "climate" | "conflict-window" | "conflict-cooling";
 
 /** One status chip in the Domov header (CURRENT_SPEC.md, Dashboard Domov). */
 export interface SummaryChip {
@@ -24,21 +24,65 @@ function namesOrCount(names: string[]): string {
   return names.length <= 2 ? names.join(", ") : rooms(names.length);
 }
 
+/** What contradicts what in a room (CURRENT_SPEC.md, Konflikty): never a room status, never an alarm. */
+export type RoomConflict = "window-heating" | "window-cooling" | "cooling-cold";
+
 /**
- * Chips only for what differs from a quiet house: open windows, manual heating overrides,
- * rooms that are heating now (at least one wave) and running air conditioners. Unknown
- * states are never counted.
+ * Conflicts of one room: the window is open while it heats (Topení has at least one wave, or the
+ * air conditioner heats) or cools (cool / WindFree), or it cools although the room is "Chladno".
+ * An open window with cooling is reported once (not also as "cooling although cold"). Unknown
+ * states are never a conflict.
+ */
+export function roomConflicts(
+  room: RoomConfig,
+  get: (entityId: EntityId | undefined) => HassEntity | undefined,
+  cold: boolean,
+): RoomConflict[] {
+  const window = get(room.window)?.state.toLowerCase();
+  const open = window !== undefined && !isUnavailable(window) && window === "on";
+  const heat = heatingView(
+    get(room.heating?.climate),
+    get(room.heating?.overlay),
+    get(room.heating?.target),
+    get(room.heating?.intensity),
+  );
+  const mode = room.air_conditioner ? climateView(get(room.air_conditioner)).mode : "unknown";
+  const heating = (!heat.unknown && heat.waves > 0) || mode === "heat";
+  const cooling = mode === "cool" || mode === "wind_free";
+
+  const conflicts: RoomConflict[] = [];
+  if (open && heating) {
+    conflicts.push("window-heating");
+  }
+  if (open && cooling) {
+    conflicts.push("window-cooling");
+  } else if (cooling && cold) {
+    conflicts.push("cooling-cold");
+  }
+  return conflicts;
+}
+
+/**
+ * Chips only for what differs from a quiet house: conflicts first (orange), then open windows,
+ * manual heating overrides, rooms that are heating now (at least one wave) and running air
+ * conditioners. Unknown states are never counted. `coldRooms` are the rooms whose status is
+ * "Chladno".
  */
 export function houseSummary(
   roomList: RoomConfig[],
   get: (entityId: EntityId | undefined) => HassEntity | undefined,
+  coldRooms: ReadonlySet<string> = new Set(),
 ): SummaryChip[] {
+  const conflicts: Record<RoomConflict, string[]> = { "window-heating": [], "window-cooling": [], "cooling-cold": [] };
   const open: string[] = [];
   const manual: string[] = [];
   const heating: string[] = [];
   const climate: string[] = [];
 
   for (const room of roomList) {
+    for (const conflict of roomConflicts(room, get, coldRooms.has(room.name))) {
+      conflicts[conflict].push(room.name);
+    }
     const window = get(room.window)?.state.toLowerCase();
     if (window !== undefined && !isUnavailable(window) && window === "on") {
       open.push(room.name);
@@ -61,6 +105,21 @@ export function houseSummary(
   }
 
   const chips: SummaryChip[] = [];
+  const conflictChips: Array<[RoomConflict, SummaryKind, string, string]> = [
+    ["window-heating", "conflict-window", "Okno otevřené · topí se", "Okno je otevřené a topí se"],
+    ["window-cooling", "conflict-window", "Okno otevřené · chladí se", "Okno je otevřené a chladí se"],
+    ["cooling-cold", "conflict-cooling", "Chladí se, i když je chladno", "Chladí se, i když je chladno"],
+  ];
+  for (const [conflict, kind, text, spoken] of conflictChips) {
+    if (conflicts[conflict].length > 0) {
+      chips.push({
+        kind,
+        text: `${text}: ${namesOrCount(conflicts[conflict])}`,
+        color: COLORS.warning,
+        spoken: `Konflikt: ${spoken}: ${conflicts[conflict].join(", ")}`,
+      });
+    }
+  }
   if (open.length > 0) {
     chips.push({
       kind: "windows",

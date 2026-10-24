@@ -181,3 +181,43 @@ export function renderHeatingOptionIcon(id: HeatingOptionId): TemplateResult {
     </svg>
   `;
 }
+
+export type DashboardView = "overview" | "detail";
+
+/** Přehled (compact rows) and Detail (full room cards) in the switch next to the title. */
+export function renderViewIcon(view: DashboardView): TemplateResult {
+  const shape =
+    view === "overview"
+      ? svg`<path d="M4 7h16M4 12h16M4 17h16"></path>`
+      : svg`<rect x="4.5" y="3.5" width="15" height="17" rx="3.5"></rect><path d="M8.5 9h7M8.5 13h4.5"></path>`;
+  return html`
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.8"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      ${shape}
+    </svg>
+  `;
+}
+
+/** Chevron: down on a collapsed room row, up on the room title that collapses it again. */
+export function renderChevronIcon(direction: "down" | "up"): TemplateResult {
+  return html`
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <path d=${direction === "down" ? "M6 9.5l6 6 6-6" : "M6 14.5l6-6 6 6"}></path>
+    </svg>
+  `;
+}

@@ -28,6 +28,151 @@ export const styles = css`
       padding: 0 4px;
     }
 
+    .title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    /* Přehled | Detail (iOS segmented control with two icons). */
+    .view-switch {
+      display: inline-grid;
+      grid-auto-flow: column;
+      gap: 2px;
+      padding: 2px;
+      border-radius: 10px;
+      background: rgb(118 118 128 / 24%);
+    }
+
+    .view-option {
+      position: relative;
+      display: flex;
+      width: 44px;
+      height: 32px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 8px;
+      color: #9a9aa0;
+    }
+
+    .view-option svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    /* Invisible touch target of 44 px in height. */
+    .view-option::after {
+      content: "";
+      position: absolute;
+      inset: -6px 0;
+    }
+
+    .view-option[aria-pressed="true"] {
+      background: #636366;
+      box-shadow: 0 2px 6px rgb(0 0 0 / 30%);
+      color: #ffffff;
+    }
+
+    /* Přehled: a calm room is one row (button.room-compact beats the .plain-button reset below). */
+    button.room-compact {
+      display: flex;
+      width: 100%;
+      min-height: 60px;
+      align-items: center;
+      gap: 12px;
+      box-sizing: border-box;
+      padding: 8px 14px 8px 18px;
+      border: 1px solid rgb(255 255 255 / 7%);
+      border-radius: 20px;
+      background: linear-gradient(165deg, #232326 0%, #1c1c1e 55%);
+      box-shadow: inset 0 1px 0 rgb(255 255 255 / 6%);
+      color: #ffffff;
+    }
+
+    .compact-main {
+      display: grid;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .compact-name {
+      overflow: hidden;
+      font-size: 19px;
+      font-weight: 600;
+      letter-spacing: -0.3px;
+      line-height: 26px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .compact-status {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      color: #9a9aa0;
+      font-size: 14px;
+      line-height: 18px;
+    }
+
+    .compact-values {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .compact-temperature {
+      font-size: 22px;
+      font-weight: 500;
+      letter-spacing: -0.3px;
+    }
+
+    .compact-humidity {
+      color: #c7c7cc;
+      font-size: 16px;
+    }
+
+    .compact-chevron {
+      display: flex;
+      width: 20px;
+      height: 20px;
+      color: #8e8e93;
+    }
+
+    .compact-chevron svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    /* The title of a room opened in Přehled collapses it again. */
+    .room-title-button {
+      position: relative;
+      display: flex;
+      max-width: 100%;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .room-title-text {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .room-title-button svg {
+      width: 22px;
+      height: 22px;
+      flex: 0 0 22px;
+      color: #8e8e93;
+    }
+
+    .room-title-button::after {
+      content: "";
+      position: absolute;
+      inset: -6px 0;
+    }
+
     h1 {
       margin: 0;
       font-size: 1.5rem;
@@ -123,12 +268,17 @@ export const styles = css`
       --preset-col: 36px;
       --preset-icon: 32px;
       /*
-       * Blind preset icons: dim grey; the one matching the blind is lit in a muted tone of the
-       * blind's champagne, on a soft rounded square of the same tone.
+       * Blind preset icons: dim grey; the one matching the blind changes its colour to a muted
+       * tone of the blind's champagne (colour only, no background).
        */
       --preset-idle: #6f6f74;
       --preset-on: #c9c0a8;
-      --preset-glow: rgb(232 217 181 / 13%);
+      /* The window row is a little taller than the others: it is the lowest touch target (44 px with the invisible area below). */
+      --window-h: 32px;
+      /* Width of the CO₂ / PM2.5 value column; the value may run past it, the trend starts right behind it. */
+      --air-text: 64px;
+      /* How far the temperature trend reaches left, under the end of the Topení / Klimatizace texts (it fades out there). */
+      --trend-reach: 28px;
       --cover-gap: 4px;
       position: relative;
       overflow: hidden;
@@ -166,11 +316,11 @@ export const styles = css`
         color-mix(in srgb, currentColor 5%, transparent)
       );
       -webkit-mask-image:
-        linear-gradient(to right, transparent, #000 30%),
+        linear-gradient(to right, transparent 10%, #000 60%),
         linear-gradient(to top, transparent, #000 15%);
       -webkit-mask-composite: source-in;
       mask-image:
-        linear-gradient(to right, transparent, #000 30%),
+        linear-gradient(to right, transparent 10%, #000 60%),
         linear-gradient(to top, transparent, #000 15%);
       mask-composite: intersect;
       pointer-events: none;
@@ -266,11 +416,20 @@ export const styles = css`
       letter-spacing: 0;
     }
 
-    /* Humidity is deliberately uncoloured. */
+    /* Humidity is neutral, except when it decided the room status (inline colour). */
     .humidity {
+      position: relative;
+      min-width: 44px;
       color: #c7c7cc;
       font-size: 18px;
       line-height: 28px;
+    }
+
+    /* Invisible touch target of 44 px in height (TODO P1.2). */
+    .humidity::after {
+      content: "";
+      position: absolute;
+      inset: -8px 0;
     }
 
     .missing {
@@ -301,21 +460,20 @@ export const styles = css`
     .info {
       display: grid;
       grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-      grid-template-rows: var(--row-h) var(--row-h) var(--group-gap) repeat(3, var(--row-h));
+      grid-template-rows: var(--row-h) var(--row-h) var(--group-gap) var(--row-h) var(--row-h) var(--window-h);
       column-gap: var(--info-gap);
       min-width: 0;
       font-size: var(--row-font);
       font-variant-numeric: tabular-nums;
     }
 
-    .slot-co2 {
+    /* CO₂ and PM2.5: one touch target over both rows (52 px, TODO P1.2). */
+    .air-block {
       grid-column: 1 / -1;
-      grid-row: 1;
-    }
-
-    .slot-pm25 {
-      grid-column: 1 / -1;
-      grid-row: 2;
+      grid-row: 1 / span 2;
+      display: grid;
+      grid-template-rows: var(--row-h) var(--row-h);
+      min-width: 0;
     }
 
     /* Row 3 is the gap between the air rows and the Topení / Klimatizace / window rows. */
@@ -355,15 +513,37 @@ export const styles = css`
       grid-row: 4 / span 2;
     }
 
-    .slot-window {
-      grid-column: 1;
+    /* Two classes: .system-row (later, same weight) would otherwise reset the height to one row. */
+    .system-row.slot-window {
+      position: relative;
+      /* At least the left column, but free to grow to the right (the empty cell next to it) so a label with the conflict dot never gets cut. */
+      grid-column: 1 / -1;
       grid-row: 6;
+      justify-self: start;
+      min-width: calc((100% - var(--info-gap)) / 2);
+      max-width: 100%;
+      height: var(--window-h);
     }
 
-    /* CO₂ / PM2.5: the same two columns inside the row, so the trend lines up with the others. */
+    /* The icon and text sit like in the other rows; the extra height and the area below form the touch target. */
+    .slot-window .row-main {
+      align-self: flex-start;
+    }
+
+    .system-row.slot-window::after {
+      content: "";
+      position: absolute;
+      inset: 0 0 calc(var(--window-h) - 44px) 0;
+    }
+
+    /*
+     * CO₂ / PM2.5: icon and value, then the trend. The trend starts at a fixed distance from the
+     * left edge (--air-text + gap), under the end of even the shortest value ("2 µg/m³"), so
+     * it always continues right behind the value instead of at a distant column (TODO P1.10.1).
+     */
     .air-row {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      grid-template-columns: var(--air-text) minmax(0, 1fr);
       column-gap: var(--info-gap);
       align-items: stretch;
       min-width: 0;
@@ -431,6 +611,17 @@ export const styles = css`
       text-overflow: ellipsis;
     }
 
+    /* Open window against heating or cooling: a small orange dot after "Otevřeno". */
+    .conflict-dot {
+      align-self: center;
+      width: 6px;
+      height: 6px;
+      margin-left: 2px;
+      border-radius: 50%;
+      background: #ff9f0a;
+      opacity: 0.85;
+    }
+
     .system-row.strong .row-label {
       font-weight: 500;
     }
@@ -462,10 +653,40 @@ export const styles = css`
       padding: 5px calc(var(--panel-gap) * 1.5 - var(--cover-gap) + 2.5px) 5px 3px;
     }
 
-    /* Trends fade out to the left, so text running into them stays readable. */
+    /*
+     * Trends reach left under the end of the value and its unit and fade out there over most
+     * of their width, so the line seems to grow out of the value and the text above it stays
+     * readable.
+     */
     .spark {
-      -webkit-mask-image: linear-gradient(to right, transparent, #000 55%);
-      mask-image: linear-gradient(to right, transparent, #000 55%);
+      -webkit-mask-image: linear-gradient(to right, transparent, #000 80%);
+      mask-image: linear-gradient(to right, transparent, #000 80%);
+    }
+
+    .slot-temperature-trend {
+      width: calc(100% + var(--trend-reach));
+      margin-left: calc(-1 * var(--trend-reach));
+    }
+
+    .slot-temperature-trend .spark {
+      width: 100%;
+      margin-left: 0;
+    }
+
+    /* The value and its unit stay above the trend and never wrap (CO₂: "656 ppm"). */
+    .air-row .row-main {
+      position: relative;
+      z-index: 1;
+    }
+
+    .air-row .row-text {
+      flex-wrap: nowrap;
+      overflow: visible;
+    }
+
+    .air-row .row-label {
+      flex: none;
+      overflow: visible;
     }
 
     .spark.stale {
@@ -518,10 +739,10 @@ export const styles = css`
     /*
      * One column of three icon buttons to the right of the blind panel, in the order Den,
      * Stín, Tma, each a third of the panel height. Dim grey; the icon that matches the state
-     * of the blind is lit: its colour brightens and a soft rounded square glows behind it.
-     * While a preset is on its way, the square behind its icon fades in and out (and the icon
-     * with it) until the blind arrives. They are pressed by a long press or a double tap;
-     * while the button is held the square grows behind the icon.
+     * of the blind changes its colour to muted champagne, nothing else (no square, no frame).
+     * While a preset is on its way its icon fades between the two colours and back until the
+     * blind arrives. They are pressed by a long press or a double tap; while the button is held
+     * the icon takes on the lit colour.
      */
     .presets {
       display: flex;
@@ -553,27 +774,18 @@ export const styles = css`
       transition: transform 120ms ease-out;
     }
 
+    /* Invisible touch target of 44 px in width: reaches into the gap to the panel and the card padding (TODO P1.2). */
     .preset::before {
       content: "";
       position: absolute;
-      inset: 0;
-      width: var(--preset-col);
-      height: var(--preset-col);
-      margin: auto;
-      border-radius: 10px;
-      background: var(--preset-glow);
-      opacity: 0;
-      transform: scale(0.6);
-      transition:
-        opacity 220ms ease-out,
-        transform 220ms ease-out;
+      inset: 0 calc(var(--preset-col) - 44px + var(--cover-gap)) 0 calc(-1 * var(--cover-gap));
     }
 
     .preset:active svg {
       transform: scale(0.92);
     }
 
-    .preset:active::before {
+    .preset:active {
       animation: hold 550ms linear forwards;
     }
 
@@ -582,29 +794,9 @@ export const styles = css`
       color: var(--preset-on);
     }
 
-    .preset[aria-pressed="true"]::before {
-      opacity: 1;
-      transform: none;
-    }
-
-    /* Preset on its way: the glow (and the icon with it) fades in and out until the blind arrives. */
+    /* Preset on its way: the icon colour goes there and back until the blind arrives. */
     .preset.pending {
       animation: preset-tint 1.3s ease-in-out infinite alternate;
-    }
-
-    .preset.pending::before {
-      animation: preset-glow 1.3s ease-in-out infinite alternate;
-    }
-
-    @keyframes preset-glow {
-      from {
-        opacity: 0.1;
-        transform: scale(0.88);
-      }
-      to {
-        opacity: 1;
-        transform: none;
-      }
     }
 
     @keyframes preset-tint {
@@ -625,8 +817,7 @@ export const styles = css`
       transform: none;
     }
 
-    .preset.unavailable:active::before {
-      opacity: 0;
+    .preset.unavailable:active {
       animation: none;
     }
 
@@ -663,9 +854,11 @@ export const styles = css`
     }
 
     @keyframes hold {
+      from {
+        color: var(--preset-idle);
+      }
       to {
-        opacity: 1;
-        transform: scale(1);
+        color: var(--preset-on);
       }
     }
 
@@ -782,7 +975,7 @@ export const styles = css`
     }
 
     .segment {
-      min-height: 36px;
+      min-height: 44px;
       border-radius: 8px;
       color: #ffffff;
       font-size: 14px;
@@ -873,6 +1066,31 @@ export const styles = css`
       align-items: center;
       justify-content: center;
       color: var(--tone);
+    }
+
+    .air-options {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .air-option {
+      width: 100%;
+      text-align: left;
+    }
+
+    .option-text {
+      flex: 1;
+    }
+
+    .air-value {
+      margin-left: auto;
+      font-size: 17px;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .option-icon ha-icon {
+      display: flex;
+      --mdc-icon-size: 24px;
     }
 
     .option-icon svg {
@@ -1044,9 +1262,8 @@ export const styles = css`
     @media (prefers-reduced-motion: reduce) {
       .sheet,
       .preset.sent svg,
-      .preset:active::before,
+      .preset:active,
       .preset.pending,
-      .preset.pending::before,
       .preset-hint,
       .spark.loading,
       .cover-panel.moving .rail {
@@ -1057,20 +1274,13 @@ export const styles = css`
         transition: none;
       }
 
-      /* Without the growing square, a held preset just shows it. */
-      .preset:active::before {
-        opacity: 1;
-        transform: none;
-      }
-
-      /* Without pulsing, a preset on its way shows a half-lit square. */
-      .preset.pending {
+      /* Without the colour change, a held preset is lit and one on its way is half-lit. */
+      .preset:active {
         color: var(--preset-on);
       }
 
-      .preset.pending::before {
-        opacity: 0.55;
-        transform: none;
+      .preset.pending {
+        color: color-mix(in srgb, var(--preset-idle), var(--preset-on));
       }
 
       .preset svg {
@@ -1084,6 +1294,7 @@ export const styles = css`
         --col: 52px;
         --preset-col: 32px;
         --preset-icon: 28px;
+        --trend-reach: 14px;
       }
     }
 `;

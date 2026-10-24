@@ -13,7 +13,7 @@ const WIDTHS = [320, 360, 375, 393, 430, 768];
 async function open(page: Page, scenario = "full", width = 393, height = 852): Promise<void> {
   await page.setViewportSize({ width, height });
   await page.goto(`/tests/harness.html?s=${scenario}`);
-  await page.locator(".room").first().waitFor();
+  await page.locator(".room, .room-compact").first().waitFor();
   // Wait for the first micro-trend history (the dotted placeholder disappears).
   await expect(page.locator(".spark.loading")).toHaveCount(0);
 }
@@ -114,7 +114,49 @@ test.describe("rozložení (Room Card, Dashboard Domov)", () => {
     }
   });
 
-  test.fixme("na 320 px zůstane „ppm“ na řádku CO₂ a stavový řádek se nedotýká ilustrace (TODO P2.12)", async () => {});
+  test("na 320 px zůstane jednotka na jednom řádku s hodnotou CO₂ a PM2.5, nic se neořízne (TODO P2.12)", async ({ page }) => {
+    for (const scenario of ["real", "full", "alarm", "longnames", "stale"]) {
+      await open(page, scenario, 320);
+      const rows = await page.evaluate(() => {
+        const card = document.querySelector("ha-klima-dashboard")!.shadowRoot!;
+        return [...card.querySelectorAll(".air-row")].flatMap((row) => {
+          const label = row.querySelector(".row-label");
+          const unit = row.querySelector(".row-unit");
+          if (!label || !unit) {
+            return [];
+          }
+          const [a, b] = [label.getBoundingClientRect(), unit.getBoundingClientRect()];
+          return [{ sameLine: Math.abs(a.top - b.top) < 3, cut: label.scrollWidth > label.clientWidth + 0.5, text: row.textContent?.trim() }];
+        });
+      });
+      expect(rows.length, scenario).toBeGreaterThan(0);
+      expect(rows.filter((row) => !row.sameLine || row.cut), scenario).toEqual([]);
+    }
+  });
+
+  test("mikrotrend navazuje přímo na hodnotu: začíná pod koncem čísla a jednotky (TODO P1.10.1)", async ({ page }) => {
+    for (const width of [320, 393, 430]) {
+      await open(page, "alarm", width);
+      const gaps = await page.evaluate(() => {
+        const card = document.querySelector("ha-klima-dashboard")!.shadowRoot!;
+        return [...card.querySelectorAll(".room")].flatMap((room) =>
+          [".slot-co2", ".slot-pm25"].flatMap((slot) => {
+            const text = room.querySelector(`${slot} .row-text`);
+            const spark = room.querySelector(`${slot} .spark`);
+            if (!text || !spark) {
+              return [];
+            }
+            const range = document.createRange();
+            range.selectNodeContents(text);
+            return [{ slot, gap: spark.getBoundingClientRect().left - range.getBoundingClientRect().right }];
+          }),
+        );
+      });
+      expect(gaps.length, `šířka ${width}`).toBeGreaterThan(4);
+      // A negative gap means the (faded) trend begins under the end of the text; none is a hole.
+      expect(gaps.filter((item) => item.gap > 0), `šířka ${width}`).toEqual([]);
+    }
+  });
 
   test("Topení + Klimatizace: jeden cíl ≥ 44 px, aspoň přes celý levý sloupec (TODO P1.5)", async ({ page }) => {
     for (const width of [375, 393, 430, 768]) {
@@ -134,7 +176,74 @@ test.describe("rozložení (Room Card, Dashboard Domov)", () => {
     }
   });
 
-  test.fixme("všechny klikací prvky mají cíl aspoň 44 × 44 px (TODO P1.2)", async () => {});
+  /**
+   * Measures the real touch target of every button of the card by hit-testing a grid around it:
+   * the invisible ::before/::after extensions count, a neighbour that covers the area does not.
+   */
+  const hitAreas = (page: Page, scope = "") =>
+    page.evaluate((prefix) => {
+      const root = document.querySelector("ha-klima-dashboard")!.shadowRoot!;
+      const selector = ["button", "[role='button']", "a[href]", "[tabindex='0']"].map((item) => `${prefix} ${item}`.trim()).join(", ");
+      const targets = [...root.querySelectorAll<HTMLElement>(selector)].filter(
+        (element) => !(element as HTMLButtonElement).disabled && element.getBoundingClientRect().width > 0,
+      );
+      const hits = (element: HTMLElement, x: number, y: number) => {
+        const hit = x < 0 || y < 0 || x >= innerWidth || y >= innerHeight ? null : root.elementFromPoint(x, y);
+        return Boolean(hit && (hit === element || element.contains(hit)));
+      };
+      // Extent of the target along one line through its centre (1 px steps, 40 px beyond the box).
+      const extent = (element: HTMLElement, horizontal: boolean) => {
+        const box = element.getBoundingClientRect();
+        const [from, to] = horizontal ? [box.left - 40, box.right + 40] : [box.top - 40, box.bottom + 40];
+        const fixed = horizontal ? box.top + box.height / 2 : box.left + box.width / 2;
+        let [low, high] = [Infinity, -Infinity];
+        for (let at = Math.floor(from); at <= Math.ceil(to); at += 1) {
+          if (horizontal ? hits(element, at, fixed) : hits(element, fixed, at)) {
+            low = Math.min(low, at);
+            high = Math.max(high, at + 1);
+          }
+        }
+        return high - low;
+      };
+      return targets.map((element) => {
+        const box = element.getBoundingClientRect();
+        return {
+          name: `${element.className.toString().replace(/\s+/g, ".")}${element.getAttribute("data-room") ? `[${element.getAttribute("data-room")}]` : ""}`,
+          width: extent(element, true),
+          height: extent(element, false),
+          visible: box.top >= 0 && box.bottom <= innerHeight,
+        };
+      });
+    }, scope);
+
+  const tooSmall = async (page: Page, label: string, scope = "") => {
+    const areas = (await hitAreas(page, scope)).filter((area) => area.visible);
+    expect(areas.length, label).toBeGreaterThan(0);
+    return areas.filter((area) => area.width < 43.5 || area.height < 43.5).map((area) => `${label}: ${JSON.stringify(area)}`);
+  };
+
+  test("všechny klikací prvky mají cíl aspoň 44 × 44 px (TODO P1.2)", async ({ page }) => {
+    for (const width of [320, 393, 430]) {
+      await open(page, "full", width, 3200);
+      expect(await tooSmall(page, `karta ${width}`)).toEqual([]);
+    }
+    // The compact rows of the overview and the view switch.
+    await open(page, "full", 393, 3200);
+    await page.getByRole("button", { name: "Přehled", exact: true }).click();
+    expect(await tooSmall(page, "přehled")).toEqual([]);
+  });
+
+  test("klikací prvky v oknech (Topení, Kvalita vzduchu, Historie) mají cíl aspoň 44 px (TODO P1.2)", async ({ page }) => {
+    await open(page, "full", 393, 852);
+    for (const trigger of [".slot-hvac", ".air-block", ".trend-button"]) {
+      await page.locator(".room").first().locator(trigger).click();
+      await expect(page.locator(".sheet")).toBeVisible();
+      await settle(page);
+      expect(await tooSmall(page, trigger, ".sheet")).toEqual([]);
+      await page.keyboard.press("Escape");
+      await expect(page.locator(".sheet")).toHaveCount(0);
+    }
+  });
 
   test("text HVAC smí přesáhnout do trendu: WindFree · 22 °C je celé na 393 px (TODO P1.1)", async ({ page }) => {
     await open(page, "summer");
@@ -260,7 +369,10 @@ test.describe("stav místnosti a souhrn (Stavový systém, Chybějící data)", 
     await open(page, "alarm");
     const list = tidy(await statuses(page));
     expect(list.slice(0, 3)).toEqual(["Silně vydýchaný vzduch", "Znečištěný vzduch", "Vlhko"]);
-    await expect(page.locator(".summary .chip")).toHaveText(["5 oken otevřených", "Ručně: 5 místností", "Topí 3 místnosti"]);
+    // Conflicts (open window while heating) come first, then the usual house summary (TODO P2.14).
+    const chips = tidy(await page.locator(".summary .chip").allInnerTexts());
+    expect(chips[0]).toMatch(/^Okno otevřené · topí se: /);
+    expect(chips.slice(1)).toEqual(["5 oken otevřených", "Ručně: 5 místností", "Topí 3 místnosti"]);
     const co2 = page.locator(".room").first().locator(".slot-co2 .row-label");
     await expect(co2).toHaveCSS("color", "rgb(255, 69, 58)");
   });
@@ -303,6 +415,27 @@ test.describe("přístupnost", () => {
     await page.locator(".room .temperature").first().click();
     await expect(page.locator(".readout")).toBeVisible();
     expect(await axeViolations(page)).toEqual([]);
+  });
+
+  test("axe: popup Kvalita vzduchu, Přehled a rozbalená místnost bez porušení", async ({ page }) => {
+    await open(page, "full");
+    await page.locator(".air-block").first().click();
+    await expect(page.locator(".air-options")).toBeVisible();
+    expect(await axeViolations(page)).toEqual([]);
+    await page.keyboard.press("Escape");
+    await page.getByRole("button", { name: "Přehled", exact: true }).click();
+    await expect(page.locator(".room-compact")).toHaveCount(5);
+    expect(await axeViolations(page)).toEqual([]);
+    await page.locator('.room-compact[data-room="Pracovna"]').click();
+    await expect(page.locator('.room-title-button[data-room="Pracovna"]')).toBeFocused();
+    expect(await axeViolations(page)).toEqual([]);
+  });
+
+  test("název bloku CO₂ / PM2.5 = viditelný text, kontext v popisu (TODO P1.2, P1.6)", async ({ page }) => {
+    await open(page, "full");
+    const block = page.locator(".air-block").first();
+    await expect(block).toHaveAccessibleName(/^656\s+ppm\s+2\s+µg\/m³$/);
+    await expect(block).toHaveAccessibleDescription(/^Ložnice: kvalita vzduchu, CO₂ 656 ppm, za 2 hodiny .*; PM2\.5 2 µg\/m³.*Otevře detaily\.$/);
   });
 
   test("název tlačítka Topení / Klimatizace = viditelný text, kontext v popisu (TODO P1.6)", async ({ page }) => {
@@ -382,22 +515,37 @@ test.describe("panel a předvolby žaluzií (Žaluzie)", () => {
     expect(heights[2].window).toEqual(Array(4).fill(2));
   });
 
-  test("ikony předvoleb jsou tlumené; ta, která odpovídá stavu žaluzie, svítí šampaňsky na podsvíceném čtverci", async ({ page }) => {
+  test("ikony předvoleb jsou tlumené; ta, která odpovídá stavu žaluzie (Den, Stín i Tma), jen změní barvu, bez podbarvení", async ({ page }) => {
     await open(page, "full");
-    const looks = await page.evaluate(() =>
-      [...document.querySelector("ha-klima-dashboard")!.shadowRoot!.querySelectorAll(".room")].slice(0, 3).map((room) =>
-        [...room.querySelectorAll(".preset")].map((preset) => {
-          const style = getComputedStyle(preset);
-          const glow = getComputedStyle(preset, "::before");
-          return `${style.color}|${preset.getAttribute("aria-pressed")}|${style.borderTopWidth}|${glow.opacity}`;
-        }),
-      ),
-    );
-    const lit = "rgb(201, 192, 168)|true|0px|1";
-    const dim = "rgb(111, 111, 116)|false|0px|0";
-    expect(looks[0]).toEqual([dim, dim, lit]); // Ložnice 0 / 0 = Tma
-    expect(looks[1]).toEqual([lit, dim, dim]); // Pracovna 100 / 100 = Den
-    expect(looks[2]).toEqual([dim, dim, dim]); // Maxík 40 / 60: žádná předvolba
+    // The icon colour fades (a CSS transition), so wait until it has settled before reading it.
+    const looks = async () => {
+      await settle(page);
+      return page.evaluate(() =>
+        [...document.querySelector("ha-klima-dashboard")!.shadowRoot!.querySelectorAll(".room")].slice(0, 4).map((room) =>
+          [...room.querySelectorAll(".preset")].map((preset) => {
+            const style = getComputedStyle(preset);
+            const before = getComputedStyle(preset, "::before");
+            // Colour, state, and nothing painted behind or around the icon (the ::before is only
+            // the invisible touch-area extension).
+            return `${style.color}|${preset.getAttribute("aria-pressed")}|${style.backgroundColor}|${style.borderTopWidth}|${before.backgroundColor}|${before.boxShadow}|${before.borderTopWidth}`;
+          }),
+        ),
+      );
+    };
+    const plain = "rgba(0, 0, 0, 0)|0px|rgba(0, 0, 0, 0)|none|0px";
+    const lit = `rgb(201, 192, 168)|true|${plain}`;
+    const dim = `rgb(111, 111, 116)|false|${plain}`;
+    let state = await looks();
+    expect(state[0]).toEqual([dim, dim, lit]); // Ložnice 0 / 0 = Tma
+    expect(state[1]).toEqual([lit, dim, dim]); // Pracovna 100 / 100 = Den
+    expect(state[2]).toEqual([dim, dim, dim]); // Maxík 40 / 60: žádná předvolba
+    expect(state[3]).toEqual([dim, lit, dim]); // Mikuláš 0 / 100 = Stín
+    // Stín also when the blind reports "closed" (position 0, slats open) and within the 2 % tolerance.
+    for (const [value, position, tilt] of [["closed", 0, 100], ["open", 0, 100], ["closed", 1, 99], ["closed", 2, 98]] as const) {
+      await page.evaluate(([id, v, p, t]) => window.__test.cover(id, v, p, t), ["cover.loznice_zaluzie_loznice", value, position, tilt] as const);
+      state = await looks();
+      expect(state[0], `${value} ${position}/${tilt}`).toEqual([dim, lit, dim]);
+    }
   });
 
   test("kontrast ikon předvoleb: šedá aspoň 3:1 na pozadí karty, svítící není čistě bílá", async ({ page }) => {
@@ -442,6 +590,28 @@ test.describe("panel a předvolby žaluzií (Žaluzie)", () => {
     expect(colours.co2[0]).not.toBe(colours.pm25[0]);
   });
 
+  test("barvy CO₂ a PM2.5 jsou tlumené (sytost do 40 %), ale čitelné (kontrast aspoň 6 : 1)", async ({ page }) => {
+    await open(page, "full");
+    const colours = await page.evaluate(() => {
+      const room = document.querySelector("ha-klima-dashboard")!.shadowRoot!.querySelector(".room")!;
+      return [".slot-co2 .row-icon", ".slot-pm25 .row-icon"].map((selector) => getComputedStyle(room.querySelector(selector)!).color);
+    });
+    const luminance = ([r, g, b]: number[]) => {
+      const f = (c: number) => (c / 255 <= 0.03928 ? c / 255 / 12.92 : ((c / 255 + 0.055) / 1.055) ** 2.4);
+      return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+    };
+    const card = luminance([28, 28, 30]);
+    for (const colour of colours) {
+      const rgb = colour.match(/\d+/g)!.map(Number);
+      const max = Math.max(...rgb) / 255;
+      const min = Math.min(...rgb) / 255;
+      const lightness = (max + min) / 2;
+      const saturation = max === min ? 0 : (max - min) / (1 - Math.abs(2 * lightness - 1));
+      expect(saturation, colour).toBeLessThanOrEqual(0.4);
+      expect((luminance(rgb) + 0.05) / (card + 0.05), colour).toBeGreaterThanOrEqual(6);
+    }
+  });
+
   test("ilustrace končí nad panelem žaluzie", async ({ page }) => {
     for (const width of [375, 393, 430]) {
       await open(page, "full", width);
@@ -471,17 +641,16 @@ test.describe("předvolba na cestě (Žaluzie)", () => {
     await expect(den).toHaveAttribute("aria-busy", "true");
     // Tma (the state before sending) is no longer lit; only the target pulses.
     await expect(room.locator('.preset[aria-pressed="true"]')).toHaveCount(0);
-    expect(await den.evaluate((element) => getComputedStyle(element, "::before").animationName)).toBe("preset-glow");
     expect(await den.evaluate((element) => getComputedStyle(element).animationName)).toBe("preset-tint");
     // The blind is moving: still pulsing.
     await page.evaluate((id) => window.__test.cover(id, "opening", 55, 60), COVER);
     await expect(den).toHaveClass(/pending/);
-    // Arrived: no pulsing, steady glow.
+    // Arrived: no pulsing, steady lit colour.
     await page.evaluate((id) => window.__test.cover(id, "open", 100, 100), COVER);
     await expect(den).not.toHaveClass(/pending/);
     await expect(den).toHaveAttribute("aria-pressed", "true");
     await expect(den).not.toHaveAttribute("aria-busy", "true");
-    await expect.poll(() => den.evaluate((element) => getComputedStyle(element, "::before").opacity)).toBe("1");
+    await expect.poll(() => den.evaluate((element) => getComputedStyle(element).color)).toBe("rgb(201, 192, 168)");
   });
 
   test("zastaví-li se změna na 5 s, pulzování skončí; každá změna odpočet obnoví", async ({ page }) => {
@@ -644,6 +813,191 @@ test.describe("historie místnosti (Historie a grafy)", () => {
     expect(shifted.ticks).toEqual(["12:00", "18:00", "00:00", "06:00"]);
     expect(normal.ticks).toEqual(["12:00", "18:00", "00:00", "06:00"]);
     expect(shifted.nights[0] / normal.nights[0]).toBeCloseTo(9 / 8, 1);
+  });
+});
+
+test.describe("Přehled a Detail (Dashboard Domov, TODO P2.1)", () => {
+  const overviewSwitch = (page: Page) => page.getByRole("button", { name: "Přehled", exact: true });
+  const detailSwitch = (page: Page) => page.getByRole("button", { name: "Detail", exact: true });
+
+  test("začíná v Detailu: přepínač nahoře, všechny místnosti jako celé karty", async ({ page }) => {
+    await open(page, "full");
+    await expect(detailSwitch(page)).toHaveAttribute("aria-pressed", "true");
+    await expect(overviewSwitch(page)).toHaveAttribute("aria-pressed", "false");
+    await expect(page.locator("article.room")).toHaveCount(5);
+    await expect(page.locator(".room-compact")).toHaveCount(0);
+    const [title, switchBox] = await Promise.all([page.locator("h1").boundingBox(), page.locator(".view-switch").boundingBox()]);
+    expect(Math.abs(title!.y + title!.height / 2 - (switchBox!.y + switchBox!.height / 2))).toBeLessThan(12);
+  });
+
+  test("Přehled: místnosti bez odchylky jsou řádek se jménem, stavem, teplotou a vlhkostí", async ({ page }) => {
+    await open(page, "full");
+    await overviewSwitch(page).click();
+    await expect(overviewSwitch(page)).toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator(".room-compact")).toHaveCount(5);
+    await expect(page.locator("article.room")).toHaveCount(0);
+    // A conflict alone (Obývák heats and its window opens) turns the row into a whole card.
+    await page.evaluate(() => {
+      // @ts-expect-error test hook
+      const { states, update } = window.__test;
+      update({ "binary_sensor.obyvak_dvere_zahrada": { ...states["binary_sensor.obyvak_dvere_zahrada"], state: "on" } });
+    });
+    await expect(page.locator(".room-compact")).toHaveCount(4);
+    await expect(page.locator("article.room")).toHaveAttribute("aria-label", "Obývák");
+    const first = page.locator(".room-compact").first();
+    await expect(first.locator(".compact-name")).toHaveText("Ložnice");
+    await expect(first.locator(".compact-status")).toContainText("Příjemné");
+    await expect(first.locator(".compact-temperature")).toHaveText("21,3 °C");
+    await expect(first.locator(".compact-humidity")).toHaveText("52 %");
+    expect(await page.locator(".room-compact").first().boundingBox().then((box) => box!.height)).toBeGreaterThanOrEqual(44);
+  });
+
+  test("Přehled: odchylka (stav mimo Příjemné, konflikt nebo chybějící data) drží celou kartu", async ({ page }) => {
+    await open(page, "alarm");
+    await overviewSwitch(page).click();
+    // Only Mikuláš is calm: no status problem, and no heating while the window is open.
+    await expect(page.locator(".room-compact")).toHaveCount(1);
+    await expect(page.locator(".room-compact .compact-name")).toHaveText("Mikuláš");
+    await expect(page.locator("article.room")).toHaveCount(4);
+    await open(page, "unavailable");
+    await overviewSwitch(page).click();
+    await expect(page.locator(".room-compact")).toHaveCount(0);
+    await expect(page.locator("article.room")).toHaveCount(5);
+  });
+
+  test("rozbalení a sbalení místnosti vrací fokus; přepnutí zobrazení rozbalené místnosti zruší", async ({ page }) => {
+    await open(page, "full");
+    await overviewSwitch(page).click();
+    await page.locator('.room-compact[data-room="Pracovna"]').click();
+    await expect(page.locator('article.room[aria-label="Pracovna"]')).toBeVisible();
+    const title = page.locator('.room-title-button[data-room="Pracovna"]');
+    await expect(title).toBeFocused();
+    await expect(title).toHaveAttribute("aria-expanded", "true");
+    await title.click();
+    await expect(page.locator('.room-compact[data-room="Pracovna"]')).toBeFocused();
+    await page.locator('.room-compact[data-room="Pracovna"]').click();
+    await detailSwitch(page).click();
+    await overviewSwitch(page).click();
+    await expect(page.locator('.room-compact[data-room="Pracovna"]')).toBeVisible();
+  });
+
+  test("zvolené zobrazení se pamatuje na zařízení; zablokované úložiště kartu nerozbije", async ({ page }) => {
+    await open(page, "full");
+    await overviewSwitch(page).click();
+    await page.reload();
+    await page.locator(".room, .room-compact").first().waitFor();
+    await expect(overviewSwitch(page)).toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator(".room-compact")).toHaveCount(5);
+
+    await page.addInitScript(() => {
+      Object.defineProperty(window, "localStorage", {
+        get() {
+          throw new DOMException("blocked", "SecurityError");
+        },
+      });
+    });
+    await page.reload();
+    await page.locator(".room, .room-compact").first().waitFor();
+    await expect(detailSwitch(page)).toHaveAttribute("aria-pressed", "true");
+    await overviewSwitch(page).click();
+    await expect(page.locator(".room-compact")).toHaveCount(5);
+  });
+
+  test("změna hodnoty v Přehledu: místnost, která se vychýlí, se sama rozbalí", async ({ page }) => {
+    await open(page, "full");
+    await overviewSwitch(page).click();
+    await expect(page.locator('.room-compact[data-room="Maxík"]')).toBeVisible();
+    await page.evaluate(() => {
+      // @ts-expect-error test hook
+      const { states, update } = window.__test;
+      const id = "sensor.maxik_teplomer_maxik_humidity";
+      update({ [id]: { ...states[id], state: "76" } });
+    });
+    await expect(page.locator('article.room[aria-label="Maxík"]')).toBeVisible();
+    await expect(page.locator('.room-compact[data-room="Maxík"]')).toHaveCount(0);
+  });
+});
+
+test.describe("příčina stavu, konflikty a kvalita vzduchu (TODO P2.14, P2.15, P1.2)", () => {
+  const colours = (page: Page) =>
+    page.evaluate(() =>
+      [...document.querySelector("ha-klima-dashboard")!.shadowRoot!.querySelectorAll("article.room")].map((room) => ({
+        temperature: getComputedStyle(room.querySelector(".temperature")!).color,
+        humidity: getComputedStyle(room.querySelector(".humidity")!).color,
+        status: getComputedStyle(room.querySelector(".status-line span:last-child")!).color,
+      })),
+    );
+
+  test("hodnota, která mění Příjemné na jiný stav, má barvu stavu; ostatní zůstávají neutrální", async ({ page }) => {
+    await open(page, "alarm");
+    const rooms = await colours(page);
+    const neutral = rooms[3]; // Mikuláš is calm
+    expect(neutral.temperature).not.toBe(neutral.status);
+    // Maxík: humidity 76 % -> "Vlhko": the humidity takes the status colour, the temperature stays neutral.
+    expect(rooms[2].humidity).toBe(rooms[2].status);
+    expect(rooms[2].humidity).not.toBe(neutral.humidity);
+    expect(rooms[2].temperature).toBe(neutral.temperature);
+    // Ložnice / Pracovna: the cause is CO₂ / PM2.5, so temperature and humidity stay neutral.
+    for (const index of [0, 1]) {
+      expect(rooms[index].temperature).toBe(neutral.temperature);
+      expect(rooms[index].humidity).toBe(neutral.humidity);
+    }
+    await open(page, "summer");
+    const summer = await colours(page);
+    // Pracovna is "Chladno": the temperature takes the status colour.
+    expect(summer[1].temperature).toBe(summer[1].status);
+    expect(summer[1].humidity).toBe(summer[3].humidity);
+  });
+
+  test("konflikty: tečka u okna a věty v souhrnu (otevřené okno při topení či chlazení)", async ({ page }) => {
+    await open(page, "alarm");
+    // Ložnice, Maxík and Obývák heat with the window open.
+    await expect(page.locator(".conflict-dot")).toHaveCount(3);
+    await expect(page.locator(".slot-window").first()).toHaveAccessibleName(/konflikt/i);
+    await expect(page.locator(".summary .chip").first()).toContainText("Okno otevřené · topí se");
+    await open(page, "summer");
+    const chips = tidy(await page.locator(".summary .chip").allInnerTexts());
+    // An open window with cooling is reported once; with the window closed it is "cooling although cold".
+    expect(chips).toContain("Okno otevřené · chladí se: Pracovna");
+    expect(chips.join("|")).not.toContain("i když je chladno");
+    await page.evaluate(() => {
+      // @ts-expect-error test hook
+      const { states, update } = window.__test;
+      update({ "binary_sensor.pracovna_okno_pracovna": { ...states["binary_sensor.pracovna_okno_pracovna"], state: "off" } });
+    });
+    await expect(page.locator(".summary .chip").first()).toHaveText(/Chladí se, i když je chladno: Pracovna/);
+    await open(page, "stale");
+    await expect(page.locator(".conflict-dot")).toHaveCount(0);
+  });
+
+  test("blok CO₂ / PM2.5 otevře popup Kvalita vzduchu a z něj detail každé veličiny", async ({ page }) => {
+    await open(page, "full");
+    await page.locator(".room").first().locator(".air-block").click();
+    const options = page.locator(".air-option");
+    await expect(options).toHaveCount(2);
+    await expect(options.nth(0)).toContainText("CO₂");
+    await expect(options.nth(0).locator(".air-value")).toHaveText("656 ppm");
+    await expect(options.nth(1).locator(".air-value")).toHaveText("2 µg/m³");
+    await options.nth(0).click();
+    await expect(page.locator(".sheet")).toHaveCount(0);
+    expect(await page.evaluate(() => window.__test.moreInfo)).toEqual(["sensor.loznice_teplomer_loznice_carbon_dioxide"]);
+  });
+
+  test("s jediným čidlem otevře blok rovnou jeho detail, bez čidel je neaktivní", async ({ page }) => {
+    await open(page, "real");
+    // "real": Ložnice has both sensors, Pracovna none of them.
+    await expect(page.locator(".room").nth(1).locator(".air-block")).toBeDisabled();
+    await page.evaluate(() => {
+      // @ts-expect-error test hook
+      const { card, config } = window.__test;
+      const rooms = config.rooms.map((room: Record<string, unknown>, index: number) =>
+        index === 0 ? { ...room, pm25: undefined } : room,
+      );
+      card.setConfig({ ...config, rooms });
+    });
+    await page.locator(".room").first().locator(".air-block").click();
+    await expect(page.locator(".sheet")).toHaveCount(0);
+    expect(await page.evaluate(() => window.__test.moreInfo)).toEqual(["sensor.loznice_teplomer_loznice_carbon_dioxide"]);
   });
 });
 

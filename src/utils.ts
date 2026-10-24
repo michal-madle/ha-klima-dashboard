@@ -53,9 +53,9 @@ export const COLORS = {
   /** Lowered blind (champagne) and the window behind it (sky). */
   blind: "#E8D9B5",
   sky: "#64D2FF",
-  /** CO₂ icon and its micro trend (lime) and PM2.5 icon and its micro trend (violet). */
-  co2: "#A6E36B",
-  pm25: "#B8A6FF",
+  /** CO₂ icon and its micro trend (muted sage green) and PM2.5 icon and its micro trend (muted lavender). */
+  co2: "#8FBF9F",
+  pm25: "#A59DCF",
   /** Temperature micro trend. */
   peach: "#FFB36B",
   /** Humidity value: deliberately uncoloured. */
@@ -173,28 +173,28 @@ export function getRoomStatus(
   const co2 = readings.co2.value as number;
   const pm25 = readings.pm25.value as number;
   if (pm25 >= thresholds.pm25_critical) {
-    return { label: "Znečištěný vzduch", color: COLORS.alert, kind: "critical" };
+    return { label: "Znečištěný vzduch", color: COLORS.alert, kind: "critical", cause: "pm25" };
   }
   if (co2 >= thresholds.co2_critical) {
-    return { label: "Silně vydýchaný vzduch", color: COLORS.alert, kind: "critical" };
+    return { label: "Silně vydýchaný vzduch", color: COLORS.alert, kind: "critical", cause: "co2" };
   }
   if (co2 >= thresholds.co2_warning) {
-    return { label: "Vydýchaný vzduch", color: COLORS.warning, kind: "warning" };
+    return { label: "Vydýchaný vzduch", color: COLORS.warning, kind: "warning", cause: "co2" };
   }
   if (humidity > thresholds.humidity_max) {
-    return { label: "Vlhko", color: COLORS.warning, kind: "warning" };
+    return { label: "Vlhko", color: COLORS.warning, kind: "warning", cause: "humidity" };
   }
   if (humidity < thresholds.humidity_min) {
-    return { label: "Sucho", color: COLORS.warning, kind: "warning" };
+    return { label: "Sucho", color: COLORS.warning, kind: "warning", cause: "humidity" };
   }
 
   const minimum = isSummer ? thresholds.summer_min : thresholds.winter_min;
   const maximum = isSummer ? thresholds.summer_max : thresholds.winter_max;
   if (temperature > maximum) {
-    return { label: "Teplo", color: COLORS.warning, kind: "warning" };
+    return { label: "Teplo", color: COLORS.warning, kind: "warning", cause: "temperature" };
   }
   if (temperature < minimum) {
-    return { label: "Chladno", color: COLORS.cold, kind: "warning" };
+    return { label: "Chladno", color: COLORS.cold, kind: "warning", cause: "temperature" };
   }
   return { label: "Příjemné", color: COLORS.label, kind: "normal" };
 }

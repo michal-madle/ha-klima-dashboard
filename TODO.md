@@ -7,23 +7,18 @@ Pravidla:
 - Priorita: **P1** chyby a rozhodnutí, která blokují další práci; **P2** zlepší denní používání; **P3** doladění.
 - Druh: **Chyba** (nalezeno testem), **Rozhodnutí** (čeká na uživatele), **Návrh** (UX zlepšení), **Ověření** (test na skutečném zařízení).
 
-Konsolidace 24. 10.: odstraněny hotové body P1.1, P1.3, P1.4, P2.2–P2.9, P2.11 (8:05) a P1.5, P1.6, P2.17, P2.22, P3.8, P3.10 (opraveno a hlídáno testy, 9:00); P3.6 sloučen do [P2.14](#p2-14).
+Konsolidace 24. 10.: odstraněny hotové body P1.1, P1.3, P1.4, P2.2–P2.9, P2.11 (8:05) a P1.5, P1.6, P2.17, P2.22, P3.8, P3.10 (opraveno a hlídáno testy, 9:00); P3.6 sloučen do P2.14. Odpoledne po vašich odpovědích: odstraněny P1.2, P2.1, P2.12, P2.14, P2.15 (hotovo a hlídáno testy) a P1.7, P1.8 (uzavřeno uživatelem); z P1.10 odpadly body 1, 2, 4, 5, 6, 8, 9 a 10 (potvrzeno nebo vyřízeno), zůstávají 3, 7 a nové 11.
 
 ## Přehled
 
 | Č. | Druh | Bod |
 |---|---|---|
-| [P1.2](#p1-2) | Chyba | Dotykové cíle menší než 44 pt (vzduch, okno, vlhkost, předvolby) |
-| [P1.7](#p1-7) | Rozhodnutí | Chybí `input_select.house_mode` – všude „Bez dat“ |
-| [P1.8](#p1-8) | Rozhodnutí | Místnosti, kde senzory ještě nejsou, vypadají rozbitě |
 | [P1.9](#p1-9) | Ověření | Kontrolní seznam na iPhonu v aplikaci Home Assistant |
 | [P1.10](#p1-10) | Rozhodnutí | Potvrdit rozhodnutí, která jsem udělal sám |
-| [P2.1](#p2-1) | Rozhodnutí | Kompaktní přehled domu |
+| [P1.11](#p1-11) | Chyba | Stín (0 / 100) se na skutečné žaluzii nezvýrazní |
+| [P1.12](#p1-12) | Rozhodnutí | Na šířku na iPhonu 14 Pro je pořád jedna karta |
 | [P2.10](#p2-10) | Návrh | Tlačítko historie v popupu Topení / Klimatizace |
-| [P2.12](#p2-12) | Chyba | Karta 304 px (displej 320 px): zmizí „ppm“, stav se dotýká ilustrace |
 | [P2.13](#p2-13) | Rozhodnutí | Hromadné akce pro celý dům |
-| [P2.14](#p2-14) | Návrh | Konflikty: okno otevřené a topí / chladí se |
-| [P2.15](#p2-15) | Návrh | Zvýraznit hodnotu, která určuje stav místnosti |
 | [P2.16](#p2-16) | Rozhodnutí | „Topí N místností“ v zimě skoro pořád |
 | [P2.18](#p2-18) | Návrh | Chyba předvolby se ukáže daleko od tlačítka |
 | [P2.19](#p2-19) | Návrh | Popup: zavírací animace a stránka pod ním |
@@ -41,25 +36,6 @@ Konsolidace 24. 10.: odstraněny hotové body P1.1, P1.3, P1.4, P2.2–P2.9, P2.
 
 ## P1 – chyby a rozhodnutí, která blokují
 
-<a id="p1-2"></a>
-### P1.2 Dotykové cíle menší než 44 pt · Chyba
-
-Změřeno na 393 px: řádky CO₂ a PM2.5 231 × 26 px, okno 113 × 26 px, vlhkost 38 × 28 px, předvolby žaluzií 36 × 47 px (HIG: aspoň 44 × 44 pt). Topení + Klimatizace už mají 52 px.
-Návrh: předvolby a vlhkost zvětšit jen neviditelnou dotykovou plochou (vzhled stejný); CO₂ + PM2.5 spojit do jednoho cíle „Kvalita vzduchu“ (52 px) s popupem se dvěma odkazy na detail; okno zvýšit na 32 px (je na kraji skupiny).
-Hotovo, když žádný klikací prvek nemá cíl menší než 44 × 44 px. V `tests/card.spec.ts` čeká připravený test (`fixme`).
-
-<a id="p1-7"></a>
-### P1.7 Chybí `input_select.house_mode` – všude „Bez dat“ · Rozhodnutí
-
-Se skutečnou konfigurací z `examples/` (bez režimu domu) ukazuje Ložnice „Bez dat · režim domu“, přestože má všechny čtyři hodnoty; ostatní místnosti „Bez dat“ z jiných důvodů. V exportech entit režim domu není (ENTITY_MAP).
-Akce pro uživatele: v Home Assistantu vytvořit pomocníka Rozbalovací seznam s možnostmi Zima a Léto a ID `input_select.house_mode` (nebo jiné ID zapsat do `house_mode_entity`). Rozhodnutí: má karta při chybějícím režimu použít výchozí Zimu (s viditelnou poznámkou), místo „Bez dat“ u všech místností?
-
-<a id="p1-8"></a>
-### P1.8 Místnosti, kde senzory ještě nejsou, vypadají rozbitě · Rozhodnutí
-
-Se skutečnou konfigurací mají 3 z 5 karet trvale „Bez dat · teplota“ a místo dominantní teploty velké „––“ (Maxík, Mikuláš, Obývák nemají ALPSTUGA). Stav, který svítí pořád, se uživatel naučí přehlížet – i když jednou půjde o skutečný výpadek.
-Návrh: rozlišit „nenakonfigurováno“ (entita v konfiguraci chybí) od „nedostupné“ (entita existuje, ale nemá hodnotu). U nenakonfigurovaných senzorů: bez velkého „––“, bez řádků CO₂ / PM2.5, stavový řádek „Bez senzoru“ neutrálně (bez tečky); Topení, Klimatizace, okno a žaluzie zůstanou. „Bez dat“ a „––“ zůstanou pro skutečné výpadky. Mění zadání (dnes „řádek zůstane s ––“), proto rozhodnutí.
-
 <a id="p1-9"></a>
 ### P1.9 Kontrolní seznam na iPhonu v aplikaci Home Assistant · Ověření
 
@@ -69,48 +45,39 @@ Všechno dosud ověřeno jen v Chromiu s náhradními daty a náhradní ikonou C
 3. Prohlížení historie prstem: vodorovný tah posouvá čas, svislý posouvá popup.
 4. Zastaralá data: REST `last_reported` funguje s vaším účtem (jinak se nic neoznačí jako zastaralé – karta to nehlásí).
 5. Ikona CO₂ (`mdi:molecule-co2`) má stejnou optickou velikost jako ostatní ikony.
-6. Vzhled nových ikon předvoleb (tmavě šedé, aktivní šampaňská na čtverečku, pulzování), 11 lamel, stálých 2 px lamel okna, zelené a fialové CO₂ a PM2.5, nové historie, blednutí trendů a utlumené žaluzie (viz [P1.10](#p1-10), [P3.5](#p3-5)).
+6. Vzhled: ikony předvoleb jen s přebarvením (tmavě šedé, aktivní šampaňská, pulzování barvou), 11 lamel, stálých 2 px lamel okna, tlumené CO₂ (šalvěj) a PM2.5 (levandule), trendy CO₂ a PM2.5 navazující na hodnotu, popup Kvalita vzduchu, tečka konfliktu u okna a utlumené žaluzie (viz [P1.10](#p1-10), [P3.5](#p3-5)).
 7. Pulzování předvolby: jak často Shelly hlásí polohu a naklopení za jízdy. Když méně často než jednou za 5 s, pulzování skončí dřív, než žaluzie dojede (podsvícení se pak ukáže až po dojezdu). Zkusit Ložnici a Maxíka; případně prodloužit limit.
 8. Den změny času (25. 10.): graf historie – test v prohlížeči prošel (noc 22–6 h je ten den 9 h dlouhá, popisky času správně).
-9. Telefon na šířku (24. 10.): dva sloupce vedle sebe (od šířky karty 680 px), v aplikaci Home Assistant v používaném zobrazení nástěnky – dá kartě aspoň 680 px, nebo zůstane jeden sloupec? Popup Historie místnosti je na výšku 393 px vyšší než displej a posouvá se uvnitř; je to pohodlné, nebo zkrátit graf? Úzký režim (předvolby 28 px, panel 52 px) platí i v dvou sloupcích (místnost asi 361 px).
+9. Telefon na šířku: popup Historie místnosti je na výšku 393 px vyšší než displej a posouvá se uvnitř; je to pohodlné, nebo zkrátit graf? Dva sloupce viz [P1.12](#p1-12).
+10. Přehled | Detail: haptika při přepnutí a rozbalení, přepínač vpravo od titulku se nezaměňuje s ničím jiným, rozbalení a sbalení řádku je pohodlné palcem.
 
 <a id="p1-10"></a>
 ### P1.10 Potvrdit rozhodnutí, která jsem udělal sám · Rozhodnutí
 
-Z posledních tří kol, kde zadání nechalo volbu na mně:
-1. Blednutí doleva mají všechny tři mikrotrendy, ne jen teplota (jednotný sloupec). Nevýhoda: u CO₂ a PM2.5 je první polovina dvou hodin skoro neviditelná. Varianta: blednout jen trend teploty.
-2. Zastaralá hodnota se pro stav místnosti počítá jako chybějící („Bez dat · CO₂ (před 2 h)“), limit 30 min.
-3. Kroky osy trendů CO₂ 100 ppm a PM2.5 5 µg/m³ (teplotu 1 °C určil uživatel).
-4. Společný graf CO₂ / PM2.5 za 24 h se nevrátil (CO₂ a PM2.5 otevírají standardní detail) – chcete ho zpět?
-5. Ikony předvoleb (kolejnice, lamely a šňůrka; tmavě šedé, aktivní tlumeně šampaňská) a nová historie (dřív P1.4, P2.7) jsou hotové, ale čekají na vizuální schválení.
-6. Lamely okna (spodní, modrá část panelu) mají stálých 2 px bez ohledu na naklopení – zkušební volba, jak jste chtěl; kdyžtak vrátit na tloušťku podle naklopení.
-7. Barvy CO₂ (zelená `#A6E36B`) a PM2.5 (fialová `#B8A6FF`) jsem zvolil sám; liší se odstínem od oranžové a červené varování. Zelená u CO₂ se nesmí číst jako „v pořádku“, když je číslo oranžové – ověřit na displeji.
-8. Předvolby: aktivní ikona je tlumená šampaňská na podsvíceném čtverečku (jiné varianty v [DESIGN_HISTORY.md](./DESIGN_HISTORY.md), bod 39), cílová pulzuje do dojezdu, konec po 5 s beze změny. Zvolil jsem sám; ověřit na displeji, zda pulz neruší a čtvereček nesoupeří s lamelami.
-9. Dva sloupce od šířky karty 680 px a nikdy víc (na iPhonu 14 Pro na šířku vychází karta asi 734 px). Jiná hranice nebo tři sloupce na tabletu? Zamítnuté čtyři v řádku zůstávají zamítnuté.
-10. Pátá místnost (Obývák) je ve dvou sloupcích sama vlevo; druhý sloupec zůstává prázdný. Alternativa: roztáhnout ji na celou šířku (ale pak je jiná než ostatní).
+Číslování zůstává; potvrzené body jsou pryč.
+3. Kroky osy trendů CO₂ 100 ppm a PM2.5 5 µg/m³ (teplotu 1 °C určil uživatel). Ponecháno, netestováno.
+7. Barvy CO₂ (šalvějová zelená `#8FBF9F`) a PM2.5 (levandulová `#A59DCF`) jsem po vašem „méně agresivní“ zvolil sám; sytost do 40 %, kontrast aspoň 6 : 1, liší se od sebe, od oranžové a červené varování. Ověřit na displeji, zda se zelená u CO₂ nečte jako „v pořádku“, když je číslo oranžové.
+11. Přepínač Přehled | Detail (design nechán na mně): dvě ikony v zaobleném poli vpravo od titulku „Domov“ (jako iOS segment), výchozí Detail, volba v zařízení. Odchylka, která drží celou kartu: stav jiný než Příjemné, konflikt, chybějící nebo zastaralá data. Sbalená místnost je řádek se jménem, stavem, teplotou a vlhkostí. Ověřit na displeji a rozhodnout, zda se stejné chování hodí i pro tabletové rozložení.
+
+<a id="p1-11"></a>
+### P1.11 Stín (0 / 100) se na skutečné žaluzii nezvýrazní · Chyba (čeká na údaje)
+
+Na iPhonu se prostřední ikona (Stín) nezvýrazní při poloze 0 a naklopení 100. V testech se zvýrazní (poloha i naklopení v toleranci ±2 %, také pro stav `closed` a `open`), takže skutečná žaluzie nejspíš hlásí jiné hodnoty (např. naklopení 96 nebo chybějící atribut) nebo ukazuje starou verzi karty. Bez skutečných hodnot toleranci neměním.
+Potřebuji: v Nástroje pro vývojáře → Stavy najít entitu `cover` (např. Mikuláš), nastavit Stín a poslat stav a atributy `current_position` a `current_tilt_position`. Ověřit také, že prohlížeč načetl novou verzi souboru (v aplikaci Home Assistant vynutit obnovení zdrojů).
+
+<a id="p1-12"></a>
+### P1.12 Na šířku na iPhonu 14 Pro je pořád jedna karta · Rozhodnutí
+
+Dva sloupce se zapnou od šířky karty 680 px. V testech to platí (viewport 852 × 393), ale vy vidíte jednu kartu; nástěnka tedy kartě dává méně než 680 px. Pravděpodobná příčina (neověřeno): zobrazení typu Masonry dává kartě sloupec nejvýš asi 500 px; Panel (jedna karta přes celou šířku) kartě dá celou šířku displeje.
+Potřebuji: jaký typ zobrazení (view) nástěnka používá – Masonry, Panel, nebo Sections? Možnosti: u Panelu se nic nemění; u Sections mohu kartě přidat požadavek na plnou šířku sekce; u Masonry je nejjednodušší přepnout zobrazení na Panel. Dva sloupce už ve sloupci 500 px nedávám: místnost by měla asi 244 px, pod podporovaných 304 px.
 
 ## P2 – denní používání
-
-<a id="p2-1"></a>
-### P2.1 Kompaktní přehled domu · Rozhodnutí
-
-Pět karet má dohromady asi 1 550 px, skoro dvě obrazovky iPhonu. Kompaktní režim: místnost bez odchylky se sbalí na jeden řádek („Ložnice · 22,9 °C · 52 % · Příjemné“), místnost s odchylkou zůstane rozbalená.
-Doporučení: jeden přepínač nahoře v řádku titulku „Domov“ (dvě ikony Přehled | Detail), zapamatovaný v zařízení; klepnutí na sbalenou místnost ji dočasně rozbalí. Přepínač na každé kartě by bral místo a vytvářel směs stavů. Vedle přepínače tlačítko hromadných akcí ([P2.13](#p2-13)).
-Čeká na potvrzení doporučení.
 
 <a id="p2-10"></a>
 ### P2.10 Tlačítko historie v popupu Topení / Klimatizace · Návrh
 
 Graf „Historie místnosti – 24 h“ se dnes otevře jen klepnutím na teplotu nebo její trend. Kdo mění topení v popupu, musí ho zavřít a klepnout na teplotu, aby viděl, jak místnost reagovala.
 Návrh: do popupu Topení | Klimatizace přidat dole vedle „Detail a historie“ tlačítko „Historie místnosti – 24 h“, které přepne popup přímo na graf. Hotovo, když je historie vytápění jedno klepnutí od ovládání topení.
-
-<a id="p2-12"></a>
-### P2.12 Karta 304 px (displej 320 px): zmizí „ppm“, stav se dotýká ilustrace · Chyba
-
-Hotovo 24. 10.: úzký režim řídí šířka karty místnosti (`@container`), ilustrace se v úzké místnosti zmenšuje; na 320 px už nepřekrývá vlhkost ani název (hlídá test). Zbývá:
-1. Na 320 px se u CO₂ jednotka „ppm“ zalomí na druhý řádek a není vidět (od 330 px je v pořádku).
-2. Nejdelší stav („Bez dat · PM2.5 (před 3 h)“) se na 320 px dotýká čáry ilustrace (postel); ilustrace je dekorativní, ale působí neuklizeně.
-Návrh: jednotku ponechat na řádku (`white-space: nowrap`, v úzkém režimu zmenšit mezeru před ní) a pod 330 px šířky místnosti ilustraci skrýt nebo posunout nad stavový řádek. Hotovo, když na 320 px nic nepřekrývá text a „ppm“ je vidět. V `tests/card.spec.ts` čeká připravený test (`fixme`).
 
 <a id="p2-13"></a>
 ### P2.13 Hromadné akce pro celý dům · Rozhodnutí
@@ -122,23 +89,11 @@ Otázky:
 2. Všech pět místností, nebo jen vybrané (např. horní patro)?
 3. Patří mezi hromadné akce i žaluzie?
 
-<a id="p2-14"></a>
-### P2.14 Konflikty: okno otevřené a topí / chladí se · Návrh (sloučeno z P3.6)
-
-Test ukázal kombinace, které jsou pro rychlý přehled nejcennější a dnes je karta nespojí: Ložnice s otevřeným oknem a ručním topením; Pracovna v Létě „Chladno“ (20,2 °C), přitom klimatizace chladí (WindFree) a okno je otevřené.
-Návrh: štítek v souhrnu domu v oranžové („Okno otevřené · topí se: Ložnice“, „Okno otevřené · chladí se: Pracovna“, „Chladí se, i když je chladno: Pracovna“) a jemná oranžová tečka u řádku okna dané místnosti. Ne stav místnosti, ne alarm. Předpověď okna z integrace Topení se dál ignoruje. Rozhodnout texty a zda konflikt „chladí, i když je chladno“ chcete.
-
-<a id="p2-15"></a>
-### P2.15 Zvýraznit hodnotu, která určuje stav místnosti · Návrh
-
-Test: Maxík „Vlhko“ (oranžově), ale „76 %“ zůstává neutrálně šedé; u „Teplo“ / „Chladno“ teplota také nezmění barvu. U CO₂ / PM2.5 to dnes funguje (číslo je oranžové / červené). Uživatel musí hledat, proč je místnost „Vlhko“.
-Návrh: hodnota, která rozhodla o stavu, dostane barvu stavu (teplota oranžově nebo modře, vlhkost oranžově); ostatní zůstanou neutrální. Mění zadání (vlhkost „bez barvy“), proto rozhodnout.
-
 <a id="p2-16"></a>
 ### P2.16 „Topí N místností“ v zimě skoro pořád · Rozhodnutí
 
 V zimě bude štítek „Topí 3 místnosti“ v souhrnu téměř vždy. Souhrn má ukazovat jen to, co je jinak než obvykle; stálý štítek se přestane číst.
-Návrh: v Zimě štítek „Topí“ skrýt (zůstanou Ručně, konflikty z [P2.14](#p2-14)), v Létě ponechat (topení v létě je odchylka). Druhá možnost: ponechat vždy.
+Návrh: v Zimě štítek „Topí“ skrýt (zůstanou Ručně a konflikty), v Létě ponechat (topení v létě je odchylka). Druhá možnost: ponechat vždy.
 
 <a id="p2-18"></a>
 ### P2.18 Chyba předvolby se ukáže daleko od tlačítka · Návrh
@@ -213,4 +168,4 @@ Zastaralá data stojí 1 dotaz na každé měření každých 5 minut a na každ
 
 ## Jak se testuje
 
-`npm test` (viz README, oddíl Testy) spustí v Chromiu 46 testů nad sestavenou kartou a zkušební stránkou `tests/harness.html`: konfigurace z `examples/`, scénáře Zima / Léto / poplach / nedostupné / zastaralé / chyba REST / pohyb žaluzie / dlouhé názvy, šířky 320–768 px, jeden a dva sloupce včetně telefonu na šířku (852 × 393), přístupnost (axe-core), klávesnice, dotyk, předvolby, historie, den změny času a překreslování. Body P1.2 a P2.12 mají připravené testy označené `fixme`; po opravě se z nich stanou běžné testy. Co se v prohlížeči ověřit nedá, je v [P1.9](#p1-9).
+`npm test` (viz README, oddíl Testy) spustí v Chromiu 61 testů nad sestavenou kartou a zkušební stránkou `tests/harness.html`: konfigurace z `examples/`, scénáře Zima / Léto / poplach / nedostupné / zastaralé / chyba REST / pohyb žaluzie / dlouhé názvy, šířky 320–768 px, jeden a dva sloupce včetně telefonu na šířku (852 × 393), velikost dotykových cílů měřená hit-testem, Přehled | Detail, konflikty, přístupnost (axe-core), klávesnice, dotyk, předvolby, historie, den změny času a překreslování. Co se v prohlížeči ověřit nedá, je v [P1.9](#p1-9), [P1.11](#p1-11) a [P1.12](#p1-12).
