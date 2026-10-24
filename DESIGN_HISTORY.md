@@ -118,6 +118,18 @@ Formát každého bodu: **Navrženo** → **Opuštěno, protože** → **Nahraze
     - Nahrazeno: cíl aspoň přes levý sloupec, název = viditelný text, kontext v popisu (TODO P1.5, P1.6).
 34. **Předvolby aktivní i u nedostupné žaluzie**
     - Nahrazeno: šedé, `aria-disabled`, bublina „Žaluzie je nedostupná“ (TODO P2.17).
+35. **Kulatá tlačítka předvoleb s malou ikonou, každá v jiné barvě (Tma fialová, Stín modrá, Den žlutá), kroužek při držení**
+    - Opuštěno, protože: uživatel (24. 10.) chtěl ikony jiné, větší a bez kulatého rámečku, ne každou jinak barevnou.
+    - Nahrazeno: ikona žaluzie 32 px bez rámečku, šedá; bílá je jen ta, která odpovídá stavu žaluzie. Při držení roste měkký čtvereček. Zkoušena byla i varianta s rámem okna; četla se jako ikona dokumentu (podruhé po bodu 29), a varianta jen kolejnice a lamely, která se četla jako nabídka. Zůstala kolejnice, lamely a šňůrka.
+36. **Předvolby vlevo od panelu žaluzie v pořadí Tma, Stín, Den**
+    - Opuštěno, protože: uživatel (24. 10.) chtěl panel uprostřed, předvolby úplně vpravo a zdvižený stav nahoře.
+    - Nahrazeno: panel | předvolby; shora Den, Stín, Tma. Konec mikrotrendu je 1,5× mezery panel–ikona od panelu.
+37. **Panel žaluzie: 18 lamel, nejtenčí 1 px, lamely okna tenčí a silnější podle naklopení**
+    - Opuštěno, protože: uživatel (24. 10.) chtěl méně a výraznější lamely a okno, které se naklopením nezatahuje.
+    - Nahrazeno: 11 lamel, nejtenčí 2 px; lamely okna mají stálých 2 px. Zkušební změna, lze vrátit.
+38. **Ilustrace v hlavičce o 11 px níž, CO₂ a PM2.5 obě v mátové barvě**
+    - Opuštěno, protože: kresba ležela příliš nízko u zeslabení a žaluzií; CO₂ a PM2.5 nešly rozeznat podle barvy.
+    - Nahrazeno: kresba o 11 px výš (aspoň 22 px nad panelem žaluzie); CO₂ zelená `#A6E36B`, PM2.5 fialová `#B8A6FF`.
 
 ## Zamítnuté návrhy
 
@@ -162,4 +174,5 @@ Formát každého bodu: **Navrženo** → **Opuštěno, protože** → **Nahraze
 8. **v8 – sloupec trendů (24. 10.):** informační řádky rozdělené na dva stejně široké sloupce (hodnoty | mikrotrendy), trend teploty u řádků Topení a Klimatizace, společná osa trendů pro celý dům, jednotná velikost ikon, hodnot a jednotek, výchozí ilustrace podle názvu místnosti.
 9. **v9 – historie zpět (24. 10.):** popup „Historie místnosti – 24 h“ znovu otevírá teplota a její trend; kvalita vzduchu oddělená mezerou od HVAC řádků; trendy končí 1,5× mezery před předvolbami; utlumená spuštěná žaluzie; obdélníková ilustrace; „Bez dat“ s důvodem.
 10. **v10 – TODO P1/P2 (24. 10.):** souhrn domu ve štítcích, jeden dotykový cíl Topení + Klimatizace s přepínačem v popupu, trendy blednoucí doleva, nápověda a haptika předvoleb, nové ikony předvoleb, zastaralá data, načítání a VoiceOver u trendů, pulz kolejnice při pohybu žaluzie, historie podle aplikace pro topení s prohlížením prstem, popup jako iOS list.
-11. **v11 – opravy z testu a automatické testy (aktuální návrh, 24. 10.):** cíl Topení / Klimatizace přes celý levý sloupec, přístupné názvy, předvolby u nedostupné žaluzie, šipky v přepínači, šířka grafu po otočení; `npm test` (Playwright, axe-core).
+11. **v11 – opravy z testu a automatické testy (24. 10.):** cíl Topení / Klimatizace přes celý levý sloupec, přístupné názvy, předvolby u nedostupné žaluzie, šipky v přepínači, šířka grafu po otočení; `npm test` (Playwright, axe-core).
+12. **v12 – panel a předvolby žaluzií, barvy (aktuální návrh, 24. 10.):** 11 lamel (nejtenčí 2 px), lamely okna stálé, předvolby vpravo od panelu shora Den, Stín, Tma, ikony žaluzie bez rámečku (šedé, bílá podle stavu), ilustrace výš, CO₂ zelená a PM2.5 fialová.

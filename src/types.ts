@@ -121,8 +121,6 @@ export interface BlindPreset {
   description: string;
   position: number;
   tilt: number;
-  /** Accent colour of the icon and of the active state. */
-  tone: string;
 }
 
 /**

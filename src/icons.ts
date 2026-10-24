@@ -25,35 +25,39 @@ export function renderParticlesIcon(): TemplateResult {
 }
 
 /**
- * Blind preset glyphs, drawn like the blind symbols of Apple Home: a solid head rail with the
- * slats below it, in the line weight of the other card icons (CURRENT_SPEC.md, Žaluzie).
- * Tma = lowered, slats closed (heavy, almost solid); Stín = lowered, slats open (thin, spaced);
- * Den = raised (slats stacked under the rail, pull cord, empty window). `currentColor`.
+ * Blind preset glyphs: a head rail with the slats and a pull cord, drawn without any frame, in
+ * one colour (`currentColor`: grey, white when the preset matches the blind). The three glyphs
+ * show the three states of the blind panel next to them: Den = raised (two compact slats under
+ * the rail, the cord hangs below them); Stín = lowered, slats open (four thin slats); Tma =
+ * lowered, slats closed (the same four slats, thick and almost touching). The rail spans
+ * 27 of the 32 units of the viewBox (`--preset-icon` x 27/32 in styles.ts). CURRENT_SPEC.md, Žaluzie.
  */
 export function renderPresetIcon(id: BlindPresetId): TemplateResult {
+  const fill = (x: number, y: number, width: number, height: number): TemplateResult =>
+    svg`<rect x=${x} y=${y} width=${width} height=${height} rx=${height / 2 > 1.2 ? 1.2 : height / 2} fill="currentColor" stroke="none"></rect>`;
+  const cord = (bottom: number): TemplateResult => svg`<path d="M27.5 6.7V${bottom}" stroke-width="1.6"></path>
+    <circle cx="27.5" cy=${bottom + 2.4} r="2" fill="currentColor" stroke="none"></circle>`;
   let slats: TemplateResult;
   switch (id) {
-    case "dark":
-      slats = svg`<path d="M5 9.2h14M5 12.2h14M5 15.2h14M5 18.2h14" stroke-width="2.4"></path>`;
+    case "open":
+      slats = svg`${fill(4.5, 8.6, 20.5, 2.4)}${fill(4.5, 12.2, 20.5, 2)}${cord(21)}`;
       break;
     case "shade":
-      slats = svg`<path d="M5 9.6h14M5 13.4h14M5 17.2h14" stroke-width="1.4"></path>`;
+      slats = svg`<path d="M4.5 11.4h20.5M4.5 16.2h20.5M4.5 21h20.5M4.5 25.8h20.5" stroke-width="1.8"></path>${cord(26)}`;
       break;
     default:
-      slats = svg`<path d="M5 8.4h14" stroke-width="1.6"></path>
-        <path d="M16.6 9.8v6" stroke-width="1.3"></path>
-        <circle cx="16.6" cy="17.2" r="1.25" fill="currentColor" stroke="none"></circle>`;
+      slats = svg`${fill(4.5, 8.8, 20.5, 3.8)}${fill(4.5, 13.6, 20.5, 3.8)}${fill(4.5, 18.4, 20.5, 3.8)}${fill(4.5, 23.2, 20.5, 3.8)}${cord(26)}`;
   }
   return html`
     <svg
-      viewBox="0 0 24 24"
+      viewBox="0 0 32 32"
       fill="none"
       stroke="currentColor"
       stroke-linecap="round"
       stroke-linejoin="round"
       aria-hidden="true"
     >
-      <rect x="3.5" y="3.2" width="17" height="3" rx="1.5" fill="currentColor" stroke="none"></rect>
+      <rect x="2.5" y="3.5" width="27" height="3.2" rx="1.6" fill="currentColor" stroke="none"></rect>
       ${slats}
     </svg>
   `;

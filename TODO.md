@@ -44,7 +44,7 @@ Konsolidace 24. 10.: odstraněny hotové body P1.1, P1.3, P1.4, P2.2–P2.9, P2.
 <a id="p1-2"></a>
 ### P1.2 Dotykové cíle menší než 44 pt · Chyba
 
-Změřeno na 393 px: řádky CO₂ a PM2.5 231 × 26 px, okno 113 × 26 px, vlhkost 38 × 28 px, předvolby žaluzií 34 × 34 px (HIG: aspoň 44 × 44 pt). Topení + Klimatizace už mají 52 px.
+Změřeno na 393 px: řádky CO₂ a PM2.5 231 × 26 px, okno 113 × 26 px, vlhkost 38 × 28 px, předvolby žaluzií 36 × 47 px (HIG: aspoň 44 × 44 pt). Topení + Klimatizace už mají 52 px.
 Návrh: předvolby a vlhkost zvětšit jen neviditelnou dotykovou plochou (vzhled stejný); CO₂ + PM2.5 spojit do jednoho cíle „Kvalita vzduchu“ (52 px) s popupem se dvěma odkazy na detail; okno zvýšit na 32 px (je na kraji skupiny).
 Hotovo, když žádný klikací prvek nemá cíl menší než 44 × 44 px. V `tests/card.spec.ts` čeká připravený test (`fixme`).
 
@@ -69,7 +69,7 @@ Všechno dosud ověřeno jen v Chromiu s náhradními daty a náhradní ikonou C
 3. Prohlížení historie prstem: vodorovný tah posouvá čas, svislý posouvá popup.
 4. Zastaralá data: REST `last_reported` funguje s vaším účtem (jinak se nic neoznačí jako zastaralé – karta to nehlásí).
 5. Ikona CO₂ (`mdi:molecule-co2`) má stejnou optickou velikost jako ostatní ikony.
-6. Vzhled nových ikon předvoleb, nové historie, blednutí trendů a utlumené žaluzie (viz [P1.10](#p1-10), [P3.5](#p3-5)).
+6. Vzhled nových ikon předvoleb (šedé / bílé, bez rámečku), 11 lamel, stálých 2 px lamel okna, zelené a fialové CO₂ a PM2.5, nové historie, blednutí trendů a utlumené žaluzie (viz [P1.10](#p1-10), [P3.5](#p3-5)).
 7. Den změny času (25. 10.): graf historie – test v prohlížeči prošel (noc 22–6 h je ten den 9 h dlouhá, popisky času správně).
 
 <a id="p1-10"></a>
@@ -80,7 +80,9 @@ Z posledních tří kol, kde zadání nechalo volbu na mně:
 2. Zastaralá hodnota se pro stav místnosti počítá jako chybějící („Bez dat · CO₂ (před 2 h)“), limit 30 min.
 3. Kroky osy trendů CO₂ 100 ppm a PM2.5 5 µg/m³ (teplotu 1 °C určil uživatel).
 4. Společný graf CO₂ / PM2.5 za 24 h se nevrátil (CO₂ a PM2.5 otevírají standardní detail) – chcete ho zpět?
-5. Ikony předvoleb a nová historie (dřív P1.4, P2.7) jsou hotové, ale čekají na vizuální schválení.
+5. Ikony předvoleb (kolejnice, lamely a šňůrka; šedé, bílá podle stavu) a nová historie (dřív P1.4, P2.7) jsou hotové, ale čekají na vizuální schválení.
+6. Lamely okna (spodní, modrá část panelu) mají stálých 2 px bez ohledu na naklopení – zkušební volba, jak jste chtěl; kdyžtak vrátit na tloušťku podle naklopení.
+7. Barvy CO₂ (zelená `#A6E36B`) a PM2.5 (fialová `#B8A6FF`) jsem zvolil sám; liší se odstínem od oranžové a červené varování. Zelená u CO₂ se nesmí číst jako „v pořádku“, když je číslo oranžové – ověřit na displeji.
 
 ## P2 – denní používání
 
@@ -204,4 +206,4 @@ Zastaralá data stojí 1 dotaz na každé měření každých 5 minut a na každ
 
 ## Jak se testuje
 
-`npm test` (viz README, oddíl Testy) spustí v Chromiu 31 testů nad sestavenou kartou a zkušební stránkou `tests/harness.html`: konfigurace z `examples/`, scénáře Zima / Léto / poplach / nedostupné / zastaralé / chyba REST / pohyb žaluzie / dlouhé názvy, šířky 320–768 px, přístupnost (axe-core), klávesnice, dotyk, předvolby, historie, den změny času a překreslování. Body P1.2 a P2.12 mají připravené testy označené `fixme`; po opravě se z nich stanou běžné testy. Co se v prohlížeči ověřit nedá, je v [P1.9](#p1-9).
+`npm test` (viz README, oddíl Testy) spustí v Chromiu 37 testů nad sestavenou kartou a zkušební stránkou `tests/harness.html`: konfigurace z `examples/`, scénáře Zima / Léto / poplach / nedostupné / zastaralé / chyba REST / pohyb žaluzie / dlouhé názvy, šířky 320–768 px, přístupnost (axe-core), klávesnice, dotyk, předvolby, historie, den změny času a překreslování. Body P1.2 a P2.12 mají připravené testy označené `fixme`; po opravě se z nich stanou běžné testy. Co se v prohlížeči ověřit nedá, je v [P1.9](#p1-9).

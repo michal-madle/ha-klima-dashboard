@@ -460,8 +460,8 @@ export class HaKlimaDashboard extends LitElement {
           </div>
           ${room.cover
             ? this.renderCover(room, room.cover)
-            : html`<div class="presets" aria-hidden="true"></div>
-                <div class="cover-panel" aria-hidden="true"></div>`}
+            : html`<div class="cover-panel" aria-hidden="true"></div>
+                <div class="presets" aria-hidden="true"></div>`}
         </div>
       </article>
     `;
@@ -495,6 +495,7 @@ export class HaKlimaDashboard extends LitElement {
             ? COLORS.warning
             : COLORS.white;
     const direction = hasValue ? trendDirection(entityId ? this._trends[entityId] : undefined, TREND_AXIS_STEP[slot]) : undefined;
+    const accent = COLORS[slot];
 
     return html`
       <button
@@ -508,7 +509,7 @@ export class HaKlimaDashboard extends LitElement {
         @click=${() => this.showMoreInfo(entityId)}
       >
         <span class="row-main">
-          <span class="row-icon" style=${`color: ${hasValue && !reading.stale ? COLORS.mint : COLORS.off}`} aria-hidden="true">
+          <span class="row-icon" style=${`color: ${hasValue && !reading.stale ? accent : COLORS.off}`} aria-hidden="true">
             ${icon}
           </span>
           <span class="row-text">
@@ -518,7 +519,7 @@ export class HaKlimaDashboard extends LitElement {
               : html`<span class="row-label" style=${`color: ${COLORS.label}`}>––</span>`}
           </span>
         </span>
-        ${hasValue ? this.renderSpark(entityId, axis, COLORS.mint, reading.stale === true) : nothing}
+        ${hasValue ? this.renderSpark(entityId, axis, accent, reading.stale === true) : nothing}
       </button>
     `;
   }
@@ -735,9 +736,6 @@ export class HaKlimaDashboard extends LitElement {
     }`;
 
     return html`
-      <div class="presets" role="group" aria-label=${`${room.name}: předvolby žaluzií`}>
-        ${BLIND_PRESETS.map((preset) => this.renderPreset(room, preset, position, tilt, available))}
-      </div>
       <button
         type="button"
         class="plain-button cover-panel ${moving ? "moving" : ""}"
@@ -752,6 +750,9 @@ export class HaKlimaDashboard extends LitElement {
           ${renderBlindShape(position, tilt)}
         </svg>
       </button>
+      <div class="presets" role="group" aria-label=${`${room.name}: předvolby žaluzií`}>
+        ${BLIND_PRESETS.map((preset) => this.renderPreset(room, preset, position, tilt, available))}
+      </div>
     `;
   }
 
@@ -779,7 +780,6 @@ export class HaKlimaDashboard extends LitElement {
       <button
         type="button"
         class="plain-button preset ${this._flash === key ? "sent" : ""} ${available ? "" : "unavailable"}"
-        style=${`--tone: ${preset.tone}`}
         title=${preset.label}
         aria-pressed=${active ? "true" : "false"}
         aria-disabled=${available ? "false" : "true"}
@@ -799,9 +799,6 @@ export class HaKlimaDashboard extends LitElement {
           }
         }}
       >
-        <svg class="progress" viewBox="0 0 36 36" aria-hidden="true">
-          <circle cx="18" cy="18" r="16.75" pathLength="100"></circle>
-        </svg>
         ${renderPresetIcon(preset.id)}
         ${this._hint?.key === key
           ? html`<span class="preset-hint" role="status">${this._hint.text}</span>`

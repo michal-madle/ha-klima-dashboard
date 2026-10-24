@@ -15,12 +15,12 @@ export const COVER_SCRIPT = { domain: "script", service: "zaluzie_posun" } as co
 
 /**
  * Position / tilt: 0 = closed (down / vertical slats), 100 = open (up / horizontal slats).
- * The order is the order of the buttons from top to bottom.
+ * The order is the order of the buttons from top to bottom: raised first, closed last.
  */
 export const BLIND_PRESETS: BlindPreset[] = [
-  { id: "dark", label: "Tma", description: "úplné zatemnění", position: 0, tilt: 0, tone: "#A5A1F2" },
-  { id: "shade", label: "Stín", description: "spuštěno, lamely otevřené", position: 0, tilt: 100, tone: "#7FC8F8" },
-  { id: "open", label: "Den", description: "vytaženo nahoru", position: 100, tilt: 100, tone: "#FFD84A" },
+  { id: "open", label: "Den", description: "vytaženo nahoru", position: 100, tilt: 100 },
+  { id: "shade", label: "Stín", description: "spuštěno, lamely otevřené", position: 0, tilt: 100 },
+  { id: "dark", label: "Tma", description: "úplné zatemnění", position: 0, tilt: 0 },
 ];
 
 /**
@@ -36,8 +36,9 @@ export const COLORS = {
   /** Lowered blind (champagne) and the window behind it (sky). */
   blind: "#E8D9B5",
   sky: "#64D2FF",
-  /** Air-quality icons and their micro trends. */
-  mint: "#5BD6B5",
+  /** CO₂ icon and its micro trend (lime) and PM2.5 icon and its micro trend (violet). */
+  co2: "#A6E36B",
+  pm25: "#B8A6FF",
   /** Temperature micro trend. */
   peach: "#FFB36B",
   /** Humidity value: deliberately uncoloured. */

@@ -23,12 +23,20 @@ const tidy = (texts: string[]) => texts.map((text) => text.replace(/\s+/g, " ").
 
 async function axeViolations(page: Page): Promise<string[]> {
   await page.addScriptTag({ path: AXE });
+  // A popup that is still sliding in is partly transparent and fails the contrast check.
+  await page.evaluate(async () => {
+    const roots = [document, ...[...document.querySelectorAll("*")].flatMap((node) => (node.shadowRoot ? [node.shadowRoot] : []))];
+    const finite = roots.flatMap((root) => root.getAnimations()).filter((a) => a.effect?.getComputedTiming().iterations !== Infinity);
+    await Promise.all(finite.map((a) => a.finished.catch(() => undefined)));
+  });
   return page.evaluate(async () => {
     // @ts-expect-error axe is injected above
     const result = await window.axe.run(document, { resultTypes: ["violations"] });
     return result.violations.map(
-      (violation: { id: string; nodes: Array<{ target: string[] }> }) =>
-        `${violation.id}: ${violation.nodes.map((node) => node.target.join(" > ")).join(" | ")}`,
+      (violation: { id: string; nodes: Array<{ target: string[]; any: Array<{ data?: unknown }> }> }) =>
+        `${violation.id}: ${violation.nodes
+          .map((node) => `${node.target.join(" > ")} ${JSON.stringify(node.any[0]?.data ?? {})}`)
+          .join(" | ")}`,
     );
   });
 }
@@ -233,6 +241,112 @@ test.describe("přístupnost", () => {
   });
 });
 
+test.describe("panel a předvolby žaluzií (Žaluzie)", () => {
+  test("předvolby jsou vpravo od panelu, stejně vysoké, shora dolů Den, Stín, Tma", async ({ page }) => {
+    for (const width of [320, 393, 768]) {
+      await open(page, "full", width);
+      const layout = await page.evaluate(() => {
+        const room = document.querySelector("ha-klima-dashboard")!.shadowRoot!.querySelector(".room")!;
+        const panel = room.querySelector(".cover-panel")!.getBoundingClientRect();
+        const presets = room.querySelector(".presets")!.getBoundingClientRect();
+        return {
+          gap: presets.left - panel.right,
+          top: presets.top - panel.top,
+          bottom: presets.bottom - panel.bottom,
+          titles: [...room.querySelectorAll(".preset")].map((preset) => preset.getAttribute("title")),
+        };
+      });
+      expect(layout.gap, `šířka ${width}`).toBeGreaterThanOrEqual(0);
+      expect(Math.abs(layout.top) + Math.abs(layout.bottom), `šířka ${width}`).toBeLessThan(1);
+      expect(layout.titles).toEqual(["Den", "Stín", "Tma"]);
+    }
+  });
+
+  test("11 lamel; okno má stálou tloušťku lamel, žaluzie ji mění s naklopením", async ({ page }) => {
+    await open(page, "full");
+    const heights = await page.evaluate(() =>
+      [...document.querySelector("ha-klima-dashboard")!.shadowRoot!.querySelectorAll(".room")].slice(0, 3).map((room) => {
+        const slats = [...room.querySelectorAll(".cover-panel rect:not(.rail)")];
+        const by = (fill: string) => slats.filter((slat) => slat.getAttribute("fill") === fill).map((slat) => +slat.getAttribute("height")!);
+        return { count: slats.length, blind: by("#E8D9B5"), window: by("#64D2FF") };
+      }),
+    );
+    // Ložnice 0 / 0: all 11 lowered, nearly solid.
+    expect(heights[0].count).toBe(11);
+    expect(heights[0].blind).toHaveLength(11);
+    expect(Math.min(...heights[0].blind)).toBeGreaterThan(11);
+    // Pracovna 100 / 100: all 11 are the window, 2 px lines (twice the former minimum).
+    expect(heights[1].window).toEqual(Array(11).fill(2));
+    // Maxík 40 / 60: 7 lowered slats of the same tilt, 4 window slats still 2 px.
+    expect(heights[2].blind).toHaveLength(7);
+    expect(new Set(heights[2].blind).size).toBe(1);
+    expect(heights[2].blind[0]).toBeGreaterThan(5);
+    expect(heights[2].window).toEqual(Array(4).fill(2));
+  });
+
+  test("ikona předvolby, která odpovídá stavu žaluzie, je bílá, ostatní šedé; bez rámečku", async ({ page }) => {
+    await open(page, "full");
+    const colours = await page.evaluate(() =>
+      [...document.querySelector("ha-klima-dashboard")!.shadowRoot!.querySelectorAll(".room")].slice(0, 3).map((room) =>
+        [...room.querySelectorAll(".preset")].map((preset) => {
+          const style = getComputedStyle(preset);
+          return `${style.color}|${preset.getAttribute("aria-pressed")}|${style.borderTopWidth}|${style.backgroundColor}`;
+        }),
+      ),
+    );
+    const white = "rgb(255, 255, 255)|true|0px|rgba(0, 0, 0, 0)";
+    const grey = (pressed: string) => `rgb(142, 142, 147)|${pressed}|0px|rgba(0, 0, 0, 0)`;
+    expect(colours[0]).toEqual([grey("false"), grey("false"), white]); // Ložnice 0 / 0 = Tma
+    expect(colours[1]).toEqual([white, grey("false"), grey("false")]); // Pracovna 100 / 100 = Den
+    expect(colours[2]).toEqual([grey("false"), grey("false"), grey("false")]); // Maxík 40 / 60
+  });
+
+  test("konec mikrotrendu je od panelu 1,5× mezery panel–předvolba", async ({ page }) => {
+    for (const width of [320, 375, 393, 430, 768]) {
+      await open(page, "full", width);
+      const gaps = await page.evaluate(() => {
+        const room = document.querySelector("ha-klima-dashboard")!.shadowRoot!.querySelector(".room")!;
+        const panel = room.querySelector(".cover-panel")!.getBoundingClientRect();
+        const dot = room.querySelector(".slot-co2 .spark-dot")!.getBoundingClientRect();
+        const rail = room.querySelector(".preset svg rect")!.getBoundingClientRect();
+        return { trend: panel.left - dot.right, preset: rail.left - panel.right };
+      });
+      expect(Math.abs(gaps.trend - 1.5 * gaps.preset), `šířka ${width}: ${JSON.stringify(gaps)}`).toBeLessThan(0.7);
+    }
+  });
+
+  test("CO₂ a PM2.5 mají různou barvu ikony i mikrotrendu", async ({ page }) => {
+    await open(page, "full");
+    const colours = await page.evaluate(() => {
+      const room = document.querySelector("ha-klima-dashboard")!.shadowRoot!.querySelector(".room")!;
+      const colour = (selector: string) => getComputedStyle(room.querySelector(selector)!).color;
+      return {
+        co2: [colour(".slot-co2 .row-icon"), colour(".slot-co2 .spark")],
+        pm25: [colour(".slot-pm25 .row-icon"), colour(".slot-pm25 .spark")],
+      };
+    });
+    expect(colours.co2[0]).toBe(colours.co2[1]);
+    expect(colours.pm25[0]).toBe(colours.pm25[1]);
+    expect(colours.co2[0]).not.toBe(colours.pm25[0]);
+  });
+
+  test("ilustrace končí nad panelem žaluzie", async ({ page }) => {
+    for (const width of [375, 393, 430]) {
+      await open(page, "full", width);
+      const gap = await page.evaluate(() =>
+        [...document.querySelector("ha-klima-dashboard")!.shadowRoot!.querySelectorAll(".room")].map((room) => {
+          const drawing = room.querySelector(".scene svg")!.getBoundingClientRect();
+          const panel = room.querySelector(".cover-panel")?.getBoundingClientRect();
+          // The drawing sits in the upper part of its 112 px box; measure to the lowest stroke.
+          const lowest = Math.max(...[...room.querySelectorAll(".scene svg *")].map((node) => (node as SVGGraphicsElement).getBoundingClientRect().bottom));
+          return panel && panel.height > 0 ? panel.top - Math.min(lowest, drawing.bottom) : 99;
+        }),
+      );
+      for (const value of gap) expect(value, `šířka ${width}`).toBeGreaterThanOrEqual(22);
+    }
+  });
+});
+
 test.describe("předvolby žaluzií (Žaluzie)", () => {
   test("myš: klepnutí ukáže nápovědu, dvojklik odešle skript", async ({ page }) => {
     await open(page, "full");
@@ -262,8 +376,11 @@ test.describe("předvolby žaluzií (Žaluzie)", () => {
     await touch(cdp, "touchMove", x + 6, y + 4);
     await page.waitForTimeout(500);
     await touch(cdp, "touchEnd");
+    // The first (top) preset is Den: raised, slats open.
     // @ts-expect-error test hook
-    await expect.poll(() => page.evaluate(() => window.__test.services.length)).toBe(1);
+    await expect.poll(() => page.evaluate(() => window.__test.services)).toEqual([
+      ["script", "zaluzie_posun", { entity: "cover.loznice_zaluzie_loznice", pos: 100, tilt: 100 }],
+    ]);
     await context.close();
   });
 

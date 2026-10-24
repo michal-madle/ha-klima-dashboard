@@ -89,8 +89,9 @@ export const styles = css`
     .room {
       /*
        * One size for every info row (CURRENT_SPEC.md, Vizuální pravidla): row height, icon,
-       * values, labels and units. --col is the blind panel width, --cover-gap the gap in
-       * front of the presets and in front of the blind panel. --group-gap separates the air
+       * values, labels and units. --col is the blind panel width, --preset-col the column of
+       * blind presets to its right, --cover-gap the grid gap in front of the panel and the
+       * presets. --group-gap separates the air
        * rows (CO₂, PM2.5) from the Topení / Klimatizace / window rows.
        */
       --row-h: 26px;
@@ -101,8 +102,8 @@ export const styles = css`
       --group-gap: 12px;
       --col: 60px;
       --preset-col: 36px;
-      --preset-size: 34px;
-      --cover-gap: 8px;
+      --preset-icon: 32px;
+      --cover-gap: 4px;
       position: relative;
       overflow: hidden;
       display: block;
@@ -151,7 +152,7 @@ export const styles = css`
 
     .scene svg {
       position: absolute;
-      top: 12px;
+      top: 1px;
       right: 14px;
       width: 150px;
       height: 112px;
@@ -249,12 +250,12 @@ export const styles = css`
     }
 
     /*
-     * Lower part: info rows | blind presets | blind panel. The blind panel is as tall as the
+     * Lower part: info rows | blind panel | blind presets. The blind panel is as tall as the
      * info rows (5 × --row-h), so it starts at the CO₂ row.
      */
     .lower {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) var(--preset-col) var(--col);
+      grid-template-columns: minmax(0, 1fr) var(--col) var(--preset-col);
       align-items: stretch;
       column-gap: var(--cover-gap);
     }
@@ -407,8 +408,9 @@ export const styles = css`
 
     /*
      * Micro trend: stretches over its cell; the dot is HTML so it stays round. The right
-     * padding keeps the end of the trend (edge of the dot) 1.5 × the preset–panel gap away
-     * from the preset buttons: (gap / 2) + dot radius.
+     * padding keeps the end of the trend (edge of the dot) 1.5 × the panel–preset gap away
+     * from the blind panel: --panel-gap is the distance from the panel to the preset glyph
+     * (the rail is 27/32 of the icon), the dot sticks out 2.5 px beyond the padding.
      */
     .trend-button {
       display: block;
@@ -418,12 +420,12 @@ export const styles = css`
     }
 
     .spark {
-      --preset-gap: calc(var(--cover-gap) + (var(--preset-col) - var(--preset-size)) / 2);
+      --panel-gap: calc(var(--cover-gap) + (var(--preset-col) - var(--preset-icon) * 0.84375) / 2);
       display: block;
       box-sizing: border-box;
       width: 100%;
       height: 100%;
-      padding: 5px calc(var(--preset-gap) / 2 + 2.5px) 5px 3px;
+      padding: 5px calc(var(--panel-gap) * 1.5 - var(--cover-gap) + 2.5px) 5px 3px;
     }
 
     /* Trends fade out to the left, so text running into them stays readable. */
@@ -480,28 +482,27 @@ export const styles = css`
     }
 
     /*
-     * One column of three round Shelly-style buttons (ring + glyph), spread over the panel height.
-     * They are pressed by a long press or a double tap; the ring fills while the button is held.
+     * One column of three icon buttons (no frame) to the right of the blind panel, in the order
+     * Den, Stín, Tma, each a third of the panel height. Grey, white when it matches the blind's
+     * state. They are pressed by a long press or a double tap; while the button is held a soft
+     * square grows behind the icon.
      */
     .presets {
       display: flex;
       flex-direction: column;
-      align-items: center;
-      justify-content: space-between;
     }
 
     .preset {
       position: relative;
       display: flex;
+      flex: 1 1 0;
       align-items: center;
       justify-content: center;
-      width: var(--preset-size);
-      height: var(--preset-size);
-      flex: 0 0 var(--preset-size);
-      border: 2.5px solid rgb(255 255 255 / 15%);
-      border-radius: 50%;
-      background: #2c2c2e;
-      color: var(--tone);
+      width: 100%;
+      min-height: 0;
+      border-radius: 10px;
+      color: #8e8e93;
+      transition: color 160ms ease-out;
       touch-action: manipulation;
       user-select: none;
       -webkit-user-select: none;
@@ -509,47 +510,51 @@ export const styles = css`
     }
 
     .preset svg {
+      position: relative;
       display: block;
-      width: 20px;
-      height: 20px;
+      width: var(--preset-icon);
+      height: var(--preset-icon);
+      transition: transform 120ms ease-out;
     }
 
-    .preset .progress {
+    .preset::before {
+      content: "";
       position: absolute;
-      top: -2.5px;
-      left: -2.5px;
-      width: calc(100% + 5px);
-      height: calc(100% + 5px);
-      transform: rotate(-90deg);
-      fill: none;
-      stroke: var(--tone);
-      stroke-width: 2.5;
-      stroke-linecap: round;
-      stroke-dasharray: 100;
-      stroke-dashoffset: 100;
+      inset: 0;
+      width: var(--preset-col);
+      height: var(--preset-col);
+      margin: auto;
+      border-radius: 10px;
+      background: rgb(255 255 255 / 16%);
       opacity: 0;
+      transform: scale(0.6);
     }
 
-    .preset:active .progress {
-      opacity: 1;
+    .preset:active svg {
+      transform: scale(0.92);
+    }
+
+    .preset:active::before {
       animation: hold 550ms linear forwards;
     }
 
-    /* Blind unavailable: buttons stay focusable but grey; a tap only explains why. */
-    .preset.unavailable {
-      border-color: rgb(255 255 255 / 8%);
-      background: #242426;
-      color: rgb(142 142 147 / 55%);
+    /* The icon that matches the state of the blind. */
+    .preset[aria-pressed="true"] {
+      color: #ffffff;
     }
 
-    .preset.unavailable:active .progress {
+    /* Blind unavailable: buttons stay focusable but dim; a tap only explains why. */
+    .preset.unavailable {
+      color: rgb(142 142 147 / 40%);
+    }
+
+    .preset.unavailable:active svg {
+      transform: none;
+    }
+
+    .preset.unavailable:active::before {
       opacity: 0;
       animation: none;
-    }
-
-    .preset[aria-pressed="true"] {
-      border-color: color-mix(in srgb, var(--tone) 60%, transparent);
-      background: color-mix(in srgb, var(--tone) 22%, #2c2c2e);
     }
 
     /* "Podržte nebo klepněte dvakrát" after a single tap, to the left of the button. */
@@ -579,22 +584,28 @@ export const styles = css`
       }
     }
 
+    /* Preset sent: the icon is white and pops once. */
     .preset.sent {
-      animation: sent 700ms ease-out;
+      color: #ffffff;
+    }
+
+    .preset.sent svg {
+      animation: sent 600ms ease-out;
     }
 
     @keyframes hold {
       to {
-        stroke-dashoffset: 0;
+        opacity: 1;
+        transform: scale(1);
       }
     }
 
     @keyframes sent {
       0% {
-        box-shadow: 0 0 0 0 color-mix(in srgb, var(--tone) 70%, transparent);
+        transform: scale(1.22);
       }
       100% {
-        box-shadow: 0 0 0 10px transparent;
+        transform: scale(1);
       }
     }
 
@@ -963,7 +974,8 @@ export const styles = css`
 
     @media (prefers-reduced-motion: reduce) {
       .sheet,
-      .preset.sent,
+      .preset.sent svg,
+      .preset:active::before,
       .preset-hint,
       .spark.loading,
       .cover-panel.moving .rail {
@@ -971,6 +983,16 @@ export const styles = css`
       }
 
       .sheet {
+        transition: none;
+      }
+
+      /* Without the growing square, a held preset just shows it. */
+      .preset:active::before {
+        opacity: 1;
+        transform: none;
+      }
+
+      .preset svg {
         transition: none;
       }
     }
@@ -982,8 +1004,8 @@ export const styles = css`
 
       .room {
         --col: 52px;
-        --preset-col: 34px;
-        --cover-gap: 6px;
+        --preset-col: 32px;
+        --preset-icon: 28px;
       }
     }
 `;
