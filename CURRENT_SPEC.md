@@ -12,7 +12,8 @@ Co není v Memory rozhodnuto, je uvedeno v sekci „Chybějící data“ a v `AU
 
 ## Dashboard Domov
 
-- Jeden sloupec, bez vodorovného posouvání. Desktop není priorita.
+- Telefon na výšku: jeden sloupec, karta místnosti je na šířku displeje. Telefon na šířku: dvě karty místností vedle sebe (24. 10.). Přepíná šířka karty Domov, ne displeje: do 679 px jeden sloupec, od 680 px dva, nikdy víc (iPhone 14 Pro na šířku má kartu asi 734 px širokou, tedy dva sloupce). Karty jsou stejně široké a řadí se po řádcích zleva doprava a shora dolů, pořadí tedy zůstává Ložnice, Pracovna / Maxík, Mikuláš / Obývák (pátá karta je sama vlevo). Počet sloupců určuje šířka, kterou nástěnka kartě dá; omezí-li ji zobrazení na jeden sloupec, zůstane karta v jednom sloupci (ověřit na iPhonu v používaném zobrazení, TODO P1.9). Bez vodorovného posouvání na žádné šířce. Tři a více sloupců a desktopové rozložení nejsou priorita.
+- Popupy (Topení / Klimatizace, Historie místnosti) jsou na šířku telefonu vycentrované a nejvýš 90 % výšky displeje; co se nevejde (historie na výšce 393 px), se posouvá uvnitř popupu.
 - Obsah shora: titulek „Domov“ → hlavička s venkovními podmínkami → souhrn domu (štítky, jen pokud nějaké jsou) → upozornění (jen pokud nějaká jsou) → karty místností. Pod kartami nic.
 - Žádné globální grafy, měřidla, velké souhrnné statistiky ani samostatné panely vytápění/klimatizace.
 - Pořadí karet: Ložnice, Pracovna, Maxík, Mikuláš, Obývák.
@@ -24,6 +25,7 @@ Co není v Memory rozhodnuto, je uvedeno v sekci „Chybějící data“ a v `AU
 ## Room Card
 
 - Všechny karty mají stejné rozložení. Obývák má stejné rozložení bez žaluzií (prázdné místo se akceptuje).
+- Úzký režim se řídí šířkou karty místnosti, ne displeje (kontejnerový dotaz, 24. 10.): od šířky místnosti 364 px a méně je vnitřní okraj 14 px, panel žaluzie 52 px, sloupec předvoleb 32 px a ikony předvoleb 28 px; jinak 16 px, 60 px, 36 px a 32 px. V jednom sloupci to odpovídá šířce karty do 364 px (iPhone na výšku s displejem do 380 px), ve dvou sloupcích šířce karty Domov do 740 px: iPhone 14 Pro na šířku (karta asi 734 px, místnost asi 361 px) je tedy v úzkém režimu. Ilustrace se zmenšuje, když je místnost užší než 340 px (šířka = šířka místnosti − 190 px, nejvýš 150 px).
 - Hlavička karty: název místnosti + stav místnosti, přes celou šířku. Název místnosti je největší text karty po teplotě (26 px, polotučně).
 - Pod hlavičkou je blok teplota + vlhkost (vedle sebe, bez mikrotrendu) a pod ním tři sloupce zleva doprava: informační řádky | panel žaluzie | tlačítka předvoleb žaluzií. Informační řádky jsou v pořadí CO₂ → PM2.5 → první HVAC řádek → druhý HVAC řádek → okno; všechny mají stejnou výšku.
 - Kvalita vzduchu (CO₂, PM2.5) je od skupiny Topení / Klimatizace / okno viditelně oddělená mezerou 12 px (bez čáry); velikost písma zůstává stejná.
@@ -133,7 +135,7 @@ Stav místnosti je lidské zhodnocení prostředí, ne příkaz. Platí první s
 - Neznámá poloha nebo naklopení = přerušovaná silueta panelu; nikdy se nebere jako 0.
 - Panel je pouze zobrazení; klepnutí otevře standardní ovládání krytu.
 - Při pohybu žaluzie (stav `opening` / `closing`) horní kolejnice panelu jemně pulzuje; při „omezit pohyb“ ne (TODO P2.6).
-- Vpravo od panelu žaluzie (poslední sloupec karty) je jeden sloupec tří tlačítek s předvolbami, každé třetina výšky panelu, v pořadí shora dolů Den, Stín, Tma (zdvižená žaluzie nahoře, zavřená dole). Tlačítko je jen ikona: bez kulatého i jiného rámečku, bez textu; název je v `aria-label` a v `title`. Ikona je schematická žaluzie: široká kolejnice, lamely a šňůrka; Den má dvě stažené lamely pod kolejnicí a šňůrku dole pod nimi, Stín čtyři tenké lamely, Tma stejné čtyři lamely silné a téměř se dotýkající. Ikona je 32 px široká (na displeji do 380 px 28 px), sloupec 36 px (32 px); tlačítko je vysoké asi 47 px. Hodnoty jsou poloha / naklopení v %:
+- Vpravo od panelu žaluzie (poslední sloupec karty) je jeden sloupec tří tlačítek s předvolbami, každé třetina výšky panelu, v pořadí shora dolů Den, Stín, Tma (zdvižená žaluzie nahoře, zavřená dole). Tlačítko je jen ikona: bez kulatého i jiného rámečku, bez textu; název je v `aria-label` a v `title`. Ikona je schematická žaluzie: široká kolejnice, lamely a šňůrka; Den má dvě stažené lamely pod kolejnicí a šňůrku dole pod nimi, Stín čtyři tenké lamely, Tma stejné čtyři lamely silné a téměř se dotýkající. Ikona je 32 px široká (v úzké místnosti, viz Room Card, 28 px), sloupec 36 px (32 px); tlačítko je vysoké asi 47 px. Hodnoty jsou poloha / naklopení v %:
 
 | Pořadí | Tlačítko | Ikona | Poloha / naklopení | Význam |
 |---|---|---|---|---|

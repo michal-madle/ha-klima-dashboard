@@ -20,7 +20,7 @@ Konsolidace 24. 10.: odstraněny hotové body P1.1, P1.3, P1.4, P2.2–P2.9, P2.
 | [P1.10](#p1-10) | Rozhodnutí | Potvrdit rozhodnutí, která jsem udělal sám |
 | [P2.1](#p2-1) | Rozhodnutí | Kompaktní přehled domu |
 | [P2.10](#p2-10) | Návrh | Tlačítko historie v popupu Topení / Klimatizace |
-| [P2.12](#p2-12) | Chyba | Úzká karta (320 px): ilustrace přes text |
+| [P2.12](#p2-12) | Chyba | Karta 304 px (displej 320 px): zmizí „ppm“, stav se dotýká ilustrace |
 | [P2.13](#p2-13) | Rozhodnutí | Hromadné akce pro celý dům |
 | [P2.14](#p2-14) | Návrh | Konflikty: okno otevřené a topí / chladí se |
 | [P2.15](#p2-15) | Návrh | Zvýraznit hodnotu, která určuje stav místnosti |
@@ -72,6 +72,7 @@ Všechno dosud ověřeno jen v Chromiu s náhradními daty a náhradní ikonou C
 6. Vzhled nových ikon předvoleb (tmavě šedé, aktivní šampaňská na čtverečku, pulzování), 11 lamel, stálých 2 px lamel okna, zelené a fialové CO₂ a PM2.5, nové historie, blednutí trendů a utlumené žaluzie (viz [P1.10](#p1-10), [P3.5](#p3-5)).
 7. Pulzování předvolby: jak často Shelly hlásí polohu a naklopení za jízdy. Když méně často než jednou za 5 s, pulzování skončí dřív, než žaluzie dojede (podsvícení se pak ukáže až po dojezdu). Zkusit Ložnici a Maxíka; případně prodloužit limit.
 8. Den změny času (25. 10.): graf historie – test v prohlížeči prošel (noc 22–6 h je ten den 9 h dlouhá, popisky času správně).
+9. Telefon na šířku (24. 10.): dva sloupce vedle sebe (od šířky karty 680 px), v aplikaci Home Assistant v používaném zobrazení nástěnky – dá kartě aspoň 680 px, nebo zůstane jeden sloupec? Popup Historie místnosti je na výšku 393 px vyšší než displej a posouvá se uvnitř; je to pohodlné, nebo zkrátit graf? Úzký režim (předvolby 28 px, panel 52 px) platí i v dvou sloupcích (místnost asi 361 px).
 
 <a id="p1-10"></a>
 ### P1.10 Potvrdit rozhodnutí, která jsem udělal sám · Rozhodnutí
@@ -85,6 +86,8 @@ Z posledních tří kol, kde zadání nechalo volbu na mně:
 6. Lamely okna (spodní, modrá část panelu) mají stálých 2 px bez ohledu na naklopení – zkušební volba, jak jste chtěl; kdyžtak vrátit na tloušťku podle naklopení.
 7. Barvy CO₂ (zelená `#A6E36B`) a PM2.5 (fialová `#B8A6FF`) jsem zvolil sám; liší se odstínem od oranžové a červené varování. Zelená u CO₂ se nesmí číst jako „v pořádku“, když je číslo oranžové – ověřit na displeji.
 8. Předvolby: aktivní ikona je tlumená šampaňská na podsvíceném čtverečku (jiné varianty v [DESIGN_HISTORY.md](./DESIGN_HISTORY.md), bod 39), cílová pulzuje do dojezdu, konec po 5 s beze změny. Zvolil jsem sám; ověřit na displeji, zda pulz neruší a čtvereček nesoupeří s lamelami.
+9. Dva sloupce od šířky karty 680 px a nikdy víc (na iPhonu 14 Pro na šířku vychází karta asi 734 px). Jiná hranice nebo tři sloupce na tabletu? Zamítnuté čtyři v řádku zůstávají zamítnuté.
+10. Pátá místnost (Obývák) je ve dvou sloupcích sama vlevo; druhý sloupec zůstává prázdný. Alternativa: roztáhnout ji na celou šířku (ale pak je jiná než ostatní).
 
 ## P2 – denní používání
 
@@ -102,10 +105,12 @@ Graf „Historie místnosti – 24 h“ se dnes otevře jen klepnutím na teplot
 Návrh: do popupu Topení | Klimatizace přidat dole vedle „Detail a historie“ tlačítko „Historie místnosti – 24 h“, které přepne popup přímo na graf. Hotovo, když je historie vytápění jedno klepnutí od ovládání topení.
 
 <a id="p2-12"></a>
-### P2.12 Úzká karta (320 px): ilustrace přes text · Chyba
+### P2.12 Karta 304 px (displej 320 px): zmizí „ppm“, stav se dotýká ilustrace · Chyba
 
-Test na 320 px: ilustrace překrývá vlhkost ve všech kartách a u názvu „Obývací pokoj“ i název (na 360 px už jen název). U CO₂ se na 320 px skryje jednotka „ppm“. Úzký režim dnes řídí `@media (max-width: 380px)` podle okna, ne podle šířky karty (karta v zobrazení Sekce nebo na tabletu může být úzká i na velkém displeji).
-Návrh: `container-type: inline-size` na seznamu místností, `@container` místo `@media`; pod 360 px šířky karty ilustraci zmenšit na 70 % a posunout nahoru, pod 330 px skrýt. Hotovo, když na 320 px nic nepřekrývá text. V `tests/card.spec.ts` čeká připravený test (`fixme`).
+Hotovo 24. 10.: úzký režim řídí šířka karty místnosti (`@container`), ilustrace se v úzké místnosti zmenšuje; na 320 px už nepřekrývá vlhkost ani název (hlídá test). Zbývá:
+1. Na 320 px se u CO₂ jednotka „ppm“ zalomí na druhý řádek a není vidět (od 330 px je v pořádku).
+2. Nejdelší stav („Bez dat · PM2.5 (před 3 h)“) se na 320 px dotýká čáry ilustrace (postel); ilustrace je dekorativní, ale působí neuklizeně.
+Návrh: jednotku ponechat na řádku (`white-space: nowrap`, v úzkém režimu zmenšit mezeru před ní) a pod 330 px šířky místnosti ilustraci skrýt nebo posunout nad stavový řádek. Hotovo, když na 320 px nic nepřekrývá text a „ppm“ je vidět. V `tests/card.spec.ts` čeká připravený test (`fixme`).
 
 <a id="p2-13"></a>
 ### P2.13 Hromadné akce pro celý dům · Rozhodnutí
@@ -208,4 +213,4 @@ Zastaralá data stojí 1 dotaz na každé měření každých 5 minut a na každ
 
 ## Jak se testuje
 
-`npm test` (viz README, oddíl Testy) spustí v Chromiu 41 testů nad sestavenou kartou a zkušební stránkou `tests/harness.html`: konfigurace z `examples/`, scénáře Zima / Léto / poplach / nedostupné / zastaralé / chyba REST / pohyb žaluzie / dlouhé názvy, šířky 320–768 px, přístupnost (axe-core), klávesnice, dotyk, předvolby, historie, den změny času a překreslování. Body P1.2 a P2.12 mají připravené testy označené `fixme`; po opravě se z nich stanou běžné testy. Co se v prohlížeči ověřit nedá, je v [P1.9](#p1-9).
+`npm test` (viz README, oddíl Testy) spustí v Chromiu 46 testů nad sestavenou kartou a zkušební stránkou `tests/harness.html`: konfigurace z `examples/`, scénáře Zima / Léto / poplach / nedostupné / zastaralé / chyba REST / pohyb žaluzie / dlouhé názvy, šířky 320–768 px, jeden a dva sloupce včetně telefonu na šířku (852 × 393), přístupnost (axe-core), klávesnice, dotyk, předvolby, historie, den změny času a překreslování. Body P1.2 a P2.12 mají připravené testy označené `fixme`; po opravě se z nich stanou běžné testy. Co se v prohlížeči ověřit nedá, je v [P1.9](#p1-9).

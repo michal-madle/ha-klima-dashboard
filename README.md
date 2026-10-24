@@ -47,6 +47,8 @@ Typ musí být **JavaScript module**. Pokud zdroj chybí, přidejte ho ručně. 
 
 Soubor YAML je konfigurace **jedné karty**. V editoru karty ji vložte přímo, bez dalších obalových řádků.
 
+Na telefonu na výšku je karta místnosti přes celou šířku karty Domov, na šířku (od šířky karty 680 px) jsou dvě místnosti vedle sebe. Šířku určuje zobrazení nástěnky: aby se dva sloupce uplatnily, musí kartě dát aspoň 680 px (např. zobrazení Panel). V zobrazení, které kartu zúží, zůstane jeden sloupec. Jak to vypadá na iPhonu v aplikaci Home Assistant, je v [TODO P1.9](./TODO.md#p1-9) k ověření.
+
 ### 5. Zkontrolujte entity
 
 Ukázková konfigurace obsahuje konkrétní ID entit z tohoto projektu. Musí odpovídat entitám ve vaší instalaci Home Assistantu. Pokud se liší, upravte ID v YAML podle svých entit; jejich názvy můžete ověřit v **Nástrojích → Stavy** (*Tools → States*; do verze 2026.7 se tato část jmenovala **Nástroje pro vývojáře**).
@@ -108,6 +110,6 @@ Po změně ve složce `src/` spusťte v kořeni repozitáře `npm install` a `np
 
 ## Testy
 
-`npm test` kartu sestaví a spustí testy v prohlížeči (Playwright). Testují sestavený `ha-klima-dashboard.js` na zkušební stránce [tests/harness.html](./tests/harness.html) s náhradními daty Home Assistantu ([tests/scenarios.js](./tests/scenarios.js)): rozložení na šířkách 320–768 px, stavy místností a souhrn, zastaralá data, přístupnost (axe-core), klávesnici, dotyk, předvolby žaluzií, historii místnosti, den změny času a překreslování. Scénář „real“ používá stejná ID entit jako [příklad YAML](./examples/domov_prototyp_loznice.yaml); test hlídá, že se neliší.
+`npm test` kartu sestaví a spustí testy v prohlížeči (Playwright). Testují sestavený `ha-klima-dashboard.js` na zkušební stránce [tests/harness.html](./tests/harness.html) s náhradními daty Home Assistantu ([tests/scenarios.js](./tests/scenarios.js)): rozložení na šířkách 320–768 px, jeden a dva sloupce včetně telefonu na šířku (852 × 393), stavy místností a souhrn, zastaralá data, přístupnost (axe-core), klávesnici, dotyk, předvolby žaluzií, historii místnosti, den změny času a překreslování. Scénář „real“ používá stejná ID entit jako [příklad YAML](./examples/domov_prototyp_loznice.yaml); test hlídá, že se neliší.
 
 Poprvé je potřeba stáhnout prohlížeč: `npx playwright install chromium`. Volitelně i WebKit (blíž Safari na iPhonu): `npx playwright install webkit` a pak `PW_WEBKIT=1 npm test`. Zkušební stránku lze otevřít i ručně: `node tests/server.mjs` a v prohlížeči `http://127.0.0.1:4173/tests/harness.html?s=real` (scénáře `real`, `full`, `summer`, `alarm`, `stale`, `rest-error`, `unavailable`, `cover-unavailable`, `moving`, `longnames`). Testy nic nepřidávají do karty ani do instalace přes HACS.

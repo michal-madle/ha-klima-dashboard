@@ -10,8 +10,8 @@ const require = createRequire(import.meta.url);
 const AXE = require.resolve("axe-core/axe.min.js");
 const WIDTHS = [320, 360, 375, 393, 430, 768];
 
-async function open(page: Page, scenario = "full", width = 393): Promise<void> {
-  await page.setViewportSize({ width, height: 852 });
+async function open(page: Page, scenario = "full", width = 393, height = 852): Promise<void> {
+  await page.setViewportSize({ width, height });
   await page.goto(`/tests/harness.html?s=${scenario}`);
   await page.locator(".room").first().waitFor();
   // Wait for the first micro-trend history (the dotted placeholder disappears).
@@ -21,14 +21,19 @@ async function open(page: Page, scenario = "full", width = 393): Promise<void> {
 const statuses = (page: Page) => page.locator(".status-line").allInnerTexts();
 const tidy = (texts: string[]) => texts.map((text) => text.replace(/\s+/g, " ").trim());
 
-async function axeViolations(page: Page): Promise<string[]> {
-  await page.addScriptTag({ path: AXE });
-  // A popup that is still sliding in is partly transparent and fails the contrast check.
+/** Waits until every finite animation (also inside shadow roots) has finished, e.g. a popup sliding in. */
+async function settle(page: Page): Promise<void> {
   await page.evaluate(async () => {
     const roots = [document, ...[...document.querySelectorAll("*")].flatMap((node) => (node.shadowRoot ? [node.shadowRoot] : []))];
     const finite = roots.flatMap((root) => root.getAnimations()).filter((a) => a.effect?.getComputedTiming().iterations !== Infinity);
     await Promise.all(finite.map((a) => a.finished.catch(() => undefined)));
   });
+}
+
+async function axeViolations(page: Page): Promise<string[]> {
+  await page.addScriptTag({ path: AXE });
+  // A popup that is still sliding in is partly transparent and fails the contrast check.
+  await settle(page);
   return page.evaluate(async () => {
     // @ts-expect-error axe is injected above
     const result = await window.axe.run(document, { resultTypes: ["violations"] });
@@ -49,6 +54,24 @@ async function centre(page: Page, selector: string, index = 0): Promise<[number,
   const box = await page.locator(selector).nth(index).boundingBox();
   if (!box) throw new Error(`No box for ${selector}`);
   return [box.x + box.width / 2, box.y + box.height / 2];
+}
+
+/** Rooms whose illustration overlaps the humidity value or the room name (browser side). */
+async function sceneOverlaps(page: Page): Promise<string[]> {
+  return page.evaluate(() => {
+    const card = document.querySelector("ha-klima-dashboard")!.shadowRoot!;
+    const hit = (a: DOMRect, b: DOMRect) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+    return [...card.querySelectorAll(".room")].flatMap((room) => {
+      const scene = room.querySelector(".scene svg")?.getBoundingClientRect();
+      if (!scene) return [];
+      const range = document.createRange();
+      range.selectNodeContents(room.querySelector(".room-title")!);
+      const problems: string[] = [];
+      if (hit(scene, room.querySelector(".humidity")!.getBoundingClientRect())) problems.push("vlhkost");
+      if (hit(scene, range.getBoundingClientRect())) problems.push("název");
+      return problems.map((problem) => `${room.getAttribute("aria-label")}: ${problem}`);
+    });
+  });
 }
 
 test.describe("konfigurace", () => {
@@ -84,29 +107,14 @@ test.describe("rozložení (Room Card, Dashboard Domov)", () => {
     });
   }
 
-  test("ilustrace nepřekrývá vlhkost ani název od 360 px", async ({ page }) => {
-    for (const width of [360, 375, 393, 430]) {
+  test("ilustrace nepřekrývá vlhkost ani název od 320 px (TODO P2.12)", async ({ page }) => {
+    for (const width of [320, 360, 375, 393, 430]) {
       await open(page, "longnames", width);
-      const overlaps = await page.evaluate(() => {
-        const card = document.querySelector("ha-klima-dashboard")!.shadowRoot!;
-        const hit = (a: DOMRect, b: DOMRect) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
-        return [...card.querySelectorAll(".room")].flatMap((room) => {
-          const scene = room.querySelector(".scene svg")?.getBoundingClientRect();
-          if (!scene) return [];
-          const range = document.createRange();
-          range.selectNodeContents(room.querySelector(".room-title")!);
-          const problems: string[] = [];
-          if (hit(scene, room.querySelector(".humidity")!.getBoundingClientRect())) problems.push("vlhkost");
-          if (hit(scene, range.getBoundingClientRect())) problems.push("název");
-          return problems.map((problem) => `${room.getAttribute("aria-label")}: ${problem}`);
-        });
-      });
-      if (width >= 375) expect(overlaps, `šířka ${width}`).toEqual([]);
-      else expect(overlaps.filter((item) => item.endsWith("vlhkost")), `šířka ${width}`).toEqual([]);
+      expect(await sceneOverlaps(page), `šířka ${width}`).toEqual([]);
     }
   });
 
-  test.fixme("ilustrace nepřekrývá text ani na 320 px (TODO P2.12)", async () => {});
+  test.fixme("na 320 px zůstane „ppm“ na řádku CO₂ a stavový řádek se nedotýká ilustrace (TODO P2.12)", async () => {});
 
   test("Topení + Klimatizace: jeden cíl ≥ 44 px, aspoň přes celý levý sloupec (TODO P1.5)", async ({ page }) => {
     for (const width of [375, 393, 430, 768]) {
@@ -138,6 +146,96 @@ test.describe("rozložení (Room Card, Dashboard Domov)", () => {
       return unit.top - label.top > 2;
     });
     expect(hidden).toBe(false);
+  });
+});
+
+test.describe("dva sloupce na šířku (Room Card)", () => {
+  // The harness adds 16 px of body margin, so the card is `viewport − 16` px wide: 695 → 679 px
+  // (one column), 696 → 680 px (two columns).
+  const layout = (page: Page) =>
+    page.evaluate(() => {
+      const card = document.querySelector("ha-klima-dashboard")!.shadowRoot!;
+      const rooms = [...card.querySelectorAll(".room-cell")].map((cell) => {
+        const box = cell.getBoundingClientRect();
+        return { left: Math.round(box.left), top: Math.round(box.top), width: Math.round(box.width) };
+      });
+      return {
+        dashboard: Math.round(card.querySelector(".dashboard")!.getBoundingClientRect().width),
+        columns: new Set(rooms.map((room) => room.left)).size,
+        rooms,
+      };
+    });
+
+  test("jeden sloupec do 679 px šířky karty, od 680 px dva, nikdy víc", async ({ page }) => {
+    for (const [width, columns] of [[320, 1], [393, 1], [430, 1], [600, 1], [695, 1], [696, 2], [734, 2], [852, 2], [1200, 2], [1600, 2]] as const) {
+      await open(page, "full", width);
+      const { dashboard, columns: actual } = await layout(page);
+      expect(actual, `viewport ${width}, karta ${dashboard} px`).toBe(columns);
+    }
+  });
+
+  test("ve dvou sloupcích: stejně široké místnosti, řádky shora dolů a zleva doprava, pátá vlevo sama", async ({ page }) => {
+    for (const width of [696, 734, 852]) {
+      await open(page, "full", width);
+      const { rooms, dashboard } = await layout(page);
+      expect(rooms, `viewport ${width}`).toHaveLength(5);
+      const widths = new Set(rooms.map((room) => room.width));
+      expect(widths.size, `viewport ${width}: šířky ${[...widths]}`).toBe(1);
+      for (const [left, right] of [[0, 1], [2, 3]]) {
+        expect(rooms[left].top, `řádek ${left}/${right}`).toBe(rooms[right].top);
+        expect(rooms[left].left).toBeLessThan(rooms[right].left);
+      }
+      expect(rooms[2].top).toBeGreaterThan(rooms[0].top);
+      expect(rooms[4].top).toBeGreaterThan(rooms[2].top);
+      expect(rooms[4].left, "pátá místnost je ve sloupci vlevo").toBe(rooms[0].left);
+      expect(rooms[1].left + rooms[1].width, "pravý okraj nepřesahuje kartu").toBeLessThanOrEqual(rooms[0].left + dashboard);
+    }
+  });
+
+  test("proměnné úzké karty se řídí šířkou místnosti, ne displeje", async ({ page }) => {
+    const column = (page: Page) =>
+      page.evaluate(() => {
+        const room = document.querySelector("ha-klima-dashboard")!.shadowRoot!.querySelector(".room")!;
+        return { col: getComputedStyle(room).getPropertyValue("--col").trim(), width: Math.round(room.getBoundingClientRect().width) };
+      });
+    // Portrait: 360 → room 344 px (narrow), 393 → room 377 px (normal).
+    await open(page, "full", 360);
+    expect(await column(page)).toMatchObject({ col: "52px" });
+    await open(page, "full", 393);
+    expect(await column(page)).toMatchObject({ col: "60px" });
+    // Two columns: 720 → room ≈ 346 px (narrow even though the display is wide), 852 → ≈ 412 px.
+    await open(page, "full", 720);
+    const narrow = await column(page);
+    expect(narrow.col, `místnost ${narrow.width} px`).toBe("52px");
+    await open(page, "full", 852);
+    const normal = await column(page);
+    expect(normal.col, `místnost ${normal.width} px`).toBe("60px");
+  });
+
+  test("ilustrace nepřekrývá vlhkost ani název ani ve dvou sloupcích", async ({ page }) => {
+    for (const width of [696, 734, 852]) {
+      await open(page, "longnames", width);
+      const { rooms } = await layout(page);
+      expect(await sceneOverlaps(page), `viewport ${width}, místnost ${rooms[0].width} px`).toEqual([]);
+    }
+  });
+
+  test("iPhone 14 Pro na šířku (852 × 393): bez vodorovného posouvání, popupy se vejdou na výšku", async ({ page }) => {
+    for (const scenario of ["real", "full", "longnames", "alarm"]) {
+      await open(page, scenario, 852, 393);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth), scenario).toBeLessThanOrEqual(852);
+    }
+    await open(page, "full", 852, 393);
+    for (const [trigger, name] of [[".hvac", "Topení / Klimatizace"], [".room .temperature", "historie"]] as const) {
+      await page.locator(trigger).first().click();
+      await expect(page.locator(".sheet")).toBeVisible();
+      await settle(page);
+      const box = await page.locator(".sheet").boundingBox();
+      expect(box!.y, `${name}: začátek popupu`).toBeGreaterThanOrEqual(0);
+      expect(box!.y + box!.height, `${name}: konec popupu`).toBeLessThanOrEqual(393);
+      await page.keyboard.press("Escape");
+      await expect(page.locator(".sheet")).toHaveCount(0);
+    }
   });
 });
 

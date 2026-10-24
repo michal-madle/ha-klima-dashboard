@@ -422,7 +422,7 @@ export class HaKlimaDashboard extends LitElement {
     const scene = resolveScene(room);
 
     return html`
-      <article
+      <div class="room-cell"><article
         class="room"
         aria-label=${room.name}
         style=${scene ? `--scene-tone: ${SCENE_TONES[scene]}` : nothing}
@@ -485,7 +485,7 @@ export class HaKlimaDashboard extends LitElement {
             : html`<div class="cover-panel" aria-hidden="true"></div>
                 <div class="presets" aria-hidden="true"></div>`}
         </div>
-      </article>
+      </article></div>
     `;
   }
 

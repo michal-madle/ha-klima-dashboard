@@ -13,9 +13,15 @@ export const styles = css`
       box-shadow: none;
     }
 
+    /*
+     * The card measures its own width, not the window: one column of rooms, two columns from
+     * 680 px of card width (a phone on its side, a tablet), never more (CURRENT_SPEC.md,
+     * Room Card). A room that ends up narrow switches to the narrow variables itself.
+     */
     .dashboard {
       display: grid;
       gap: 12px;
+      container: dashboard / inline-size;
     }
 
     .dashboard-header {
@@ -83,7 +89,20 @@ export const styles = css`
 
     .rooms {
       display: grid;
+      grid-template-columns: minmax(0, 1fr);
       gap: 12px;
+    }
+
+    @container dashboard (min-width: 680px) {
+      .rooms {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    /* Measures the room, so the narrow variables follow its width in one or two columns. */
+    .room-cell {
+      min-width: 0;
+      container: room / inline-size;
     }
 
     .room {
@@ -164,6 +183,14 @@ export const styles = css`
       width: 150px;
       height: 112px;
       opacity: 0.62;
+    }
+
+    /* In a narrow room the drawing shrinks so it stays right of the humidity (about 190 px). */
+    @supports (width: 1cqw) {
+      .scene svg {
+        width: min(150px, max(0px, calc(100cqw - 190px)));
+        height: auto;
+      }
     }
 
     .plain-button {
@@ -1051,12 +1078,9 @@ export const styles = css`
       }
     }
 
-    @media (max-width: 380px) {
+    @container room (max-width: 364px) {
       .room {
         padding: 14px;
-      }
-
-      .room {
         --col: 52px;
         --preset-col: 32px;
         --preset-icon: 28px;
