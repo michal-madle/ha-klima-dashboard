@@ -5,12 +5,16 @@
   "type": "module",
   "scripts": {
     "build": "tsc --noEmit && vite build && node .github/scripts/copy-build.mjs",
-    "dev": "vite build --watch"
+    "dev": "vite build --watch",
+    "test": "npm run build && playwright test"
   },
   "dependencies": {
     "lit": "^3.3.1"
   },
   "devDependencies": {
+    "@fontsource/roboto": "^5.3.0",
+    "@playwright/test": "^1.63.0",
+    "axe-core": "^4.14.0",
     "typescript": "^5.9.3",
     "vite": "^7.1.12"
   }

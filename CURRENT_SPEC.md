@@ -112,7 +112,9 @@ Stav místnosti je lidské zhodnocení prostředí, ne příkaz. Platí první s
 ## Ovládání Topení a Klimatizace
 
 - Klepnutí kamkoli na řádky Topení a Klimatizace otevře popup s titulkem místnosti, vždy na **primárním systému** podle House Mode (Zima Topení, Léto Klimatizace); není-li primární systém nakonfigurován, otevře se druhý (TODO P1.2).
+- Dotykový cíl Topení + Klimatizace je aspoň tak široký jako levý sloupec informačních řádků (s přesahem do trendu podle délky textu), takže klepnutí kamkoli do levého sloupce těchto řádků otevře popup. Přístupný název tlačítka je přesně viditelný text obou řádků (WCAG 2.5.3); místnost, názvy systémů a akce jsou v popisu (`aria-describedby`).
 - Pod titulkem je segmentový přepínač ve stylu iOS „Topení | Klimatizace“ v pořadí podle House Mode; přepnutím se zobrazí ovládání druhého systému. Má-li místnost nakonfigurovaný jen jeden systém, přepínač se nezobrazí a místo něj je název systému.
+- Přepínač se ovládá jako záložky (ARIA tabs): šipky vlevo / vpravo (i nahoru / dolů) a Home / End přepnou systém a přesunou na něj fokus; v pořadí klávesy Tab je jen zvolená záložka, obsah je panel záložky.
 - Popup je iOS list (viz Detail místnosti). Dole je odkaz „Detail a historie“, který popup zavře a otevře standardní detail `climate` entity zvoleného systému.
 - Volby vycházejí z atributů entity `hvac_modes` a `preset_modes`; karta nevolá režim, který entita nenabízí. Volba volá `climate.set_hvac_mode` nebo `climate.set_preset_mode`; popup zůstává otevřený a aktivní volba se podle stavu entity zvýrazní. Chyba služby se ukáže v popupu.
 - Topení: Vypnuto (`off`), Plán (`auto`), Ručně (`heat`) a Boost (předvolba `boost`). Boost se nabízí jen tehdy, když entita předvolbu `boost` uvádí; jinak je volba vidět zašedlá s textem „entita nenabízí“. Mechanismus Boostu u integrace Topení není potvrzen (viz AUDIT.md).
@@ -140,6 +142,7 @@ Stav místnosti je lidské zhodnocení prostředí, ne příkaz. Platí první s
 | 3 | Den | kolejnice, stažené lamely, šňůrka | 100 / 100 | vysunuto nahoru |
 
 - Předvolba se odešle až **dvojitým klepnutím (do 400 ms) nebo dlouhým stiskem (550 ms)**; jednoduché klepnutí nic neodešle, ale ukáže vlevo od tlačítka na 1,6 s bublinu „Podržte nebo klepněte dvakrát“ s haptikou `selection` (TODO P1.3). Během držení se kolem tlačítka vyplňuje kroužek (zpětná vazba pro dlouhý stisk), po odeslání tlačítko krátce zableskne a ozve se haptika `success`; při chybě haptika `failure` a hláška. Haptiku převádí aplikace Home Assistant (událost `haptic`); v prohlížeči se nic nestane. Z klávesnice se předvolba odešle klávesou Enter nebo mezerník.
+- Nedostupná žaluzie (entita chybí, `unavailable` / `unknown`): předvolby zůstanou vidět a dají se zaměřit, ale jsou šedé (`aria-disabled`), nevyplňuje se kroužek dlouhého stisku a nic neodešlou; klepnutí nebo klávesa ukáže bublinu „Žaluzie je nedostupná“ s haptikou `warning`.
 - Tlačítko, jehož hodnoty odpovídají aktuálnímu stavu žaluzie (tolerance ±2 %), má okraj a podklad v barvě své ikony.
 - Předvolba Ráno (35 / 60) byla zrušena; ikony odpovídají třem polohám.
 
@@ -153,6 +156,7 @@ Stav místnosti je lidské zhodnocení prostředí, ne příkaz. Platí první s
 - „Historie místnosti – 24 h“ (podle denního přehledu iOS aplikace pro ovládání topení; otevírá ji teplota a její mikrotrend; TODO P2.7–P2.9):
   - Nahoře řádek údajů: čas („Teď“, nebo čas pod prstem, u předchozího dne „včera“), teplota (22 px, polotučně), vlhkost (modře), pod tím Topení (ikona vln, Plán / Ručně · cíl / Vypnuto) a Klimatizace (ikona a režim). Čtečka ho čte při změně.
   - Graf (výška plochy 150 px, kreslený 1 : 1 v šířce popupu): šedé pozadí, noc 22–6 h ztmavená; bílá křivka teploty se šedou plochou pod ní a tečkou na konci; vytápění jako oranžová výplň pod křivkou teploty se sytostí podle vln (1 / 2 / 3 vlny = 24 / 44 / 68 %); cíl Topení jako schodovitá přerušovaná čára jen v době Plán / Ručně; vlhkost jako modrá přerušovaná čára s vlastním měřítkem (rozsah v legendě). Stupnice teploty vpravo po celých stupních (při rozsahu nad 6 °C po dvou), aspoň 3 °C, pokrývá teplotu i cíl.
+  - Šířka grafu sleduje šířku popupu i po otočení telefonu nebo změně velikosti okna.
   - Pod grafem pruhy Topení (Plán bílá, Ručně oranžová, Vypnuto šedá) a Klimatizace (barvy podle režimu), každý s popiskem nad sebou; časová osa s popisky v celých hodinách 00, 06, 12, 18 a jemnými svislými čarami.
   - Popisky v grafu 11 px, legenda 13 px; legenda ukazuje jen to, co se v období vyskytlo (Teplota, Cíl topení, Vytápění, Vlhkost min–max, Noc, režimy Topení a Klimatizace).
   - Prohlížení: přejetím prstem (nebo najetím myší) po grafu se ukáže svislá čára s bodem na křivce a řádek údajů ukazuje hodnoty v tom čase; po zvednutí prstu se vrátí na „Teď“. Svislé posouvání popupu funguje dál. Z klávesnice (graf je zaměřitelný) šipky vlevo / vpravo po 15 min, Home začátek, End teď.

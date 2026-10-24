@@ -105,3 +105,9 @@ Implementováno je rozložení karty podle [CURRENT_SPEC.md](./CURRENT_SPEC.md),
 ## Sestavení
 
 Po změně ve složce `src/` spusťte v kořeni repozitáře `npm install` a `npm run build`. Výsledek se zapíše do `dist/` a zkopíruje do kořenového `ha-klima-dashboard.js`, který používá HACS. Soubor `ha-klima-dashboard.js` ručně neupravujte.
+
+## Testy
+
+`npm test` kartu sestaví a spustí testy v prohlížeči (Playwright). Testují sestavený `ha-klima-dashboard.js` na zkušební stránce [tests/harness.html](./tests/harness.html) s náhradními daty Home Assistantu ([tests/scenarios.js](./tests/scenarios.js)): rozložení na šířkách 320–768 px, stavy místností a souhrn, zastaralá data, přístupnost (axe-core), klávesnici, dotyk, předvolby žaluzií, historii místnosti, den změny času a překreslování. Scénář „real“ používá stejná ID entit jako [příklad YAML](./examples/domov_prototyp_loznice.yaml); test hlídá, že se neliší.
+
+Poprvé je potřeba stáhnout prohlížeč: `npx playwright install chromium`. Volitelně i WebKit (blíž Safari na iPhonu): `npx playwright install webkit` a pak `PW_WEBKIT=1 npm test`. Zkušební stránku lze otevřít i ručně: `node tests/server.mjs` a v prohlížeči `http://127.0.0.1:4173/tests/harness.html?s=real` (scénáře `real`, `full`, `summer`, `alarm`, `stale`, `rest-error`, `unavailable`, `cover-unavailable`, `moving`, `longnames`). Testy nic nepřidávají do karty ani do instalace přes HACS.

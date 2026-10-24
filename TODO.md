@@ -7,15 +7,13 @@ Pravidla:
 - Priorita: **P1** chyby a rozhodnutí, která blokují další práci; **P2** zlepší denní používání; **P3** doladění.
 - Druh: **Chyba** (nalezeno testem), **Rozhodnutí** (čeká na uživatele), **Návrh** (UX zlepšení), **Ověření** (test na skutečném zařízení).
 
-Konsolidace 24. 10. (8:05): odstraněny hotové body P1.1, P1.3, P1.4, P2.2–P2.9, P2.11; P3.6 sloučen do [P2.14](#p2-14). Nové body vycházejí z testovacího průchodu (viz dole „Jak se testovalo“) a z revize posledních tří kol.
+Konsolidace 24. 10.: odstraněny hotové body P1.1, P1.3, P1.4, P2.2–P2.9, P2.11 (8:05) a P1.5, P1.6, P2.17, P2.22, P3.8, P3.10 (opraveno a hlídáno testy, 9:00); P3.6 sloučen do [P2.14](#p2-14).
 
 ## Přehled
 
 | Č. | Druh | Bod |
 |---|---|---|
 | [P1.2](#p1-2) | Chyba | Dotykové cíle menší než 44 pt (vzduch, okno, vlhkost, předvolby) |
-| [P1.5](#p1-5) | Chyba | Mrtvá zóna vedle tlačítka Topení / Klimatizace |
-| [P1.6](#p1-6) | Chyba | Přístupný název tlačítek neobsahuje viditelný text |
 | [P1.7](#p1-7) | Rozhodnutí | Chybí `input_select.house_mode` – všude „Bez dat“ |
 | [P1.8](#p1-8) | Rozhodnutí | Místnosti, kde senzory ještě nejsou, vypadají rozbitě |
 | [P1.9](#p1-9) | Ověření | Kontrolní seznam na iPhonu v aplikaci Home Assistant |
@@ -27,21 +25,17 @@ Konsolidace 24. 10. (8:05): odstraněny hotové body P1.1, P1.3, P1.4, P2.2–P2
 | [P2.14](#p2-14) | Návrh | Konflikty: okno otevřené a topí / chladí se |
 | [P2.15](#p2-15) | Návrh | Zvýraznit hodnotu, která určuje stav místnosti |
 | [P2.16](#p2-16) | Rozhodnutí | „Topí N místností“ v zimě skoro pořád |
-| [P2.17](#p2-17) | Chyba | Předvolby aktivní u nedostupné žaluzie |
 | [P2.18](#p2-18) | Návrh | Chyba předvolby se ukáže daleko od tlačítka |
 | [P2.19](#p2-19) | Návrh | Popup: zavírací animace a stránka pod ním |
 | [P2.20](#p2-20) | Návrh | „WindFree Sleep“ – cíl se nevejde ani na velkém iPhonu |
 | [P2.21](#p2-21) | Návrh | Zastaralá hodnota je poznat jen z šedé barvy |
-| [P2.22](#p2-22) | Návrh | Automatické testy v repozitáři |
 | [P3.1](#p3-1) | Návrh | Písmo SF Pro na zařízeních Apple |
 | [P3.2](#p3-2) | Rozhodnutí | Světlý režim |
 | [P3.3](#p3-3) | Rozhodnutí | Větší písmo |
 | [P3.4](#p3-4) | Ověření | Paleta venku a na OLED |
 | [P3.5](#p3-5) | Ověření | Utlumení spuštěné žaluzie |
 | [P3.7](#p3-7) | Návrh | Ilustrace při odchylce |
-| [P3.8](#p3-8) | Chyba | Segmentový přepínač neovládají šipky |
 | [P3.9](#p3-9) | Návrh | Osa trendů odolná proti jedné chybné hodnotě |
-| [P3.10](#p3-10) | Chyba | Graf historie po otočení telefonu |
 | [P3.11](#p3-11) | Návrh | Nadpis „Domov“ zdvojený s názvem pohledu |
 | [P3.12](#p3-12) | Návrh | Méně REST dotazů pro zastaralá data |
 
@@ -52,19 +46,7 @@ Konsolidace 24. 10. (8:05): odstraněny hotové body P1.1, P1.3, P1.4, P2.2–P2
 
 Změřeno na 393 px: řádky CO₂ a PM2.5 231 × 26 px, okno 113 × 26 px, vlhkost 38 × 28 px, předvolby žaluzií 34 × 34 px (HIG: aspoň 44 × 44 pt). Topení + Klimatizace už mají 52 px.
 Návrh: předvolby a vlhkost zvětšit jen neviditelnou dotykovou plochou (vzhled stejný); CO₂ + PM2.5 spojit do jednoho cíle „Kvalita vzduchu“ (52 px) s popupem se dvěma odkazy na detail; okno zvýšit na 32 px (je na kraji skupiny).
-Hotovo, když žádný klikací prvek nemá cíl menší než 44 × 44 px.
-
-<a id="p1-5"></a>
-### P1.5 Mrtvá zóna vedle tlačítka Topení / Klimatizace · Chyba
-
-Tlačítko je jen tak široké jako jeho text. Mezi koncem textu a trendem je místo, kde klepnutí nic neudělá: změřeno 6 px na 393 px, 24 px na 430 px (iPhone Pro Max), 193 px na tabletu 768 px. Krátký text („Vypnuto“) mrtvou zónu zvětšuje.
-Oprava (malá): tlačítko nejméně tak široké jako levý sloupec; přesah do trendu zůstává. Hotovo, když klepnutí kamkoli do levého sloupce řádků Topení a Klimatizace otevře popup.
-
-<a id="p1-6"></a>
-### P1.6 Přístupný název tlačítek neobsahuje viditelný text · Chyba
-
-Audit axe-core: „label-content-name-mismatch“ (vážné) u všech 5 tlačítek Topení / Klimatizace. Viditelné „Plán · 21 °C“, ale `aria-label` říká „Topení Plán 21 °C …“. Hlasové ovládání na iPhonu („Klepni na Plán“) pak tlačítko nemusí najít (WCAG 2.5.3 Label in Name).
-Oprava: `aria-label` začne přesně viditelným textem a kontext doplní až za ním (nebo kontext přes `aria-describedby`); zkontrolovat stejně i ostatní tlačítka. Hotovo, když axe nehlásí žádné porušení uvnitř karty.
+Hotovo, když žádný klikací prvek nemá cíl menší než 44 × 44 px. V `tests/card.spec.ts` čeká připravený test (`fixme`).
 
 <a id="p1-7"></a>
 ### P1.7 Chybí `input_select.house_mode` – všude „Bez dat“ · Rozhodnutí
@@ -119,7 +101,7 @@ Návrh: do popupu Topení | Klimatizace přidat dole vedle „Detail a historie�
 ### P2.12 Úzká karta (320 px): ilustrace přes text · Chyba
 
 Test na 320 px: ilustrace překrývá vlhkost ve všech kartách a u názvu „Obývací pokoj“ i název (na 360 px už jen název). U CO₂ se na 320 px skryje jednotka „ppm“. Úzký režim dnes řídí `@media (max-width: 380px)` podle okna, ne podle šířky karty (karta v zobrazení Sekce nebo na tabletu může být úzká i na velkém displeji).
-Návrh: `container-type: inline-size` na seznamu místností, `@container` místo `@media`; pod 360 px šířky karty ilustraci zmenšit na 70 % a posunout nahoru, pod 330 px skrýt. Hotovo, když na 320 px nic nepřekrývá text.
+Návrh: `container-type: inline-size` na seznamu místností, `@container` místo `@media`; pod 360 px šířky karty ilustraci zmenšit na 70 % a posunout nahoru, pod 330 px skrýt. Hotovo, když na 320 px nic nepřekrývá text. V `tests/card.spec.ts` čeká připravený test (`fixme`).
 
 <a id="p2-13"></a>
 ### P2.13 Hromadné akce pro celý dům · Rozhodnutí
@@ -149,12 +131,6 @@ Návrh: hodnota, která rozhodla o stavu, dostane barvu stavu (teplota oranžov�
 V zimě bude štítek „Topí 3 místnosti“ v souhrnu téměř vždy. Souhrn má ukazovat jen to, co je jinak než obvykle; stálý štítek se přestane číst.
 Návrh: v Zimě štítek „Topí“ skrýt (zůstanou Ručně, konflikty z [P2.14](#p2-14)), v Létě ponechat (topení v létě je odchylka). Druhá možnost: ponechat vždy.
 
-<a id="p2-17"></a>
-### P2.17 Předvolby aktivní u nedostupné žaluzie · Chyba
-
-Test se všemi entitami nedostupnými: panel žaluzie je správně přerušovaný, ale tři předvolby zůstávají barevné a po dvojitém klepnutí volají skript.
-Oprava: u nedostupné žaluzie předvolby šedé a zakázané, jednoduché klepnutí ukáže „Žaluzie je nedostupná“. Hotovo, když nedostupnou žaluzii nejde ovládat a je to vidět.
-
 <a id="p2-18"></a>
 ### P2.18 Chyba předvolby se ukáže daleko od tlačítka · Návrh
 
@@ -178,12 +154,6 @@ Návrh: slovo „Sleep“ nahradit malým symbolem měsíce za názvem („WindF
 
 Na iPhonu nejsou nápovědy (`title`), takže stáří hodnoty uvidí jen čtečka; stavový řádek ukazuje jen první zastaralou hodnotu. Šedé číslo bez vysvětlení může vypadat jako chyba karty.
 Návrh: za zastaralou hodnotou malý symbol hodin (šedý), klepnutí na hodnotu otevře detail jako dnes. Hotovo, když je na první pohled jasné, že hodnota je stará.
-
-<a id="p2-22"></a>
-### P2.22 Automatické testy v repozitáři · Návrh
-
-V `package.json` je jen `build` a `dev`; vše se dosud testovalo ručně mimo repozitář. Testovací stránka a scénáře z tohoto průchodu (skutečná konfigurace, Zima / Léto, poplach, nedostupné, zastaralé, dlouhé názvy; šířky 320–768; klávesnice, dotyk, axe) jdou převést do `tests/` s příkazem `npm test` (Playwright + axe-core jako vývojové závislosti, nic se nepřidá do karty).
-Hotovo, když `npm test` ověří rozložení bez vodorovného posouvání, dotykové cíle, přístupnost a hlavní interakce.
 
 ## P3 – doladění
 
@@ -217,20 +187,10 @@ Velikosti jsou v px, takže nastavení velikosti textu v iOS se nepropíše. Roz
 
 U karty se stavem varování nebo kritickým ilustraci ztlumit (např. na 40 %), aby nesoupeřila se stavem; případně jeden přepínač „bez ilustrací“.
 
-<a id="p3-8"></a>
-### P3.8 Segmentový přepínač neovládají šipky · Chyba
-
-Test z klávesnice: v přepínači Topení | Klimatizace šipka vpravo nic nepřepne. Prvky mají roli „tab“, takže čtečka i klávesnice čekají vzor záložek (šipky přepínají, Tab skočí do obsahu, `aria-controls` na panel). Oprava: doplnit šipky a `aria-controls`, nebo použít obyčejná přepínací tlačítka (`aria-pressed`).
-
 <a id="p3-9"></a>
 ### P3.9 Osa trendů odolná proti jedné chybné hodnotě · Návrh
 
 Osa je společná pro celý dům, takže jeden chybný vzorek (např. CO₂ 5 000 ppm po restartu senzoru) zploští trendy všech místností na rovné čáry. Návrh: horní mez osy omezit (CO₂ na 2× kritický práh, PM2.5 na 2× kritický práh, teplota na rozsah 10–35 °C) a vzorek nad mezí kreslit na okraji.
-
-<a id="p3-10"></a>
-### P3.10 Graf historie po otočení telefonu · Chyba
-
-Šířka grafu se počítá při vykreslení ze šířky okna; po otočení telefonu s otevřeným popupem zůstane stará šířka, dokud se popup nepřekreslí. Oprava: při otevřeném popupu poslouchat změnu velikosti a překreslit.
 
 <a id="p3-11"></a>
 ### P3.11 Nadpis „Domov“ zdvojený s názvem pohledu · Návrh
@@ -242,11 +202,6 @@ Pohled v Home Assistantu má vlastní název a karta pod ním vždy kreslí nadp
 
 Zastaralá data stojí 1 dotaz na každé měření každých 5 minut a na každé otevřené zařízení (dnes až 20 dotazů / 5 min). Zatím v pořádku; při více místnostech nebo obrazovkách zvážit jeden dotaz na všechny stavy, nebo šablonový senzor s časem posledního hlášení.
 
-## Jak se testovalo (24. 10.)
+## Jak se testuje
 
-Sestavená karta ve Chromiu (Playwright) se zkušební stránkou a náhradními daty, písmo Roboto, náhradní ikona CO₂:
-- konfigurace z `examples/` („skutečná“: bez režimu domu, ALPSTUGA jen v Ložnici a Pracovně) a scénáře plná data, Léto, poplach, vše nedostupné, zastaralá data, chyba REST, pohyb žaluzie, dlouhé názvy;
-- šířky 320, 360, 375, 393, 430 a 768 px (vodorovné posouvání nikde), dialog na 1 024 px;
-- klávesnice (pořadí Tab, fokus v popupu, Escape a návrat fokusu), dotyk (jednoduché klepnutí, dlouhý stisk i s pohybem prstu, dvojité klepnutí, prohlížení grafu, tažení popupu), audit axe-core;
-- překreslování: změna nesouvisející entity kartu nepřekreslí, změna související jednou;
-- den změny času 25. 10. v časovém pásmu Europe/Prague.
+`npm test` (viz README, oddíl Testy) spustí v Chromiu 31 testů nad sestavenou kartou a zkušební stránkou `tests/harness.html`: konfigurace z `examples/`, scénáře Zima / Léto / poplach / nedostupné / zastaralé / chyba REST / pohyb žaluzie / dlouhé názvy, šířky 320–768 px, přístupnost (axe-core), klávesnice, dotyk, předvolby, historie, den změny času a překreslování. Body P1.2 a P2.12 mají připravené testy označené `fixme`; po opravě se z nich stanou běžné testy. Co se v prohlížeči ověřit nedá, je v [P1.9](#p1-9).

@@ -84,7 +84,7 @@ const SHEET_DRAG_SLOP = 6;
 type TrendAxes = Partial<Record<TrendKind, TrendAxis>>;
 type HistoryStatus = "loading" | "ready" | "error";
 /** Haptic types forwarded by the Home Assistant app to the Taptic Engine. */
-type HapticType = "success" | "failure" | "selection" | "light";
+type HapticType = "success" | "failure" | "warning" | "selection" | "light";
 
 /** One choice in the Topení / Klimatizace popup. */
 interface SheetOption {
@@ -142,9 +142,12 @@ export class HaKlimaDashboard extends LitElement {
   @state()
   private _flash?: string;
 
-  /** Key of the blind preset that shows the "hold or double tap" hint. */
+  /** Blind preset that shows a hint bubble ("hold or double tap" / "unavailable"). */
   @state()
-  private _hint?: string;
+  private _hint?: { key: string; text: string };
+
+  /** Segment to focus after switching Topení / Klimatizace with the arrow keys. */
+  private _focusSegment?: "heating" | "climate";
 
   @state()
   private _trends: Record<EntityId, Array<number | undefined>> = {};
@@ -190,6 +193,7 @@ export class HaKlimaDashboard extends LitElement {
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
+    window.removeEventListener("resize", this.handleResize);
     for (const timer of [this._noticeTimer, this._pressTimer, this._flashTimer, this._hintTimer, this._hintHideTimer]) {
       window.clearTimeout(timer);
     }
@@ -216,6 +220,10 @@ export class HaKlimaDashboard extends LitElement {
       void this.refreshTrends();
       window.clearInterval(this._trendTimer);
       this._trendTimer = window.setInterval(() => void this.refreshTrends(), TREND_REFRESH_MS);
+    }
+    if (this._focusSegment) {
+      this.renderRoot.querySelector<HTMLElement>(`.segment[data-system="${this._focusSegment}"]`)?.focus();
+      this._focusSegment = undefined;
     }
     if (changedProperties.has("_sheet") && this._sheet && !changedProperties.get("_sheet")) {
       const first =
@@ -269,8 +277,8 @@ export class HaKlimaDashboard extends LitElement {
           </header>
           ${this._notice ? html`<div class="notice" role="alert">${this._notice}</div>` : nothing}
           <div class="rooms">
-            ${this._config.rooms.map((room) =>
-              this.renderRoom(room, isSummer, modeKnown, thresholds, axes, now),
+            ${this._config.rooms.map((room, index) =>
+              this.renderRoom(room, index, isSummer, modeKnown, thresholds, axes, now),
             )}
           </div>
         </div>
@@ -376,6 +384,7 @@ export class HaKlimaDashboard extends LitElement {
 
   private renderRoom(
     room: RoomConfig,
+    index: number,
     isSummer: boolean,
     modeKnown: boolean,
     thresholds: DashboardThresholds,
@@ -445,7 +454,7 @@ export class HaKlimaDashboard extends LitElement {
               "CO₂", co2, "ppm", thresholds.co2_warning, thresholds.co2_critical, axes.co2)}
             ${this.renderAirRow(room, "pm25", room.pm25, renderParticlesIcon(),
               "PM2.5", pm25, "µg/m³", thresholds.pm25_warning, thresholds.pm25_critical, axes.pm25)}
-            ${this.renderHvac(room, isSummer)}
+            ${this.renderHvac(room, isSummer, index)}
             ${this.renderTemperatureTrend(room, temperature, axes.temperature)}
             ${this.renderWindow(room)}
           </div>
@@ -615,7 +624,7 @@ export class HaKlimaDashboard extends LitElement {
    * system (by House Mode); a segmented control there switches to the other one
    * (CURRENT_SPEC.md, Ovládání Topení a Klimatizace).
    */
-  private renderHvac(room: RoomConfig, isSummer: boolean): TemplateResult {
+  private renderHvac(room: RoomConfig, isSummer: boolean, index: number): TemplateResult {
     const heating = heatingView(
       this.getState(room.heating?.climate),
       this.getState(room.heating?.overlay),
@@ -631,19 +640,25 @@ export class HaKlimaDashboard extends LitElement {
     const target = this.hvacTarget(room, order);
     const spoken = order
       .map((kind) => `${SYSTEM_NAMES[kind]} ${spokenSystem(kind === "heating" ? heating : climate)}`)
-      .join("; ");
+      .join(", ");
+    const descriptionId = `hvac-description-${index}`;
 
+    // The accessible name is the visible text of both rows (WCAG 2.5.3 Label in Name, so voice
+    // control finds "Plán · 21 °C"); room, system names and the action are the description.
     return html`
       <button
         type="button"
         class="plain-button hvac slot-hvac"
         ?disabled=${!target}
-        aria-label=${`${room.name}: ${spoken}${target ? `. Ovládání ${SYSTEM_NAMES[target]}` : ""}`}
+        aria-describedby=${descriptionId}
         @click=${(event: Event) => (target ? this.openSheet(target, room, event) : undefined)}
       >
         ${isSummer ? climateRow(true) : heatingRow(true)}
         ${isSummer ? heatingRow(false) : climateRow(false)}
       </button>
+      <span class="sr-only" id=${descriptionId}
+        >${`${room.name}: ${spoken}.${target ? ` Otevře ovládání ${SYSTEM_NAMES[target]}.` : ""}`}</span
+      >
     `;
   }
 
@@ -721,7 +736,7 @@ export class HaKlimaDashboard extends LitElement {
 
     return html`
       <div class="presets" role="group" aria-label=${`${room.name}: předvolby žaluzií`}>
-        ${BLIND_PRESETS.map((preset) => this.renderPreset(room, preset, position, tilt))}
+        ${BLIND_PRESETS.map((preset) => this.renderPreset(room, preset, position, tilt, available))}
       </div>
       <button
         type="button"
@@ -745,6 +760,7 @@ export class HaKlimaDashboard extends LitElement {
     preset: BlindPreset,
     position: number | undefined,
     tilt: number | undefined,
+    available: boolean,
   ): TemplateResult {
     const active =
       position !== undefined &&
@@ -752,25 +768,34 @@ export class HaKlimaDashboard extends LitElement {
       Math.abs(position - preset.position) <= 2 &&
       Math.abs(tilt - preset.tilt) <= 2;
     const key = `${room.name}|${preset.id}`;
+    const action = available
+      ? "Spustí se dvojitým klepnutím nebo dlouhým stiskem."
+      : "Žaluzie je nedostupná.";
 
     // No visible label: the name is in title / aria-label. A single tap only shows a hint;
     // the preset is sent by a double tap or a long press, or by the keyboard (detail 0).
+    // An unavailable blind keeps its buttons focusable but greyed out; they only explain why.
     return html`
       <button
         type="button"
-        class="plain-button preset ${this._flash === key ? "sent" : ""}"
+        class="plain-button preset ${this._flash === key ? "sent" : ""} ${available ? "" : "unavailable"}"
         style=${`--tone: ${preset.tone}`}
         title=${preset.label}
         aria-pressed=${active ? "true" : "false"}
-        aria-label=${`${room.name}: žaluzie ${preset.label}, ${preset.description}. Spustí se dvojitým klepnutím nebo dlouhým stiskem.`}
-        @pointerdown=${(event: PointerEvent) => this.pressStart(event, room, preset)}
-        @pointerup=${() => this.pressEnd(room, preset)}
+        aria-disabled=${available ? "false" : "true"}
+        aria-label=${`${room.name}: žaluzie ${preset.label}, ${preset.description}. ${action}`}
+        @pointerdown=${(event: PointerEvent) => this.pressStart(event, room, preset, available)}
+        @pointerup=${() => this.pressEnd(room, preset, available)}
         @pointercancel=${() => this.pressCancel()}
         @pointerleave=${() => this.pressCancel()}
         @contextmenu=${(event: Event) => event.preventDefault()}
         @click=${(event: MouseEvent) => {
           if (event.detail === 0) {
-            void this.applyPreset(room, preset);
+            if (available) {
+              void this.applyPreset(room, preset);
+            } else {
+              this.showUnavailable(key);
+            }
           }
         }}
       >
@@ -778,15 +803,15 @@ export class HaKlimaDashboard extends LitElement {
           <circle cx="18" cy="18" r="16.75" pathLength="100"></circle>
         </svg>
         ${renderPresetIcon(preset.id)}
-        ${this._hint === key
-          ? html`<span class="preset-hint" role="status">Podržte nebo klepněte dvakrát</span>`
+        ${this._hint?.key === key
+          ? html`<span class="preset-hint" role="status">${this._hint.text}</span>`
           : nothing}
       </button>
     `;
   }
 
-  private pressStart(event: PointerEvent, room: RoomConfig, preset: BlindPreset): void {
-    if (event.button !== 0) {
+  private pressStart(event: PointerEvent, room: RoomConfig, preset: BlindPreset, available: boolean): void {
+    if (event.button !== 0 || !available) {
       return;
     }
     window.clearTimeout(this._pressTimer);
@@ -801,7 +826,12 @@ export class HaKlimaDashboard extends LitElement {
     }, LONG_PRESS_MS);
   }
 
-  private pressEnd(room: RoomConfig, preset: BlindPreset): void {
+  private pressEnd(room: RoomConfig, preset: BlindPreset, available: boolean): void {
+    const key = `${room.name}|${preset.id}`;
+    if (!available) {
+      this.showUnavailable(key);
+      return;
+    }
     window.clearTimeout(this._pressTimer);
     const wasPressing = this._pressing;
     const fired = this._pressFired;
@@ -810,7 +840,6 @@ export class HaKlimaDashboard extends LitElement {
     if (!wasPressing || fired) {
       return;
     }
-    const key = `${room.name}|${preset.id}`;
     const now = performance.now();
     window.clearTimeout(this._hintTimer);
     if (this._lastTap && this._lastTap.key === key && now - this._lastTap.time <= DOUBLE_TAP_MS) {
@@ -824,7 +853,7 @@ export class HaKlimaDashboard extends LitElement {
     this._hintTimer = window.setTimeout(() => {
       if (this._lastTap?.key === key) {
         this._lastTap = undefined;
-        this.showHint(key);
+        this.showHint(key, "Podržte nebo klepněte dvakrát", "selection");
       }
     }, DOUBLE_TAP_MS);
   }
@@ -835,9 +864,15 @@ export class HaKlimaDashboard extends LitElement {
     this._pressFired = false;
   }
 
-  private showHint(key: string): void {
-    this._hint = key;
-    this.haptic("selection");
+  private showUnavailable(key: string): void {
+    this._lastTap = undefined;
+    window.clearTimeout(this._hintTimer);
+    this.showHint(key, "Žaluzie je nedostupná", "warning");
+  }
+
+  private showHint(key: string, text: string, haptic: HapticType): void {
+    this._hint = { key, text };
+    this.haptic(haptic);
     window.clearTimeout(this._hintHideTimer);
     this._hintHideTimer = window.setTimeout(() => {
       this._hint = undefined;
@@ -846,6 +881,11 @@ export class HaKlimaDashboard extends LitElement {
 
   private async applyPreset(room: RoomConfig, preset: BlindPreset): Promise<void> {
     if (!this.hass || !room.cover) {
+      return;
+    }
+    const state = this.entityState(room.cover)?.toLowerCase();
+    if (state === undefined || isUnavailable(state)) {
+      this.showUnavailable(`${room.name}|${preset.id}`);
       return;
     }
     try {
@@ -968,22 +1008,7 @@ export class HaKlimaDashboard extends LitElement {
     const order: Array<"heating" | "climate"> = isSummer ? ["climate", "heating"] : ["heating", "climate"];
     const both = Boolean(room.heating?.climate) && Boolean(room.air_conditioner);
 
-    return html`
-      ${both
-        ? html`<div class="segmented" role="tablist" aria-label="Systém">
-            ${order.map(
-              (system) => html`<button
-                type="button"
-                role="tab"
-                class="plain-button segment"
-                aria-selected=${system === kind ? "true" : "false"}
-                @click=${() => this.switchSheet(system)}
-              >
-                ${SYSTEM_NAMES[system]}
-              </button>`,
-            )}
-          </div>`
-        : html`<div class="sheet-label system-name">${SYSTEM_NAMES[kind]}</div>`}
+    const body = html`
       ${!available
         ? html`<p class="sheet-message">Entita je nedostupná.</p>`
         : options.length === 0
@@ -1010,6 +1035,60 @@ export class HaKlimaDashboard extends LitElement {
         Detail a historie
       </button>
     `;
+
+    if (!both) {
+      return html`<div class="sheet-label system-name">${SYSTEM_NAMES[kind]}</div>${body}`;
+    }
+    // ARIA tabs: arrows / Home / End switch the system, only the selected tab is in the Tab order.
+    return html`
+      <div
+        class="segmented"
+        role="tablist"
+        aria-label="Systém"
+        @keydown=${(event: KeyboardEvent) => this.segmentKeydown(event, order, kind)}
+      >
+        ${order.map(
+          (system) => html`<button
+            type="button"
+            role="tab"
+            id=${`tab-${system}`}
+            class="plain-button segment"
+            data-system=${system}
+            aria-selected=${system === kind ? "true" : "false"}
+            aria-controls="hvac-panel"
+            tabindex=${system === kind ? "0" : "-1"}
+            @click=${() => this.switchSheet(system)}
+          >
+            ${SYSTEM_NAMES[system]}
+          </button>`,
+        )}
+      </div>
+      <div class="hvac-panel" role="tabpanel" id="hvac-panel" aria-labelledby=${`tab-${kind}`}>${body}</div>
+    `;
+  }
+
+  private segmentKeydown(event: KeyboardEvent, order: Array<"heating" | "climate">, kind: "heating" | "climate"): void {
+    const index = order.indexOf(kind);
+    let next: "heating" | "climate" | undefined;
+    if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+      next = order[(index + 1) % order.length];
+    } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+      next = order[(index - 1 + order.length) % order.length];
+    } else if (event.key === "Home") {
+      next = order[0];
+    } else if (event.key === "End") {
+      next = order[order.length - 1];
+    }
+    if (!next) {
+      return;
+    }
+    event.preventDefault();
+    this._focusSegment = next;
+    if (next === kind) {
+      this.requestUpdate();
+    } else {
+      this.switchSheet(next);
+    }
   }
 
   /** „Historie místnosti – 24 h“ with a readout that follows the finger (or the arrow keys). */
@@ -1287,7 +1366,9 @@ export class HaKlimaDashboard extends LitElement {
       return;
     }
     const items = [
-      ...this.renderRoot.querySelectorAll<HTMLElement>(".sheet button:not([disabled]), .sheet .chart-wrap"),
+      ...this.renderRoot.querySelectorAll<HTMLElement>(
+        '.sheet button:not([disabled]):not([tabindex="-1"]), .sheet .chart-wrap',
+      ),
     ];
     if (items.length === 0) {
       return;
@@ -1301,11 +1382,19 @@ export class HaKlimaDashboard extends LitElement {
     next.focus();
   };
 
+  /** The history chart is drawn at the popup width; redraw it after rotation or resize. */
+  private handleResize = (): void => {
+    if (this._sheet?.kind === "history") {
+      this.requestUpdate();
+    }
+  };
+
   private openSheet(kind: SheetKind, room: RoomConfig, event: Event): void {
     this._opener = event.currentTarget instanceof HTMLElement ? event.currentTarget : undefined;
     this._sheetError = undefined;
     this._dragY = 0;
     this._sheet = { kind, room };
+    window.addEventListener("resize", this.handleResize, { passive: true });
     if (kind === "history") {
       this._scrubTime = undefined;
       void this.loadRoomHistory(room);
@@ -1321,6 +1410,7 @@ export class HaKlimaDashboard extends LitElement {
   }
 
   private closeSheet(restoreFocus = true): void {
+    window.removeEventListener("resize", this.handleResize);
     this._historyRequest += 1;
     this._sheet = undefined;
     this._sheetError = undefined;

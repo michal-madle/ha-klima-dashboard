@@ -293,7 +293,19 @@ export const styles = css`
       grid-column: 1 / -1;
       grid-row: 4 / span 2;
       justify-self: start;
+      /* At least the whole left column, so no tap falls into a gap (TODO P1.5). */
+      min-width: calc((100% - var(--info-gap)) / 2);
       max-width: calc((100% - var(--info-gap)) / 2 * 1.4 + var(--info-gap));
+    }
+
+    /* Text only for screen readers. */
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
     }
 
     .hvac {
@@ -301,7 +313,6 @@ export const styles = css`
       z-index: 1;
       display: grid;
       grid-template-rows: var(--row-h) var(--row-h);
-      min-width: 0;
     }
 
     .slot-temperature-trend {
@@ -522,6 +533,18 @@ export const styles = css`
     .preset:active .progress {
       opacity: 1;
       animation: hold 550ms linear forwards;
+    }
+
+    /* Blind unavailable: buttons stay focusable but grey; a tap only explains why. */
+    .preset.unavailable {
+      border-color: rgb(255 255 255 / 8%);
+      background: #242426;
+      color: rgb(142 142 147 / 55%);
+    }
+
+    .preset.unavailable:active .progress {
+      opacity: 0;
+      animation: none;
     }
 
     .preset[aria-pressed="true"] {
