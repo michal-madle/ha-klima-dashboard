@@ -23,8 +23,11 @@ export const BLIND_PRESETS: BlindPreset[] = [
   { id: "dark", label: "Tma", description: "úplné zatemnění", position: 0, tilt: 0 },
 ];
 
-/** Tolerance (position and tilt, in %) within which a blind counts as being in a preset. */
-const PRESET_TOLERANCE = 2;
+/**
+ * Tolerance (position and tilt, in %) within which a blind counts as being in a preset. The
+ * blind moves up by 3-4 % when its slats open, so "Stín" (0 / 100) is really reported as 4 / 100.
+ */
+const PRESET_TOLERANCE = 5;
 
 /** True when the blind's position and tilt (both known) are those of the preset. */
 export function blindMatchesPreset(
@@ -68,6 +71,8 @@ export const COLORS = {
   plan: "#F2F2F7",
   warning: "#FF9F0A",
   alert: "#FF453A",
+  /** The same red, lighter, for the lighter ground of a popup option (contrast 4.5 : 1 for 17 px text). */
+  alertOnPopup: "#FF6961",
   cold: "#64D2FF",
   cool: "#64D2FF",
   dry: "#FFD60A",
@@ -337,6 +342,46 @@ export function trendDirection(
     return "klesá";
   }
   return "stabilní";
+}
+
+/**
+ * How long something has lasted, shown next to an open window: "< 1 min", "12 min", "1 h 5 min",
+ * "2 d 3 h" (two units at most, a zero second unit is left out).
+ */
+export function formatDuration(minutes: number): string {
+  const total = Math.max(0, Math.floor(minutes));
+  if (total < 1) {
+    return "< 1 min";
+  }
+  if (total < 60) {
+    return `${total} min`;
+  }
+  if (total < 24 * 60) {
+    const [hours, rest] = [Math.floor(total / 60), total % 60];
+    return rest === 0 ? `${hours} h` : `${hours} h ${rest} min`;
+  }
+  const [days, hours] = [Math.floor(total / (24 * 60)), Math.floor((total % (24 * 60)) / 60)];
+  return hours === 0 ? `${days} d` : `${days} d ${hours} h`;
+}
+
+/** The same duration in words for screen readers: "1 hodina 5 minut", "2 dny 3 hodiny". */
+export function spokenDuration(minutes: number): string {
+  const total = Math.max(0, Math.floor(minutes));
+  if (total < 1) {
+    return "méně než minutu";
+  }
+  const unit = (count: number, one: string, few: string, many: string) => `${count} ${plural(count, one, few, many)}`;
+  if (total < 60) {
+    return unit(total, "minuta", "minuty", "minut");
+  }
+  if (total < 24 * 60) {
+    const [hours, rest] = [Math.floor(total / 60), total % 60];
+    const text = unit(hours, "hodina", "hodiny", "hodin");
+    return rest === 0 ? text : `${text} ${unit(rest, "minuta", "minuty", "minut")}`;
+  }
+  const [days, hours] = [Math.floor(total / (24 * 60)), Math.floor((total % (24 * 60)) / 60)];
+  const text = unit(days, "den", "dny", "dní");
+  return hours === 0 ? text : `${text} ${unit(hours, "hodina", "hodiny", "hodin")}`;
 }
 
 /** Czech plural: 1 okno, 2–4 okna, 5+ oken. */

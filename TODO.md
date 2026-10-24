@@ -7,7 +7,7 @@ Pravidla:
 - Priorita: **P1** chyby a rozhodnutí, která blokují další práci; **P2** zlepší denní používání; **P3** doladění.
 - Druh: **Chyba** (nalezeno testem), **Rozhodnutí** (čeká na uživatele), **Návrh** (UX zlepšení), **Ověření** (test na skutečném zařízení).
 
-Konsolidace 24. 10.: odstraněny hotové body P1.1, P1.3, P1.4, P2.2–P2.9, P2.11 (8:05) a P1.5, P1.6, P2.17, P2.22, P3.8, P3.10 (opraveno a hlídáno testy, 9:00); P3.6 sloučen do P2.14. Odpoledne po vašich odpovědích: odstraněny P1.2, P2.1, P2.12, P2.14, P2.15 (hotovo a hlídáno testy) a P1.7, P1.8 (uzavřeno uživatelem); z P1.10 odpadly body 1, 2, 4, 5, 6, 8, 9 a 10 (potvrzeno nebo vyřízeno), zůstávají 3, 7 a nové 11.
+Konsolidace 24. 10.: odstraněny hotové body P1.1, P1.3, P1.4, P2.2–P2.9, P2.11 (8:05) a P1.5, P1.6, P2.17, P2.22, P3.8, P3.10 (opraveno a hlídáno testy, 9:00); P3.6 sloučen do P2.14. Odpoledne po vašich odpovědích: odstraněny P1.2, P2.1, P2.12, P2.14, P2.15 (hotovo a hlídáno testy) a P1.7, P1.8 (uzavřeno uživatelem); z P1.10 odpadly body 1, 2, 4, 5, 6, 8, 9 a 10 (potvrzeno nebo vyřízeno), zůstávají 3, 7 a nové 11. Večer po vašem dalším kole: odstraněny P1.10 bod 11 (Přehled | Detail zamítnut, viz DESIGN_HISTORY) a P3.11 (`title: ""` vynechá nadpis); P1.11 a P1.12 přepsány (tolerance ±5 %, příčina jedné karty z kódu Home Assistantu).
 
 ## Přehled
 
@@ -15,8 +15,8 @@ Konsolidace 24. 10.: odstraněny hotové body P1.1, P1.3, P1.4, P2.2–P2.9, P2.
 |---|---|---|
 | [P1.9](#p1-9) | Ověření | Kontrolní seznam na iPhonu v aplikaci Home Assistant |
 | [P1.10](#p1-10) | Rozhodnutí | Potvrdit rozhodnutí, která jsem udělal sám |
-| [P1.11](#p1-11) | Chyba | Stín (0 / 100) se na skutečné žaluzii nezvýrazní |
-| [P1.12](#p1-12) | Rozhodnutí | Na šířku na iPhonu 14 Pro je pořád jedna karta |
+| [P1.11](#p1-11) | Ověření | Stín: tolerance ±5 % na skutečné žaluzii |
+| [P1.12](#p1-12) | Ověření | Dva sloupce na šířku: záleží na typu zobrazení nástěnky |
 | [P2.10](#p2-10) | Návrh | Tlačítko historie v popupu Topení / Klimatizace |
 | [P2.13](#p2-13) | Rozhodnutí | Hromadné akce pro celý dům |
 | [P2.16](#p2-16) | Rozhodnutí | „Topí N místností“ v zimě skoro pořád |
@@ -31,7 +31,6 @@ Konsolidace 24. 10.: odstraněny hotové body P1.1, P1.3, P1.4, P2.2–P2.9, P2.
 | [P3.5](#p3-5) | Ověření | Utlumení spuštěné žaluzie |
 | [P3.7](#p3-7) | Návrh | Ilustrace při odchylce |
 | [P3.9](#p3-9) | Návrh | Osa trendů odolná proti jedné chybné hodnotě |
-| [P3.11](#p3-11) | Návrh | Nadpis „Domov“ zdvojený s názvem pohledu |
 | [P3.12](#p3-12) | Návrh | Méně REST dotazů pro zastaralá data |
 
 ## P1 – chyby a rozhodnutí, která blokují
@@ -45,11 +44,11 @@ Všechno dosud ověřeno jen v Chromiu s náhradními daty a náhradní ikonou C
 3. Prohlížení historie prstem: vodorovný tah posouvá čas, svislý posouvá popup.
 4. Zastaralá data: REST `last_reported` funguje s vaším účtem (jinak se nic neoznačí jako zastaralé – karta to nehlásí).
 5. Ikona CO₂ (`mdi:molecule-co2`) má stejnou optickou velikost jako ostatní ikony.
-6. Vzhled: ikony předvoleb jen s přebarvením (tmavě šedé, aktivní šampaňská, pulzování barvou), 11 lamel, stálých 2 px lamel okna, tlumené CO₂ (šalvěj) a PM2.5 (levandule), trendy CO₂ a PM2.5 navazující na hodnotu, popup Kvalita vzduchu, tečka konfliktu u okna a utlumené žaluzie (viz [P1.10](#p1-10), [P3.5](#p3-5)).
+6. Vzhled: ikony předvoleb jen s přebarvením (tmavě šedé, aktivní šampaňská, pulzování barvou), 11 lamel, stálých 2 px lamel okna, tlumené CO₂ (šalvěj) a PM2.5 (levandule), trendy CO₂ a PM2.5 navazující na hodnotu, popup Kvalita vzduchu, tečka konfliktu u okna, utlumené žaluzie (viz [P1.10](#p1-10), [P3.5](#p3-5)), slabý údaj „Otevřeno · N min“ u okna a hodnoty CO₂ a PM2.5 ve stejné tloušťce jako ostatní.
 7. Pulzování předvolby: jak často Shelly hlásí polohu a naklopení za jízdy. Když méně často než jednou za 5 s, pulzování skončí dřív, než žaluzie dojede (podsvícení se pak ukáže až po dojezdu). Zkusit Ložnici a Maxíka; případně prodloužit limit.
 8. Den změny času (25. 10.): graf historie – test v prohlížeči prošel (noc 22–6 h je ten den 9 h dlouhá, popisky času správně).
 9. Telefon na šířku: popup Historie místnosti je na výšku 393 px vyšší než displej a posouvá se uvnitř; je to pohodlné, nebo zkrátit graf? Dva sloupce viz [P1.12](#p1-12).
-10. Přehled | Detail: haptika při přepnutí a rozbalení, přepínač vpravo od titulku se nezaměňuje s ničím jiným, rozbalení a sbalení řádku je pohodlné palcem.
+10. Údaj o době otevření okna je čitelný, ale nevyrušuje; začátek mikrotrendu CO₂ a PM2.5 je od hodnoty dost daleko (78 px od levého okraje řádku).
 
 <a id="p1-10"></a>
 ### P1.10 Potvrdit rozhodnutí, která jsem udělal sám · Rozhodnutí
@@ -57,19 +56,21 @@ Všechno dosud ověřeno jen v Chromiu s náhradními daty a náhradní ikonou C
 Číslování zůstává; potvrzené body jsou pryč.
 3. Kroky osy trendů CO₂ 100 ppm a PM2.5 5 µg/m³ (teplotu 1 °C určil uživatel). Ponecháno, netestováno.
 7. Barvy CO₂ (šalvějová zelená `#8FBF9F`) a PM2.5 (levandulová `#A59DCF`) jsem po vašem „méně agresivní“ zvolil sám; sytost do 40 %, kontrast aspoň 6 : 1, liší se od sebe, od oranžové a červené varování. Ověřit na displeji, zda se zelená u CO₂ nečte jako „v pořádku“, když je číslo oranžové.
-11. Přepínač Přehled | Detail (design nechán na mně): dvě ikony v zaobleném poli vpravo od titulku „Domov“ (jako iOS segment), výchozí Detail, volba v zařízení. Odchylka, která drží celou kartu: stav jiný než Příjemné, konflikt, chybějící nebo zastaralá data. Sbalená místnost je řádek se jménem, stavem, teplotou a vlhkostí. Ověřit na displeji a rozhodnout, zda se stejné chování hodí i pro tabletové rozložení.
 
 <a id="p1-11"></a>
-### P1.11 Stín (0 / 100) se na skutečné žaluzii nezvýrazní · Chyba (čeká na údaje)
+### P1.11 Stín: tolerance ±5 % na skutečné žaluzii · Ověření
 
-Na iPhonu se prostřední ikona (Stín) nezvýrazní při poloze 0 a naklopení 100. V testech se zvýrazní (poloha i naklopení v toleranci ±2 %, také pro stav `closed` a `open`), takže skutečná žaluzie nejspíš hlásí jiné hodnoty (např. naklopení 96 nebo chybějící atribut) nebo ukazuje starou verzi karty. Bez skutečných hodnot toleranci neměním.
-Potřebuji: v Nástroje pro vývojáře → Stavy najít entitu `cover` (např. Mikuláš), nastavit Stín a poslat stav a atributy `current_position` a `current_tilt_position`. Ověřit také, že prohlížeč načetl novou verzi souboru (v aplikaci Home Assistant vynutit obnovení zdrojů).
+Podle vašeho měření žaluzie při otevření lamel vyjede o 3–4 % nahoru, takže Stín je ve skutečnosti 4 / 100 (před otevřením lamel 0 / 0). Poloha i naklopení předvolby se proto porovnávají s tolerancí ±5 % (dřív ±2 %; tolerance platí i pro Den a Tmu, u stavů `open` a `closed` beze změny). Test hlídá 4 / 100 a 5 / 95 jako shodu, 6 / 100 jako neshodu.
+Ověřit: na iPhonu po nastavení Stínu se prostřední ikona rozsvítí a pulzování předvolby skončí. Hraniční případ: Tma a Stín se liší jen naklopením (0 / 0 a 0 / 100), takže se nepletou; Den (100 / 100) a Stín také ne.
 
 <a id="p1-12"></a>
-### P1.12 Na šířku na iPhonu 14 Pro je pořád jedna karta · Rozhodnutí
+### P1.12 Dva sloupce na šířku: záleží na typu zobrazení nástěnky · Ověření
 
-Dva sloupce se zapnou od šířky karty 680 px. V testech to platí (viewport 852 × 393), ale vy vidíte jednu kartu; nástěnka tedy kartě dává méně než 680 px. Pravděpodobná příčina (neověřeno): zobrazení typu Masonry dává kartě sloupec nejvýš asi 500 px; Panel (jedna karta přes celou šířku) kartě dá celou šířku displeje.
-Potřebuji: jaký typ zobrazení (view) nástěnka používá – Masonry, Panel, nebo Sections? Možnosti: u Panelu se nic nemění; u Sections mohu kartě přidat požadavek na plnou šířku sekce; u Masonry je nejjednodušší přepnout zobrazení na Panel. Dva sloupce už ve sloupci 500 px nedávám: místnost by měla asi 244 px, pod podporovaných 304 px.
+Příčina z kódu Home Assistantu (frontend, 24. 10. 2026): zobrazení Masonry dá jediné kartě jeden sloupec nejvýš 500 px (`.column { max-width: 500px }`, počet sloupců je omezen počtem karet), takže se karta na šířku nikdy nezvětší. Karta má dva sloupce od šířky 620 px (dřív 680 px). Řešení podle typu zobrazení:
+- Panel (jedna karta): karta dostane celou šířku, dva sloupce fungují bez úprav.
+- Sections: sloupec má nejvýš 500 px; v sekci s `column_span: 2` je asi 670 px a dva sloupce fungují.
+- Masonry: dvě karty vedle sebe, každá s polovinou místností, druhá s `title: ""` (viz README). Na výšku je Masonry dá pod sebe.
+Ověřit na iPhonu 14 Pro na šířku (852 × 393) v typu zobrazení, který používáte; popsat, který z těch tří to je, kdyby dva sloupce nevyšly.
 
 ## P2 – denní používání
 
@@ -156,11 +157,6 @@ U karty se stavem varování nebo kritickým ilustraci ztlumit (např. na 40 %),
 
 Osa je společná pro celý dům, takže jeden chybný vzorek (např. CO₂ 5 000 ppm po restartu senzoru) zploští trendy všech místností na rovné čáry. Návrh: horní mez osy omezit (CO₂ na 2× kritický práh, PM2.5 na 2× kritický práh, teplota na rozsah 10–35 °C) a vzorek nad mezí kreslit na okraji.
 
-<a id="p3-11"></a>
-### P3.11 Nadpis „Domov“ zdvojený s názvem pohledu · Návrh
-
-Pohled v Home Assistantu má vlastní název a karta pod ním vždy kreslí nadpis „Domov“. Při `title: ""` zůstane prázdné místo. Návrh: `title: ""` nadpis úplně vynechá (souhrn a venkovní podmínky zůstanou).
-
 <a id="p3-12"></a>
 ### P3.12 Méně REST dotazů pro zastaralá data · Návrh
 
@@ -168,4 +164,4 @@ Zastaralá data stojí 1 dotaz na každé měření každých 5 minut a na každ
 
 ## Jak se testuje
 
-`npm test` (viz README, oddíl Testy) spustí v Chromiu 61 testů nad sestavenou kartou a zkušební stránkou `tests/harness.html`: konfigurace z `examples/`, scénáře Zima / Léto / poplach / nedostupné / zastaralé / chyba REST / pohyb žaluzie / dlouhé názvy, šířky 320–768 px, jeden a dva sloupce včetně telefonu na šířku (852 × 393), velikost dotykových cílů měřená hit-testem, Přehled | Detail, konflikty, přístupnost (axe-core), klávesnice, dotyk, předvolby, historie, den změny času a překreslování. Co se v prohlížeči ověřit nedá, je v [P1.9](#p1-9), [P1.11](#p1-11) a [P1.12](#p1-12).
+`npm test` (viz README, oddíl Testy) spustí v Chromiu 61 testů nad sestavenou kartou a zkušební stránkou `tests/harness.html`: konfigurace z `examples/`, scénáře Zima / Léto / poplach / nedostupné / zastaralé / chyba REST / pohyb žaluzie / dlouhé názvy, šířky 320–768 px, jeden a dva sloupce včetně telefonu na šířku (852 × 393), velikost dotykových cílů měřená hit-testem, tolerance předvoleb, doba otevření okna, `title: ""`, konflikty, přístupnost (axe-core), klávesnice, dotyk, předvolby, historie, den změny času a překreslování. Co se v prohlížeči ověřit nedá, je v [P1.9](#p1-9), [P1.11](#p1-11) a [P1.12](#p1-12).

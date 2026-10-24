@@ -15,7 +15,7 @@ export const styles = css`
 
     /*
      * The card measures its own width, not the window: one column of rooms, two columns from
-     * 680 px of card width (a phone on its side, a tablet), never more (CURRENT_SPEC.md,
+     * 620 px of card width (a phone on its side, a tablet), never more (CURRENT_SPEC.md,
      * Room Card). A room that ends up narrow switches to the narrow variables itself.
      */
     .dashboard {
@@ -26,151 +26,6 @@ export const styles = css`
 
     .dashboard-header {
       padding: 0 4px;
-    }
-
-    .title-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-    }
-
-    /* Přehled | Detail (iOS segmented control with two icons). */
-    .view-switch {
-      display: inline-grid;
-      grid-auto-flow: column;
-      gap: 2px;
-      padding: 2px;
-      border-radius: 10px;
-      background: rgb(118 118 128 / 24%);
-    }
-
-    .view-option {
-      position: relative;
-      display: flex;
-      width: 44px;
-      height: 32px;
-      align-items: center;
-      justify-content: center;
-      border-radius: 8px;
-      color: #9a9aa0;
-    }
-
-    .view-option svg {
-      width: 20px;
-      height: 20px;
-    }
-
-    /* Invisible touch target of 44 px in height. */
-    .view-option::after {
-      content: "";
-      position: absolute;
-      inset: -6px 0;
-    }
-
-    .view-option[aria-pressed="true"] {
-      background: #636366;
-      box-shadow: 0 2px 6px rgb(0 0 0 / 30%);
-      color: #ffffff;
-    }
-
-    /* Přehled: a calm room is one row (button.room-compact beats the .plain-button reset below). */
-    button.room-compact {
-      display: flex;
-      width: 100%;
-      min-height: 60px;
-      align-items: center;
-      gap: 12px;
-      box-sizing: border-box;
-      padding: 8px 14px 8px 18px;
-      border: 1px solid rgb(255 255 255 / 7%);
-      border-radius: 20px;
-      background: linear-gradient(165deg, #232326 0%, #1c1c1e 55%);
-      box-shadow: inset 0 1px 0 rgb(255 255 255 / 6%);
-      color: #ffffff;
-    }
-
-    .compact-main {
-      display: grid;
-      min-width: 0;
-      flex: 1;
-    }
-
-    .compact-name {
-      overflow: hidden;
-      font-size: 19px;
-      font-weight: 600;
-      letter-spacing: -0.3px;
-      line-height: 26px;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .compact-status {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-      color: #9a9aa0;
-      font-size: 14px;
-      line-height: 18px;
-    }
-
-    .compact-values {
-      display: flex;
-      align-items: baseline;
-      gap: 10px;
-      font-variant-numeric: tabular-nums;
-      white-space: nowrap;
-    }
-
-    .compact-temperature {
-      font-size: 22px;
-      font-weight: 500;
-      letter-spacing: -0.3px;
-    }
-
-    .compact-humidity {
-      color: #c7c7cc;
-      font-size: 16px;
-    }
-
-    .compact-chevron {
-      display: flex;
-      width: 20px;
-      height: 20px;
-      color: #8e8e93;
-    }
-
-    .compact-chevron svg {
-      width: 20px;
-      height: 20px;
-    }
-
-    /* The title of a room opened in Přehled collapses it again. */
-    .room-title-button {
-      position: relative;
-      display: flex;
-      max-width: 100%;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .room-title-text {
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .room-title-button svg {
-      width: 22px;
-      height: 22px;
-      flex: 0 0 22px;
-      color: #8e8e93;
-    }
-
-    .room-title-button::after {
-      content: "";
-      position: absolute;
-      inset: -6px 0;
     }
 
     h1 {
@@ -238,7 +93,7 @@ export const styles = css`
       gap: 12px;
     }
 
-    @container dashboard (min-width: 680px) {
+    @container dashboard (min-width: 620px) {
       .rooms {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
@@ -276,7 +131,7 @@ export const styles = css`
       /* The window row is a little taller than the others: it is the lowest touch target (44 px with the invisible area below). */
       --window-h: 32px;
       /* Width of the CO₂ / PM2.5 value column; the value may run past it, the trend starts right behind it. */
-      --air-text: 64px;
+      --air-text: 72px;
       /* How far the temperature trend reaches left, under the end of the Topení / Klimatizace texts (it fades out there). */
       --trend-reach: 28px;
       --cover-gap: 4px;
@@ -684,9 +539,11 @@ export const styles = css`
       overflow: visible;
     }
 
+    /* The number is as heavy as "Plán" in the Topení row (the unit stays regular). */
     .air-row .row-label {
       flex: none;
       overflow: visible;
+      font-weight: 500;
     }
 
     .spark.stale {

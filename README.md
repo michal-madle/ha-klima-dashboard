@@ -47,7 +47,33 @@ Typ musí být **JavaScript module**. Pokud zdroj chybí, přidejte ho ručně. 
 
 Soubor YAML je konfigurace **jedné karty**. V editoru karty ji vložte přímo, bez dalších obalových řádků.
 
-Na telefonu na výšku je karta místnosti přes celou šířku karty Domov, na šířku (od šířky karty 680 px) jsou dvě místnosti vedle sebe. Šířku určuje zobrazení nástěnky: aby se dva sloupce uplatnily, musí kartě dát aspoň 680 px (např. zobrazení Panel). V zobrazení, které kartu zúží, zůstane jeden sloupec. Jak to vypadá na iPhonu v aplikaci Home Assistant, je v [TODO P1.9](./TODO.md#p1-9) k ověření.
+Na telefonu na výšku je karta místnosti přes celou šířku karty Domov, na šířku (od šířky karty 620 px) jsou dvě místnosti vedle sebe. Šířku určuje zobrazení nástěnky v Home Assistantu:
+
+| Zobrazení | Kolik místa dostane jediná karta | Dva sloupce na šířku |
+|---|---|---|
+| Panel (1 karta) | celou šířku displeje (na iPhonu 14 Pro na šířku asi 734 px) | ano, bez dalších úprav |
+| Sekce (*Sections*) | sloupec nejvýš 500 px; sekce s `column_span: 2` asi 670 px | ano, v sekci s `column_span: 2` |
+| Masonry | jeden sloupec nejvýš asi 500 px | ne, jediná karta zůstane v jednom sloupci |
+
+V zobrazení Masonry lze dosáhnout dvou sloupců dvěma kartami vedle sebe: každá dostane část místností a druhá má `title: ""` (prázdný název vynechá nadpis i prázdnou hlavičku). Na šířku je Masonry dá vedle sebe, na výšku pod sebe. Konfigurace místností zůstává stejná jako v příkladu; zkopírujte z něj jen potřebné místnosti:
+
+```yaml
+- type: custom:ha-klima-dashboard
+  title: Domov
+  house_mode_entity: input_select.house_mode
+  rooms:
+    - name: Ložnice      # … celá konfigurace místnosti z examples/
+    - name: Pracovna
+    - name: Maxík
+- type: custom:ha-klima-dashboard
+  title: ""
+  house_mode_entity: input_select.house_mode
+  rooms:
+    - name: Mikuláš
+    - name: Obývák
+```
+
+Jak to vypadá na iPhonu v aplikaci Home Assistant, je v [TODO P1.9](./TODO.md#p1-9) k ověření.
 
 ### 5. Zkontrolujte entity
 
@@ -89,8 +115,7 @@ Každá místnost má volitelné klíče `temperature`, `humidity`, `carbon_diox
 ## Ovládání karty
 
 - Klepnutí na teplotu nebo její mikrotrend otevře popup **Historie místnosti – 24 h** ve stylu aplikace pro topení: křivka teploty, vytápění jako oranžová výplň pod ní, cíl Topení, noc, vlhkost a pod grafem vrstvy Topení a Klimatizace. Přejetím prstem po grafu se nahoře ukážou hodnoty v daném čase. Odkaz „Detail teploty“ otevře standardní detail entity.
-- Klepnutí na vlhkost nebo okno otevře standardní detail entity Home Assistantu s grafem historie. CO₂ a PM2.5 (hodnoty i mikrotrendy) jsou jedno tlačítko: s oběma čidly otevře popup **Kvalita vzduchu** s odkazem na detail každé veličiny, s jedním rovnou jeho detail. Klepnutí na panel žaluzie otevře standardní ovládání krytu. Každý klikací prvek má dotykovou plochu aspoň 44 × 44 px (i neviditelnou).
-- Přepínač **Přehled | Detail** vpravo od titulku „Domov“: v Detailu jsou všechny místnosti celé karty, v Přehledu je místnost bez odchylky (stav Příjemné, bez konfliktu) jen jeden řádek se jménem, stavem, teplotou a vlhkostí. Klepnutím se rozbalí (a klepnutím na název zase sbalí); místnost s odchylkou nebo chybějícími daty zůstane celou kartou. Volba se pamatuje jen v daném zařízení.
+- Klepnutí na vlhkost nebo okno otevře standardní detail entity Home Assistantu s grafem historie. CO₂ a PM2.5 (hodnoty i mikrotrendy) jsou jedno tlačítko: s oběma čidly otevře popup **Kvalita vzduchu** s odkazem na detail každé veličiny, s jedním rovnou jeho detail. Klepnutí na panel žaluzie otevře standardní ovládání krytu. Každý klikací prvek má dotykovou plochu aspoň 44 × 44 px (i neviditelnou). U otevřeného okna je slabě vidět, jak dlouho je otevřené („Otevřeno · 12 min“).
 - Hodnota, která rozhodla o stavu místnosti (vlhkost při Vlhko / Sucho, teplota při Teplo / Chladno), má barvu stavu; ostatní zůstávají neutrální.
 - Text „Bez dat“ pod názvem místnosti uvádí první chybějící údaj, např. „Bez dat · režim domu“ (entita `input_select.house_mode` chybí nebo nemá hodnotu Zima/Léto).
 - Měření, které senzor nenahlásil déle než 30 minut (`thresholds.stale_minutes`), je šedé a nebarví se; stav místnosti pak ukáže např. „Bez dat · CO₂ (před 2 h)“. Čas hlášení se čte z REST stavu entity (`last_reported`).
@@ -112,6 +137,6 @@ Po změně ve složce `src/` spusťte v kořeni repozitáře `npm install` a `np
 
 ## Testy
 
-`npm test` kartu sestaví a spustí testy v prohlížeči (Playwright). Testují sestavený `ha-klima-dashboard.js` na zkušební stránce [tests/harness.html](./tests/harness.html) s náhradními daty Home Assistantu ([tests/scenarios.js](./tests/scenarios.js)): rozložení na šířkách 320–768 px, jeden a dva sloupce včetně telefonu na šířku (852 × 393), velikost dotykových cílů (44 × 44 px měřená hit-testem), stavy místností, souhrn a konflikty, Přehled | Detail, zastaralá data, přístupnost (axe-core), klávesnici, dotyk, předvolby žaluzií, historii místnosti, den změny času a překreslování. Scénář „real“ používá stejná ID entit jako [příklad YAML](./examples/domov_prototyp_loznice.yaml); test hlídá, že se neliší.
+`npm test` kartu sestaví a spustí testy v prohlížeči (Playwright). Testují sestavený `ha-klima-dashboard.js` na zkušební stránce [tests/harness.html](./tests/harness.html) s náhradními daty Home Assistantu ([tests/scenarios.js](./tests/scenarios.js)): rozložení na šířkách 320–768 px, jeden a dva sloupce včetně telefonu na šířku (852 × 393), velikost dotykových cílů (44 × 44 px měřená hit-testem), stavy místností, souhrn a konflikty, dobu otevření okna, tloušťku písma CO₂ a PM2.5, `title: ""`, zastaralá data, přístupnost (axe-core), klávesnici, dotyk, předvolby žaluzií (včetně tolerance ±5 %), historii místnosti, den změny času a překreslování. Scénář „real“ používá stejná ID entit jako [příklad YAML](./examples/domov_prototyp_loznice.yaml); test hlídá, že se neliší.
 
 Poprvé je potřeba stáhnout prohlížeč: `npx playwright install chromium`. Volitelně i WebKit (blíž Safari na iPhonu): `npx playwright install webkit` a pak `PW_WEBKIT=1 npm test`. Zkušební stránku lze otevřít i ručně: `node tests/server.mjs` a v prohlížeči `http://127.0.0.1:4173/tests/harness.html?s=real` (scénáře `real`, `full`, `summer`, `alarm`, `stale`, `rest-error`, `unavailable`, `cover-unavailable`, `moving`, `longnames`). Testy nic nepřidávají do karty ani do instalace přes HACS.

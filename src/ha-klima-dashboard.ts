@@ -6,16 +6,14 @@ import { DEFAULT_THRESHOLDS, HOUSE_MODE_ENTITY, normalizeConfig } from "./config
 import { SCRUB_STEP_MS, buildRoomChart, hasChartData, renderRoomChart, timeAtX } from "./charts";
 import type { RoomChartModel } from "./charts";
 import {
-  renderChevronIcon,
   renderClimateIcon,
   renderHeatingOptionIcon,
   renderHeatingWaves,
   renderParticlesIcon,
   renderPresetIcon,
-  renderViewIcon,
   renderWindowIcon,
 } from "./icons";
-import type { DashboardView, HeatingOptionId } from "./icons";
+import type { HeatingOptionId } from "./icons";
 import { SCENE_TONES, renderScene, resolveScene } from "./scenes";
 import {
   HOUR_MS,
@@ -41,7 +39,6 @@ import type {
   HomeAssistant,
   Reading,
   RoomConfig,
-  RoomStatus,
   SheetKind,
   SheetState,
   TrendAxis,
@@ -58,6 +55,7 @@ import {
   climateModeFromState,
   configuredEntityIds,
   formatAge,
+  formatDuration,
   formatOne,
   formatPreset,
   getRoomStatus,
@@ -65,12 +63,14 @@ import {
   measurementEntityIds,
   numberAttribute,
   sameAttributes,
+  spokenDuration,
   stringList,
   trendDirection,
   trendEntityIds,
 } from "./utils";
 
 const TREND_REFRESH_MS = 5 * 60_000;
+const CLOCK_TICK_MS = 30_000;
 const NOTICE_MS = 8_000;
 const NBSP = " ";
 
@@ -113,27 +113,6 @@ interface SheetDrag {
   startY: number;
   startTime: number;
   dragging: boolean;
-}
-
-/** The chosen view (Přehled / Detail) is remembered on this device only. */
-const VIEW_STORAGE_KEY = "ha-klima-dashboard:view";
-const VIEW_LABELS: Record<DashboardView, string> = { overview: "Přehled", detail: "Detail" };
-
-function loadView(): DashboardView {
-  try {
-    return window.localStorage.getItem(VIEW_STORAGE_KEY) === "overview" ? "overview" : "detail";
-  } catch {
-    // Storage can be blocked (private window, site data off): the card then starts in Detail.
-    return "detail";
-  }
-}
-
-function saveView(view: DashboardView): void {
-  try {
-    window.localStorage.setItem(VIEW_STORAGE_KEY, view);
-  } catch {
-    // Not remembered when storage is blocked; the choice still holds until the page is reloaded.
-  }
 }
 
 const CLIMATE_MODE_ORDER = ["off", "cool", "dry", "fan_only", "auto", "heat"];
@@ -181,17 +160,6 @@ export class HaKlimaDashboard extends LitElement {
   @state()
   private _hint?: { key: string; text: string };
 
-  /** Přehled shows calm rooms as one row each, Detail shows every room as a full card. */
-  @state()
-  private _view: DashboardView = loadView();
-
-  /** Rooms the user opened by hand in Přehled; reset when the view is switched. */
-  @state()
-  private _expanded: ReadonlySet<string> = new Set();
-
-  /** Where to put the focus after a room has been expanded or collapsed (its button is replaced). */
-  private _focusRoom?: { name: string; target: "title" | "row" };
-
   /** Segment to focus after switching Topení / Klimatizace with the arrow keys. */
   private _focusSegment?: "heating" | "climate";
 
@@ -212,6 +180,12 @@ export class HaKlimaDashboard extends LitElement {
   private _scrubbing = false;
   private _drag?: SheetDrag;
   private _trendTimer?: number;
+
+  /** Re-renders the card every 30 s while a window is open, so its "open for" time keeps counting. */
+  private _clockTimer?: number;
+
+  @state()
+  private _clock = 0;
   private _noticeTimer?: number;
   private _trendsLoading = false;
   private _trendsStarted = false;
@@ -236,6 +210,12 @@ export class HaKlimaDashboard extends LitElement {
 
   connectedCallback(): void {
     super.connectedCallback();
+    window.clearInterval(this._clockTimer);
+    this._clockTimer = window.setInterval(() => {
+      if (this.anyWindowOpen()) {
+        this._clock = Date.now();
+      }
+    }, CLOCK_TICK_MS);
     this.requestUpdate();
   }
 
@@ -249,7 +229,9 @@ export class HaKlimaDashboard extends LitElement {
       this.endMoving(roomName);
     }
     window.clearInterval(this._trendTimer);
+    window.clearInterval(this._clockTimer);
     this._trendTimer = undefined;
+    this._clockTimer = undefined;
     this._noticeTimer = undefined;
     this._pressTimer = undefined;
     this._flashTimer = undefined;
@@ -278,13 +260,6 @@ export class HaKlimaDashboard extends LitElement {
       window.clearInterval(this._trendTimer);
       this._trendTimer = window.setInterval(() => void this.refreshTrends(), TREND_REFRESH_MS);
     }
-    if (this._focusRoom) {
-      const { name, target } = this._focusRoom;
-      const selector = target === "title" ? ".room-title-button" : ".room-compact";
-      const button = [...this.renderRoot.querySelectorAll<HTMLElement>(selector)].find((item) => item.dataset.room === name);
-      button?.focus();
-      this._focusRoom = undefined;
-    }
     if (this._focusSegment) {
       this.renderRoot.querySelector<HTMLElement>(`.segment[data-system="${this._focusSegment}"]`)?.focus();
       this._focusSegment = undefined;
@@ -295,6 +270,10 @@ export class HaKlimaDashboard extends LitElement {
         this.renderRoot.querySelector<HTMLElement>(".sheet button:not([disabled])");
       first?.focus();
     }
+  }
+
+  private anyWindowOpen(): boolean {
+    return (this._config?.rooms ?? []).some((room) => this.entityState(room.window)?.toLowerCase() === "on");
   }
 
   private hasRelevantEntityChanged(previousHass: HomeAssistant | undefined): boolean {
@@ -330,20 +309,26 @@ export class HaKlimaDashboard extends LitElement {
     const thresholds = this.thresholds();
     const axes = this.trendAxes(this._config);
     const now = Date.now();
+    // An empty title leaves the heading out; the header disappears when nothing else is in it
+    // (the second of two cards side by side in a Masonry view, CURRENT_SPEC.md, Dashboard Domov).
+    const title = this._config.title ?? "Domov";
+    const outside = this.renderOutside();
+    const chips = houseSummary(
+      this._config.rooms,
+      (entityId) => this.getState(entityId),
+      this.coldRooms(isSummer, modeKnown, thresholds, now),
+    );
+    const hasHeader = title !== "" || outside !== nothing || chips.length > 0;
 
     return html`
       <ha-card>
         <div class="dashboard">
-          <header class="dashboard-header">
-            <div class="title-row">
-              <h1>${this._config.title ?? "Domov"}</h1>
-              ${this.renderViewSwitch()}
-            </div>
-            ${this.renderOutside()}
-            ${this.renderSummary(
-              houseSummary(this._config.rooms, (entityId) => this.getState(entityId), this.coldRooms(isSummer, modeKnown, thresholds, now)),
-            )}
-          </header>
+          ${hasHeader
+            ? html`<header class="dashboard-header">
+                ${title === "" ? nothing : html`<h1>${title}</h1>`}
+                ${outside} ${this.renderSummary(chips)}
+              </header>`
+            : nothing}
           ${this._notice ? html`<div class="notice" role="alert">${this._notice}</div>` : nothing}
           <div class="rooms">
             ${this._config.rooms.map((room, index) =>
@@ -354,46 +339,6 @@ export class HaKlimaDashboard extends LitElement {
         ${this.renderSheet(isSummer)}
       </ha-card>
     `;
-  }
-
-  /** Přehled | Detail, next to the title (CURRENT_SPEC.md, Dashboard Domov). */
-  private renderViewSwitch(): TemplateResult {
-    return html`<div class="view-switch" role="group" aria-label="Zobrazení">
-      ${(["overview", "detail"] as const).map(
-        (view) => html`<button
-          type="button"
-          class="plain-button view-option"
-          aria-pressed=${this._view === view ? "true" : "false"}
-          aria-label=${VIEW_LABELS[view]}
-          title=${VIEW_LABELS[view]}
-          @click=${() => this.setView(view)}
-        >
-          ${renderViewIcon(view)}
-        </button>`,
-      )}
-    </div>`;
-  }
-
-  private setView(view: DashboardView): void {
-    if (view === this._view) {
-      return;
-    }
-    this._view = view;
-    this._expanded = new Set();
-    saveView(view);
-    this.haptic("selection");
-  }
-
-  private expandRoom(name: string): void {
-    this._expanded = new Set([...this._expanded, name]);
-    this._focusRoom = { name, target: "title" };
-    this.haptic("selection");
-  }
-
-  private collapseRoom(name: string): void {
-    this._expanded = new Set([...this._expanded].filter((item) => item !== name));
-    this._focusRoom = { name, target: "row" };
-    this.haptic("selection");
   }
 
   private thresholds(): DashboardThresholds {
@@ -536,13 +481,6 @@ export class HaKlimaDashboard extends LitElement {
       status.cause === cause ? `color: ${status.color}` : nothing;
     const conflicts = roomConflicts(room, (entityId) => this.getState(entityId), status.label === "Chladno");
 
-    // Přehled: a room without any deviation is one row, unless the user opened it (CURRENT_SPEC.md, Přehled).
-    const overview = this._view === "overview";
-    const opened = overview && this._expanded.has(room.name);
-    if (overview && !opened && status.kind === "normal" && conflicts.length === 0) {
-      return this.renderCompactRoom(room, index, status, temperature, humidity);
-    }
-
     return html`
       <div class="room-cell"><article
         class="room"
@@ -550,18 +488,7 @@ export class HaKlimaDashboard extends LitElement {
         style=${scene ? `--scene-tone: ${SCENE_TONES[scene]}` : nothing}
       >
         ${scene ? html`<div class="scene" aria-hidden="true">${renderScene(scene)}</div>` : nothing}
-        ${opened
-          ? html`<button
-              type="button"
-              class="plain-button room-title room-title-button"
-              data-room=${room.name}
-              aria-expanded="true"
-              aria-label=${`Sbalit místnost ${room.name}`}
-              @click=${() => this.collapseRoom(room.name)}
-            >
-              <span class="room-title-text">${room.name}</span>${renderChevronIcon("up")}
-            </button>`
-          : html`<div class="room-title">${room.name}</div>`}
+        <div class="room-title">${room.name}</div>
         <div class="status-line">
           <span
             class="status-dot"
@@ -610,7 +537,7 @@ export class HaKlimaDashboard extends LitElement {
             ${this.renderAirBlock(room, index, co2, pm25, thresholds, axes)}
             ${this.renderHvac(room, isSummer, index)}
             ${this.renderTemperatureTrend(room, temperature, axes.temperature)}
-            ${this.renderWindow(room, conflicts)}
+            ${this.renderWindow(room, index, conflicts, now)}
           </div>
           ${room.cover
             ? this.renderCover(room, room.cover)
@@ -621,41 +548,9 @@ export class HaKlimaDashboard extends LitElement {
     `;
   }
 
-  /** One calm room as a single row: name, status, temperature and humidity; a tap opens the full card. */
-  private renderCompactRoom(
-    room: RoomConfig,
-    index: number,
-    status: RoomStatus,
-    temperature: Reading,
-    humidity: Reading,
-  ): TemplateResult {
-    const temperatureText = temperature.value === undefined ? "––" : `${formatOne(temperature.value)}${NBSP}°C`;
-    const humidityText = humidity.value === undefined ? "––" : `${Math.round(humidity.value)}${NBSP}%`;
-    const descriptionId = `compact-description-${index}`;
-    // The accessible name is the visible text (WCAG 2.5.3 Label in Name); the room's values in
-    // words and the action are the description.
-    return html`<div class="room-cell">
-      <button
-        type="button"
-        class="plain-button room-compact"
-        data-room=${room.name}
-        aria-expanded="false"
-        aria-describedby=${descriptionId}
-        @click=${() => this.expandRoom(room.name)}
-      >
-        <span class="compact-main">
-          <span class="compact-name">${room.name}</span>
-          <span class="compact-status"><span class="status-dot" style=${`background: ${status.color}`}></span>${status.label}</span>
-        </span>
-        <span class="compact-values"><span class="compact-temperature">${temperatureText}</span><span class="compact-humidity">${humidityText}</span></span>
-        <span class="compact-chevron" aria-hidden="true">${renderChevronIcon("down")}</span>
-      </button>
-      <span class="sr-only" id=${descriptionId}
-        >${`${room.name}: ${status.label}, ${
-          temperature.value === undefined ? "teplota neznámá" : `${formatOne(temperature.value)} °C`
-        }, ${humidity.value === undefined ? "vlhkost neznámá" : `vlhkost ${Math.round(humidity.value)} %`}. Rozbalí místnost.`}</span
-      >
-    </div>`;
+  /** On the lighter ground of the popup options the critical red needs a lighter shade to stay readable. */
+  private popupColor(color: string): string {
+    return color === COLORS.alert ? COLORS.alertOnPopup : color;
   }
 
   /** Colour of a CO₂ / PM2.5 number: white, orange from the warning limit, red from the critical one; grey without a fresh value. */
@@ -750,7 +645,7 @@ export class HaKlimaDashboard extends LitElement {
               <span>${label}</span>
               <span class="option-hint">Detail a historie</span>
             </span>
-            <span class="air-value" style=${`color: ${this.airColor(reading, warning, critical)}`}>
+            <span class="air-value" style=${`color: ${this.popupColor(this.airColor(reading, warning, critical))}`}>
               ${hasValue
                 ? `${Math.round(reading.value as number)} ${unit}`
                 : html`<span aria-hidden="true">––</span><span class="sr-only">neznámé</span>`}
@@ -969,41 +864,53 @@ export class HaKlimaDashboard extends LitElement {
 
   // ---------------------------------------------------------------- window
 
-  private renderWindow(room: RoomConfig, conflicts: RoomConflict[]): TemplateResult {
+  private renderWindow(room: RoomConfig, index: number, conflicts: RoomConflict[], now: number): TemplateResult {
     const entityId = room.window;
-    const state = this.entityState(entityId)?.toLowerCase();
+    const entity = this.getState(entityId);
+    const state = entity?.state.toLowerCase();
     const unavailable = state === undefined || isUnavailable(state);
     const opened = state === "on";
     // Red is reserved for critical air values (CURRENT_SPEC.md, Barvy); an open window is
     // emphasised in light sky blue.
     const color = unavailable ? COLORS.label : opened ? COLORS.sky : COLORS.label;
     const label = unavailable ? "––" : opened ? "Otevřeno" : "Zavřeno";
+    // How long the window has been open, faintly after the label (the state's last_changed).
+    const changed = opened ? Date.parse(entity?.last_changed ?? "") : Number.NaN;
+    const minutesOpen = Number.isNaN(changed) ? undefined : Math.max(0, (now - changed) / 60_000);
     // A subtle orange dot when the open window contradicts the heating or cooling.
     const conflict = conflicts.includes("window-heating")
       ? "otevřené okno při topení"
       : conflicts.includes("window-cooling")
         ? "otevřené okno při chlazení"
         : undefined;
+    const descriptionId = `window-description-${index}`;
+    const spoken = unavailable
+      ? "okno neznámé"
+      : `okno ${opened ? "otevřené" : "zavřené"}${minutesOpen === undefined ? "" : `, otevřené ${spokenDuration(minutesOpen)}`}`;
 
+    // The accessible name is the visible text (WCAG 2.5.3 Label in Name); the room, the
+    // conflict and the action are the description.
     return html`
       <button
         type="button"
         class="plain-button system-row slot-window ${opened ? "strong" : ""}"
         style=${`--row-color: ${color}`}
         ?disabled=${!entityId}
-        aria-label=${`${room.name}: okno ${unavailable ? "neznámé" : label.toLowerCase()}${
-          conflict ? `, konflikt: ${conflict}` : ""
-        }, detail a historie`}
+        aria-describedby=${descriptionId}
         @click=${() => this.showMoreInfo(entityId)}
       >
         <span class="row-main">
           <span class="row-icon">${renderWindowIcon(unavailable ? COLORS.off : color, unavailable)}</span>
           <span class="row-text">
             <span class="row-label">${label}</span>
+            ${minutesOpen === undefined ? nothing : html`<span class="row-unit window-duration">${NBSP}·${NBSP}${formatDuration(minutesOpen)}</span>`}
             ${conflict ? html`<span class="conflict-dot" aria-hidden="true"></span>` : nothing}
           </span>
         </span>
       </button>
+      <span class="sr-only" id=${descriptionId}
+        >${`${room.name}: ${spoken}${conflict ? `; konflikt: ${conflict}` : ""}. Otevře detail a historii.`}</span
+      >
     `;
   }
 
