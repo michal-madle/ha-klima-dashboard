@@ -4,6 +4,7 @@ import type {
   DashboardConfig,
   DashboardThresholds,
   EntityId,
+  Reading,
   RoomStatus,
   ClimateMode,
   TrendKind,
@@ -114,39 +115,45 @@ export function climateModeFromState(state: string | undefined): ClimateMode {
   }
 }
 
+export interface RoomReadings {
+  temperature: Reading;
+  humidity: Reading;
+  co2: Reading;
+  pm25: Reading;
+}
+
+/**
+ * Room status (CURRENT_SPEC.md, Stavový systém). A stale reading counts as missing, so old
+ * data never colour the room and never give "Příjemné".
+ */
 export function getRoomStatus(
-  temperature: number | undefined,
-  humidity: number | undefined,
-  co2: number | undefined,
-  pm25: number | undefined,
+  readings: RoomReadings,
   isSummer: boolean,
   modeKnown: boolean,
   thresholds: DashboardThresholds,
 ): RoomStatus {
-  // "Bez dat" names the first missing required value, so the user knows what to fix
+  // "Bez dat" names the first missing or stale required value, so the user knows what to fix
   // (CURRENT_SPEC.md, Chybějící data).
-  const missing = (
-    [
-      ["teplota", temperature !== undefined],
-      ["vlhkost", humidity !== undefined],
-      ["CO₂", co2 !== undefined],
-      ["PM2.5", pm25 !== undefined],
-      ["režim domu", modeKnown],
-    ] as Array<[string, boolean]>
-  ).find(([, present]) => !present);
-  if (
-    missing ||
-    temperature === undefined ||
-    humidity === undefined ||
-    co2 === undefined ||
-    pm25 === undefined
-  ) {
-    return {
-      label: missing ? `Bez dat · ${missing[0]}` : "Bez dat",
-      color: COLORS.label,
-      kind: "unknown",
-    };
+  const required: Array<[string, Reading | undefined]> = [
+    ["teplota", readings.temperature],
+    ["vlhkost", readings.humidity],
+    ["CO₂", readings.co2],
+    ["PM2.5", readings.pm25],
+    ["režim domu", modeKnown ? { value: 1 } : undefined],
+  ];
+  for (const [name, reading] of required) {
+    if (reading?.value === undefined) {
+      return { label: `Bez dat · ${name}`, color: COLORS.label, kind: "unknown" };
+    }
+    if (reading.stale) {
+      const age = reading.ageMinutes === undefined ? "" : ` (před ${formatAge(reading.ageMinutes)})`;
+      return { label: `Bez dat · ${name}${age}`, color: COLORS.label, kind: "unknown" };
+    }
   }
+  const temperature = readings.temperature.value as number;
+  const humidity = readings.humidity.value as number;
+  const co2 = readings.co2.value as number;
+  const pm25 = readings.pm25.value as number;
   if (pm25 >= thresholds.pm25_critical) {
     return { label: "Znečištěný vzduch", color: COLORS.alert, kind: "critical" };
   }
@@ -279,4 +286,58 @@ export function sameAttributes(
     previousKeys.length === currentKeys.length &&
     previousKeys.every((key) => Object.hasOwn(current, key) && previous[key] === current[key])
   );
+}
+
+/** "45 min", "2 h", "3 d". */
+export function formatAge(minutes: number): string {
+  if (minutes < 60) {
+    return `${Math.max(1, Math.round(minutes))} min`;
+  }
+  if (minutes < 48 * 60) {
+    return `${Math.floor(minutes / 60)} h`;
+  }
+  return `${Math.floor(minutes / (24 * 60))} d`;
+}
+
+/**
+ * Spoken direction of a micro trend for screen readers: the change between the first and the
+ * last sample against half of the axis step (0,5 °C, 50 ppm, 2,5 µg/m³ over 2 h).
+ */
+export function trendDirection(
+  samples: Array<number | undefined> | undefined,
+  step: number,
+): "stoupá" | "klesá" | "stabilní" | undefined {
+  const defined = (samples ?? []).filter((value): value is number => value !== undefined);
+  if (defined.length < 2) {
+    return undefined;
+  }
+  const change = defined[defined.length - 1] - defined[0];
+  if (change >= step / 2) {
+    return "stoupá";
+  }
+  if (change <= -step / 2) {
+    return "klesá";
+  }
+  return "stabilní";
+}
+
+/** Czech plural: 1 okno, 2–4 okna, 5+ oken. */
+export function plural(count: number, one: string, few: string, many: string): string {
+  if (count === 1) {
+    return one;
+  }
+  return count >= 2 && count <= 4 ? few : many;
+}
+
+/** The four ALPSTUGA measurements of a room, the only entities checked for stale data. */
+export function measurementEntityIds(config: DashboardConfig): EntityId[] {
+  const entityIds = new Set<EntityId>();
+  for (const room of config.rooms) {
+    for (const entityId of [room.temperature, room.humidity, room.carbon_dioxide, room.pm25]) {
+      if (entityId) {
+        entityIds.add(entityId);
+      }
+    }
+  }
+  return [...entityIds];
 }

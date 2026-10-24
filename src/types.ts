@@ -3,6 +3,9 @@ export type EntityId = string;
 export interface HassEntity {
   state: string;
   attributes: Record<string, unknown>;
+  /** ISO time; changes only when the state or an attribute changes. */
+  last_updated?: string;
+  last_changed?: string;
 }
 
 export interface HomeAssistant {
@@ -13,6 +16,8 @@ export interface HomeAssistant {
     serviceData?: Record<string, unknown>,
   ): Promise<unknown>;
   callWS<T>(message: Record<string, unknown>): Promise<T>;
+  /** REST call, e.g. GET states/<entity_id> (whose answer includes last_reported). */
+  callApi?<T>(method: "GET" | "POST" | "PUT" | "DELETE", path: string): Promise<T>;
 }
 
 export interface RoomConfig {
@@ -70,6 +75,8 @@ export interface DashboardThresholds {
   winter_max: number;
   summer_min: number;
   summer_max: number;
+  /** A room measurement not reported for this many minutes is stale (dimmed, never coloured). */
+  stale_minutes: number;
 }
 
 export interface DashboardConfig {
@@ -83,6 +90,10 @@ export interface DashboardConfig {
 
 export interface Reading {
   value?: number;
+  /** Not reported for longer than `stale_minutes`. */
+  stale?: boolean;
+  /** Minutes since the sensor last reported, when known. */
+  ageMinutes?: number;
 }
 
 export interface RoomStatus {

@@ -96,6 +96,23 @@ Formát každého bodu: **Navrženo** → **Opuštěno, protože** → **Nahraze
 26. **„Bez dat“ bez důvodu**
     - Opuštěno, protože: uživatel nevěděl, proč karta s viditelnými hodnotami hlásí „Bez dat“ (chyběl režim domu).
     - Nahrazeno: „Bez dat · první chybějící údaj“.
+27. **Dva samostatné dotykové cíle Topení a Klimatizace (26 px)**
+    - Opuštěno, protože: cíle byly menší než 44 pt a sousedily (TODO P1.2).
+    - Nahrazeno: jeden cíl přes oba řádky; popup otevře primární systém a segmentový přepínač vede na druhý.
+28. **Skrytá cílová teplota HVAC na úzkém displeji**
+    - Opuštěno, protože: na iPhonu se „WindFree · 22 °C“ ani „Ručně · 22,5 °C“ nevešly a cíl chyběl (TODO P1.1).
+    - Nahrazeno: mikrotrendy se doleva ztrácejí a text HVAC smí přesáhnout do 40 % sloupce trendů.
+29. **Glyfy předvoleb žaluzií ve stylu Shelly (kolejnice + čáry) a krátce rám okna s lamelami**
+    - Opuštěno, protože: neodpovídaly ikonám, které uživatel posílal; verze s rámem okna se na 18 px četla jako „dokument“ (TODO P1.4).
+    - Nahrazeno: plná kolejnice a lamely ve stylu symbolů žaluzií z aplikace Domácnost, 20 px.
+30. **Jednoduché klepnutí na předvolbu bez odezvy**
+    - Opuštěno, protože: působilo jako nefunkční tlačítko (TODO P1.3).
+    - Nahrazeno: bublina „Podržte nebo klepněte dvakrát“ a haptika.
+31. **Historie místnosti s popisky vlevo, samostatným pruhem Intenzita a bez prohlížení**
+    - Opuštěno, protože: nebyla jako v aplikaci pro topení, popisky měly 9 px a graf se zmenšoval (TODO P2.7–P2.9).
+    - Nahrazeno: vytápění jako oranžová výplň pod křivkou, schodovitý cíl, noc, stupnice vpravo, řádek údajů a prohlížení prstem.
+32. **Popup jen se zavřením ✕ / klepnutím mimo / Escape**
+    - Nahrazeno: iOS list s úchytem a zavřením tažením dolů (TODO P2.11).
 
 ## Zamítnuté návrhy
 
@@ -138,4 +155,5 @@ Formát každého bodu: **Navrženo** → **Opuštěno, protože** → **Nahraze
    - Původní repozitářový kód v `src/` a první prototyp karty tento návrh nereflektují (stav uživatel potvrdil).
 7. **v7 – ovládání a Shelly presety (24. 10.):** vlastní 24h grafy nahrazeny standardním detailem entity; přibyl popup ovládání Topení (Vypnuto / Plán / Ručně / Boost) a Klimatizace (režimy, předvolby); presety žaluzií jsou tři kulaté Shelly tlačítka spouštěná dvojitým klepnutím nebo dlouhým stiskem (Ráno zrušeno); mikrotrendy přesunuty k hodnotám; vlhkost a CO₂/PM2.5 bez dat bez barvy; volitelná ilustrace místnosti.
 8. **v8 – sloupec trendů (24. 10.):** informační řádky rozdělené na dva stejně široké sloupce (hodnoty | mikrotrendy), trend teploty u řádků Topení a Klimatizace, společná osa trendů pro celý dům, jednotná velikost ikon, hodnot a jednotek, výchozí ilustrace podle názvu místnosti.
-9. **v9 – historie zpět (aktuální návrh, 24. 10.):** popup „Historie místnosti – 24 h“ znovu otevírá teplota a její trend; kvalita vzduchu oddělená mezerou od HVAC řádků; trendy končí 1,5× mezery před předvolbami; utlumená spuštěná žaluzie; obdélníková ilustrace; „Bez dat“ s důvodem.
+9. **v9 – historie zpět (24. 10.):** popup „Historie místnosti – 24 h“ znovu otevírá teplota a její trend; kvalita vzduchu oddělená mezerou od HVAC řádků; trendy končí 1,5× mezery před předvolbami; utlumená spuštěná žaluzie; obdélníková ilustrace; „Bez dat“ s důvodem.
+10. **v10 – TODO P1/P2 (aktuální návrh, 24. 10.):** souhrn domu ve štítcích, jeden dotykový cíl Topení + Klimatizace s přepínačem v popupu, trendy blednoucí doleva, nápověda a haptika předvoleb, nové ikony předvoleb, zastaralá data, načítání a VoiceOver u trendů, pulz kolejnice při pohybu žaluzie, historie podle aplikace pro topení s prohlížením prstem, popup jako iOS list.

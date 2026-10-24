@@ -85,3 +85,4 @@ rooms:
 #   winter_max: 24
 #   summer_min: 21
 #   summer_max: 25
+#   stale_minutes: 30   # measurement not reported for longer is shown grey and counts as missing

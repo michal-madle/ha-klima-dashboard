@@ -67,6 +67,7 @@ export function renderBlindShape(
   });
 
   return svg`<rect
+      class="rail"
       x="0"
       y="0"
       width=${BLIND_WIDTH}

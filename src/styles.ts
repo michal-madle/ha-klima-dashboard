@@ -37,6 +37,42 @@ export const styles = css`
       font-size: 0.9rem;
     }
 
+    /* House summary: chips only for what differs from a quiet house. */
+    .summary {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin: 10px 0 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 30px;
+      padding: 0 12px 0 9px;
+      border-radius: 15px;
+      background: color-mix(in srgb, var(--chip-color) 14%, #1c1c1e);
+      color: var(--chip-color);
+      font-size: 14px;
+      font-weight: 500;
+      line-height: 30px;
+      white-space: nowrap;
+    }
+
+    .chip-icon {
+      display: flex;
+      width: 18px;
+      height: 18px;
+    }
+
+    .chip-icon svg {
+      width: 18px;
+      height: 18px;
+    }
+
     .notice {
       padding: 8px 12px;
       border-radius: 12px;
@@ -206,6 +242,12 @@ export const styles = css`
       color: #8e8e93;
     }
 
+    /* Stale value: dimmed, never coloured (CURRENT_SPEC.md, Chybějící data). */
+    .temperature.stale,
+    .humidity.stale {
+      color: #8e8e93;
+    }
+
     /*
      * Lower part: info rows | blind presets | blind panel. The blind panel is as tall as the
      * info rows (5 × --row-h), so it starts at the CO₂ row.
@@ -242,14 +284,24 @@ export const styles = css`
     }
 
     /* Row 3 is the gap between the air rows and the Topení / Klimatizace / window rows. */
-    .slot-hvac1 {
-      grid-column: 1;
-      grid-row: 4;
+    /*
+     * Topení + Klimatizace: one touch target over both rows. It may grow into the faded start
+     * of the temperature trend (up to 40 % of the trend column) so a target such as
+     * "WindFree · 22 °C" stays whole, and sits above the trend.
+     */
+    .slot-hvac {
+      grid-column: 1 / -1;
+      grid-row: 4 / span 2;
+      justify-self: start;
+      max-width: calc((100% - var(--info-gap)) / 2 * 1.4 + var(--info-gap));
     }
 
-    .slot-hvac2 {
-      grid-column: 1;
-      grid-row: 5;
+    .hvac {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-rows: var(--row-h) var(--row-h);
+      min-width: 0;
     }
 
     .slot-temperature-trend {
@@ -363,6 +415,30 @@ export const styles = css`
       padding: 5px calc(var(--preset-gap) / 2 + 2.5px) 5px 3px;
     }
 
+    /* Trends fade out to the left, so text running into them stays readable. */
+    .spark {
+      -webkit-mask-image: linear-gradient(to right, transparent, #000 55%);
+      mask-image: linear-gradient(to right, transparent, #000 55%);
+    }
+
+    .spark.stale {
+      opacity: 0.35;
+    }
+
+    .spark.loading {
+      color: #8e8e93;
+      animation: loading 1.4s ease-in-out infinite alternate;
+    }
+
+    @keyframes loading {
+      from {
+        opacity: 0.35;
+      }
+      to {
+        opacity: 0.8;
+      }
+    }
+
     .trend-button .spark {
       padding-top: 7px;
       padding-bottom: 7px;
@@ -423,8 +499,8 @@ export const styles = css`
 
     .preset svg {
       display: block;
-      width: 18px;
-      height: 18px;
+      width: 20px;
+      height: 20px;
     }
 
     .preset .progress {
@@ -453,6 +529,33 @@ export const styles = css`
       background: color-mix(in srgb, var(--tone) 22%, #2c2c2e);
     }
 
+    /* "Podržte nebo klepněte dvakrát" after a single tap, to the left of the button. */
+    .preset-hint {
+      position: absolute;
+      z-index: 3;
+      top: 50%;
+      right: calc(100% + 8px);
+      padding: 6px 10px;
+      border-radius: 10px;
+      background: #3a3a3c;
+      box-shadow: 0 4px 16px rgb(0 0 0 / 40%);
+      color: #ffffff;
+      font-size: 13px;
+      font-weight: 500;
+      line-height: 18px;
+      white-space: nowrap;
+      transform: translateY(-50%);
+      animation: hint-in 160ms ease-out;
+      pointer-events: none;
+    }
+
+    @keyframes hint-in {
+      from {
+        opacity: 0;
+        transform: translate(6px, -50%);
+      }
+    }
+
     .preset.sent {
       animation: sent 700ms ease-out;
     }
@@ -478,6 +581,17 @@ export const styles = css`
       height: 100%;
     }
 
+    /* While the blind moves, its top rail pulses softly. */
+    .cover-panel.moving .rail {
+      animation: rail 900ms ease-in-out infinite alternate;
+    }
+
+    @keyframes rail {
+      to {
+        opacity: 0.25;
+      }
+    }
+
     .cover-panel svg {
       display: block;
       width: 100%;
@@ -491,7 +605,7 @@ export const styles = css`
       display: flex;
       align-items: flex-end;
       justify-content: center;
-      background: rgb(0 0 0 / 60%);
+      background: rgb(0 0 0 / calc(60% * var(--backdrop-opacity, 1)));
     }
 
     .sheet {
@@ -507,6 +621,27 @@ export const styles = css`
       background: #1c1c1e;
       color: #ffffff;
       animation: rise 220ms ease-out;
+      transition: transform 220ms ease-out;
+    }
+
+    .sheet.dragging {
+      transition: none;
+    }
+
+    /* Grabber and title: pull down to close. */
+    .sheet-top {
+      margin: -8px -16px 0;
+      padding: 8px 16px 0;
+      touch-action: none;
+      cursor: grab;
+    }
+
+    .grabber {
+      width: 36px;
+      height: 5px;
+      margin: 0 auto 10px;
+      border-radius: 3px;
+      background: rgb(255 255 255 / 28%);
     }
 
     @keyframes rise {
@@ -525,6 +660,40 @@ export const styles = css`
         border-bottom: 1px solid rgb(255 255 255 / 10%);
         border-radius: 24px;
       }
+
+      .grabber {
+        display: none;
+      }
+    }
+
+    /* Topení | Klimatizace in the HVAC popup (iOS segmented control). */
+    .segmented {
+      display: grid;
+      grid-auto-columns: 1fr;
+      grid-auto-flow: column;
+      gap: 2px;
+      margin: 4px 0 14px;
+      padding: 2px;
+      border-radius: 10px;
+      background: rgb(118 118 128 / 24%);
+    }
+
+    .segment {
+      min-height: 36px;
+      border-radius: 8px;
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 500;
+      text-align: center;
+    }
+
+    .segment[aria-selected="true"] {
+      background: #636366;
+      box-shadow: 0 2px 6px rgb(0 0 0 / 30%);
+    }
+
+    .system-name {
+      margin-top: 0;
     }
 
     .sheet-head {
@@ -636,7 +805,7 @@ export const styles = css`
       gap: 8px;
     }
 
-    .chip {
+    .chip-button {
       min-height: 44px;
       padding: 0 16px;
       border: 1px solid rgb(255 255 255 / 8%);
@@ -646,7 +815,7 @@ export const styles = css`
       font-size: 14px;
     }
 
-    .chip[aria-pressed="true"] {
+    .chip-button[aria-pressed="true"] {
       border-color: rgb(100 210 255 / 70%);
       background: rgb(100 210 255 / 18%);
     }
@@ -662,45 +831,124 @@ export const styles = css`
       text-align: center;
     }
 
-    /* „Historie místnosti – 24 h“ */
-    .chart {
-      display: block;
-      width: 100%;
-      height: auto;
+    /* „Historie místnosti – 24 h“: readout, chart 1:1 in CSS pixels, legend. */
+    .chart-wrap {
+      margin: 0 -2px;
+      padding: 0 2px;
+      border-radius: 12px;
+      touch-action: pan-y;
+      user-select: none;
+      -webkit-user-select: none;
     }
 
-    .legend {
+    .chart-wrap:focus-visible {
+      outline: 2px solid var(--primary-color, #64b5f6);
+      outline-offset: 2px;
+    }
+
+    .readout {
+      display: grid;
+      gap: 2px;
+      min-height: 46px;
+      margin-bottom: 8px;
+    }
+
+    .readout-main {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .readout-time {
+      min-width: 3.4em;
+      color: #9a9aa0;
+      font-size: 15px;
+    }
+
+    .readout-temp {
+      font-size: 22px;
+      font-weight: 600;
+    }
+
+    .readout-hum {
+      color: #64d2ff;
+      font-size: 15px;
+    }
+
+    .readout-systems {
       display: flex;
       flex-wrap: wrap;
-      gap: 4px 12px;
-      margin-top: 6px;
-      color: #9a9aa0;
-      font-size: 11px;
+      gap: 2px 14px;
+      font-size: 13px;
+      line-height: 20px;
     }
 
-    .legend-item {
+    .readout-system {
       display: inline-flex;
       align-items: center;
       gap: 5px;
     }
 
+    .readout-icon,
+    .readout-icon svg {
+      display: block;
+      width: 16px;
+      height: 16px;
+    }
+
+    .chart {
+      display: block;
+      max-width: 100%;
+      height: auto;
+      font-family: inherit;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px 14px;
+      margin-top: 8px;
+      color: #9a9aa0;
+      font-size: 13px;
+      line-height: 18px;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
     .legend-swatch {
       box-sizing: border-box;
-      width: 12px;
-      height: 8px;
+      width: 14px;
+      height: 9px;
       border-radius: 2px;
     }
 
+    .legend-swatch.line,
     .legend-swatch.dashed {
       height: 0;
-      border-top: 2px dashed;
+      border-top: 2px solid;
       border-radius: 0;
+    }
+
+    .legend-swatch.dashed {
+      border-top-style: dashed;
     }
 
     @media (prefers-reduced-motion: reduce) {
       .sheet,
-      .preset.sent {
+      .preset.sent,
+      .preset-hint,
+      .spark.loading,
+      .cover-panel.moving .rail {
         animation: none;
+      }
+
+      .sheet {
+        transition: none;
       }
     }
 

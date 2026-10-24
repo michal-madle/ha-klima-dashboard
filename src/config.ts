@@ -14,6 +14,7 @@ export const DEFAULT_THRESHOLDS: DashboardThresholds = {
   winter_max: 24,
   summer_min: 21,
   summer_max: 25,
+  stale_minutes: 30,
 };
 
 export function normalizeConfig(config: DashboardConfig): DashboardConfig {
@@ -63,6 +64,9 @@ export function normalizeConfig(config: DashboardConfig): DashboardConfig {
     thresholds.summer_min > thresholds.summer_max
   ) {
     throw new Error("Threshold ranges must be in ascending order.");
+  }
+  if (thresholds.stale_minutes <= 0) {
+    throw new Error('Threshold "stale_minutes" must be greater than 0.');
   }
 
   return { ...config, thresholds };
