@@ -103,6 +103,13 @@ export const styles = css`
       --col: 60px;
       --preset-col: 36px;
       --preset-icon: 32px;
+      /*
+       * Blind preset icons: dim grey; the one matching the blind is lit in a muted tone of the
+       * blind's champagne, on a soft rounded square of the same tone.
+       */
+      --preset-idle: #6f6f74;
+      --preset-on: #c9c0a8;
+      --preset-glow: rgb(232 217 181 / 13%);
       --cover-gap: 4px;
       position: relative;
       overflow: hidden;
@@ -482,10 +489,12 @@ export const styles = css`
     }
 
     /*
-     * One column of three icon buttons (no frame) to the right of the blind panel, in the order
-     * Den, Stín, Tma, each a third of the panel height. Grey, white when it matches the blind's
-     * state. They are pressed by a long press or a double tap; while the button is held a soft
-     * square grows behind the icon.
+     * One column of three icon buttons to the right of the blind panel, in the order Den,
+     * Stín, Tma, each a third of the panel height. Dim grey; the icon that matches the state
+     * of the blind is lit: its colour brightens and a soft rounded square glows behind it.
+     * While a preset is on its way, the square behind its icon fades in and out (and the icon
+     * with it) until the blind arrives. They are pressed by a long press or a double tap;
+     * while the button is held the square grows behind the icon.
      */
     .presets {
       display: flex;
@@ -501,8 +510,8 @@ export const styles = css`
       width: 100%;
       min-height: 0;
       border-radius: 10px;
-      color: #8e8e93;
-      transition: color 160ms ease-out;
+      color: var(--preset-idle);
+      transition: color 220ms ease-out;
       touch-action: manipulation;
       user-select: none;
       -webkit-user-select: none;
@@ -525,9 +534,12 @@ export const styles = css`
       height: var(--preset-col);
       margin: auto;
       border-radius: 10px;
-      background: rgb(255 255 255 / 16%);
+      background: var(--preset-glow);
       opacity: 0;
       transform: scale(0.6);
+      transition:
+        opacity 220ms ease-out,
+        transform 220ms ease-out;
     }
 
     .preset:active svg {
@@ -540,12 +552,46 @@ export const styles = css`
 
     /* The icon that matches the state of the blind. */
     .preset[aria-pressed="true"] {
-      color: #ffffff;
+      color: var(--preset-on);
+    }
+
+    .preset[aria-pressed="true"]::before {
+      opacity: 1;
+      transform: none;
+    }
+
+    /* Preset on its way: the glow (and the icon with it) fades in and out until the blind arrives. */
+    .preset.pending {
+      animation: preset-tint 1.3s ease-in-out infinite alternate;
+    }
+
+    .preset.pending::before {
+      animation: preset-glow 1.3s ease-in-out infinite alternate;
+    }
+
+    @keyframes preset-glow {
+      from {
+        opacity: 0.1;
+        transform: scale(0.88);
+      }
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+    @keyframes preset-tint {
+      from {
+        color: var(--preset-idle);
+      }
+      to {
+        color: var(--preset-on);
+      }
     }
 
     /* Blind unavailable: buttons stay focusable but dim; a tap only explains why. */
     .preset.unavailable {
-      color: rgb(142 142 147 / 40%);
+      color: rgb(111 111 116 / 55%);
     }
 
     .preset.unavailable:active svg {
@@ -584,11 +630,7 @@ export const styles = css`
       }
     }
 
-    /* Preset sent: the icon is white and pops once. */
-    .preset.sent {
-      color: #ffffff;
-    }
-
+    /* Preset sent: the icon pops once. */
     .preset.sent svg {
       animation: sent 600ms ease-out;
     }
@@ -976,6 +1018,8 @@ export const styles = css`
       .sheet,
       .preset.sent svg,
       .preset:active::before,
+      .preset.pending,
+      .preset.pending::before,
       .preset-hint,
       .spark.loading,
       .cover-panel.moving .rail {
@@ -989,6 +1033,16 @@ export const styles = css`
       /* Without the growing square, a held preset just shows it. */
       .preset:active::before {
         opacity: 1;
+        transform: none;
+      }
+
+      /* Without pulsing, a preset on its way shows a half-lit square. */
+      .preset.pending {
+        color: var(--preset-on);
+      }
+
+      .preset.pending::before {
+        opacity: 0.55;
         transform: none;
       }
 

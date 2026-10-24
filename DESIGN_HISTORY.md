@@ -130,6 +130,12 @@ Formát každého bodu: **Navrženo** → **Opuštěno, protože** → **Nahraze
 38. **Ilustrace v hlavičce o 11 px níž, CO₂ a PM2.5 obě v mátové barvě**
     - Opuštěno, protože: kresba ležela příliš nízko u zeslabení a žaluzií; CO₂ a PM2.5 nešly rozeznat podle barvy.
     - Nahrazeno: kresba o 11 px výš (aspoň 22 px nad panelem žaluzie); CO₂ zelená `#A6E36B`, PM2.5 fialová `#B8A6FF`.
+39. **Aktivní předvolba bílá (ostatní světle šedé `#8E8E93`)**
+    - Opuštěno, protože: uživatel (24. 10.) – ikony moc svítí a bílá je vedle béžových žaluzií agresivní.
+    - Nahrazeno: ikony tmavě šedé `#6F6F74`; aktivní má tlumenou šampaňskou `#C9C0A8` na zaobleném čtverečku šampaňské při 13 %. Zkoušena byla i neutrální šedobílá (cizí vedle béžových lamel) a jasná krémová (stále příliš svítí); ohraničení a samotná změna barvy by vedle lamel nestačily.
+40. **Cílová předvolba bez odezvy, dokud žaluzie nedojede**
+    - Opuštěno, protože: uživatel (24. 10.) – po klepnutí trvá, než žaluzie sjede, a ikona do té doby nic neříká.
+    - Nahrazeno: ikona cílové předvolby pulzuje (podsvícení se objevuje a mizí), dokud žaluzie nedojede; končí i po 5 s beze změny stavu, polohy a naklopení (ruční zastavení jinde) nebo chybou skriptu.
 
 ## Zamítnuté návrhy
 
@@ -175,4 +181,5 @@ Formát každého bodu: **Navrženo** → **Opuštěno, protože** → **Nahraze
 9. **v9 – historie zpět (24. 10.):** popup „Historie místnosti – 24 h“ znovu otevírá teplota a její trend; kvalita vzduchu oddělená mezerou od HVAC řádků; trendy končí 1,5× mezery před předvolbami; utlumená spuštěná žaluzie; obdélníková ilustrace; „Bez dat“ s důvodem.
 10. **v10 – TODO P1/P2 (24. 10.):** souhrn domu ve štítcích, jeden dotykový cíl Topení + Klimatizace s přepínačem v popupu, trendy blednoucí doleva, nápověda a haptika předvoleb, nové ikony předvoleb, zastaralá data, načítání a VoiceOver u trendů, pulz kolejnice při pohybu žaluzie, historie podle aplikace pro topení s prohlížením prstem, popup jako iOS list.
 11. **v11 – opravy z testu a automatické testy (24. 10.):** cíl Topení / Klimatizace přes celý levý sloupec, přístupné názvy, předvolby u nedostupné žaluzie, šipky v přepínači, šířka grafu po otočení; `npm test` (Playwright, axe-core).
-12. **v12 – panel a předvolby žaluzií, barvy (aktuální návrh, 24. 10.):** 11 lamel (nejtenčí 2 px), lamely okna stálé, předvolby vpravo od panelu shora Den, Stín, Tma, ikony žaluzie bez rámečku (šedé, bílá podle stavu), ilustrace výš, CO₂ zelená a PM2.5 fialová.
+12. **v12 – panel a předvolby žaluzií, barvy (24. 10.):** 11 lamel (nejtenčí 2 px), lamely okna stálé, předvolby vpravo od panelu shora Den, Stín, Tma, ikony žaluzie bez rámečku (šedé, bílá podle stavu), ilustrace výš, CO₂ zelená a PM2.5 fialová.
+13. **v13 – tlumené předvolby a pulzování (aktuální návrh, 24. 10.):** ikony tmavě šedé, aktivní tlumeně šampaňská na podsvíceném čtverečku, cílová předvolba pulzuje do dojezdu žaluzie (konec při 5 s beze změny).

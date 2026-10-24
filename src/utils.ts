@@ -23,6 +23,23 @@ export const BLIND_PRESETS: BlindPreset[] = [
   { id: "dark", label: "Tma", description: "úplné zatemnění", position: 0, tilt: 0 },
 ];
 
+/** Tolerance (position and tilt, in %) within which a blind counts as being in a preset. */
+const PRESET_TOLERANCE = 2;
+
+/** True when the blind's position and tilt (both known) are those of the preset. */
+export function blindMatchesPreset(
+  position: number | undefined,
+  tilt: number | undefined,
+  preset: BlindPreset,
+): boolean {
+  return (
+    position !== undefined &&
+    tilt !== undefined &&
+    Math.abs(position - preset.position) <= PRESET_TOLERANCE &&
+    Math.abs(tilt - preset.tilt) <= PRESET_TOLERANCE
+  );
+}
+
 /**
  * Rounding step of the house-wide trend axis per quantity (°C, ppm, µg/m³); it is also the
  * smallest axis range, so sensor noise is not drawn as a trend.

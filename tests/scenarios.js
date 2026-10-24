@@ -140,6 +140,10 @@ window.addEventListener("hass-more-info", (event) => test.moreInfo.push(event.de
 const hass = {
   states,
   callService: async (...args) => {
+    if (test.failNext) {
+      test.failNext = false;
+      throw new Error("service failed");
+    }
     test.services.push(args);
   },
   callWS: async (message) =>
@@ -162,3 +166,17 @@ card.setConfig(config);
 card.hass = hass;
 test.card = card;
 document.querySelector("main").append(card);
+
+/** Replace entity states like a Home Assistant push: new objects, so the card sees a change. */
+let current = hass;
+test.update = (changes) => {
+  const next = { ...current, states: { ...current.states } };
+  for (const [id, entity] of Object.entries(changes)) {
+    next.states[id] = { ...entity, last_updated: new Date().toISOString(), last_changed: new Date().toISOString() };
+  }
+  current = next;
+  card.hass = next;
+};
+/** A blind reporting its state, position and tilt. */
+test.cover = (entityId, value, position, tilt) =>
+  test.update({ [entityId]: state(value, { current_position: position, current_tilt_position: tilt }, 0) });

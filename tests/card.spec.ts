@@ -284,21 +284,35 @@ test.describe("panel a předvolby žaluzií (Žaluzie)", () => {
     expect(heights[2].window).toEqual(Array(4).fill(2));
   });
 
-  test("ikona předvolby, která odpovídá stavu žaluzie, je bílá, ostatní šedé; bez rámečku", async ({ page }) => {
+  test("ikony předvoleb jsou tlumené; ta, která odpovídá stavu žaluzie, svítí šampaňsky na podsvíceném čtverci", async ({ page }) => {
     await open(page, "full");
-    const colours = await page.evaluate(() =>
+    const looks = await page.evaluate(() =>
       [...document.querySelector("ha-klima-dashboard")!.shadowRoot!.querySelectorAll(".room")].slice(0, 3).map((room) =>
         [...room.querySelectorAll(".preset")].map((preset) => {
           const style = getComputedStyle(preset);
-          return `${style.color}|${preset.getAttribute("aria-pressed")}|${style.borderTopWidth}|${style.backgroundColor}`;
+          const glow = getComputedStyle(preset, "::before");
+          return `${style.color}|${preset.getAttribute("aria-pressed")}|${style.borderTopWidth}|${glow.opacity}`;
         }),
       ),
     );
-    const white = "rgb(255, 255, 255)|true|0px|rgba(0, 0, 0, 0)";
-    const grey = (pressed: string) => `rgb(142, 142, 147)|${pressed}|0px|rgba(0, 0, 0, 0)`;
-    expect(colours[0]).toEqual([grey("false"), grey("false"), white]); // Ložnice 0 / 0 = Tma
-    expect(colours[1]).toEqual([white, grey("false"), grey("false")]); // Pracovna 100 / 100 = Den
-    expect(colours[2]).toEqual([grey("false"), grey("false"), grey("false")]); // Maxík 40 / 60
+    const lit = "rgb(201, 192, 168)|true|0px|1";
+    const dim = "rgb(111, 111, 116)|false|0px|0";
+    expect(looks[0]).toEqual([dim, dim, lit]); // Ložnice 0 / 0 = Tma
+    expect(looks[1]).toEqual([lit, dim, dim]); // Pracovna 100 / 100 = Den
+    expect(looks[2]).toEqual([dim, dim, dim]); // Maxík 40 / 60: žádná předvolba
+  });
+
+  test("kontrast ikon předvoleb: šedá aspoň 3:1 na pozadí karty, svítící není čistě bílá", async ({ page }) => {
+    await open(page, "full");
+    const [idle, on] = [[111, 111, 116], [201, 192, 168]];
+    const luminance = ([r, g, b]: number[]) => {
+      const [lr, lg, lb] = [r, g, b].map((v) => ((v / 255 + 0.055) / 1.055) ** 2.4);
+      return 0.2126 * lr + 0.7152 * lg + 0.0722 * lb;
+    };
+    const ratio = (rgb: number[]) => (luminance(rgb) + 0.05) / (luminance([28, 28, 30]) + 0.05);
+    expect(ratio(idle)).toBeGreaterThanOrEqual(3);
+    expect(ratio(on)).toBeGreaterThan(ratio(idle));
+    expect(on).not.toEqual([255, 255, 255]);
   });
 
   test("konec mikrotrendu je od panelu 1,5× mezery panel–předvolba", async ({ page }) => {
@@ -344,6 +358,70 @@ test.describe("panel a předvolby žaluzií (Žaluzie)", () => {
       );
       for (const value of gap) expect(value, `šířka ${width}`).toBeGreaterThanOrEqual(22);
     }
+  });
+});
+
+test.describe("předvolba na cestě (Žaluzie)", () => {
+  const COVER = "cover.loznice_zaluzie_loznice";
+
+  test("po odeslání pulzuje cílová ikona, ostatní zhasnou; po dojezdu svítí natrvalo", async ({ page }) => {
+    await open(page, "full");
+    const room = page.locator(".room").first();
+    const den = room.locator(".preset").nth(0);
+    await den.dblclick();
+    await expect(den).toHaveClass(/pending/);
+    await expect(den).toHaveAttribute("aria-busy", "true");
+    // Tma (the state before sending) is no longer lit; only the target pulses.
+    await expect(room.locator('.preset[aria-pressed="true"]')).toHaveCount(0);
+    expect(await den.evaluate((element) => getComputedStyle(element, "::before").animationName)).toBe("preset-glow");
+    expect(await den.evaluate((element) => getComputedStyle(element).animationName)).toBe("preset-tint");
+    // The blind is moving: still pulsing.
+    await page.evaluate((id) => window.__test.cover(id, "opening", 55, 60), COVER);
+    await expect(den).toHaveClass(/pending/);
+    // Arrived: no pulsing, steady glow.
+    await page.evaluate((id) => window.__test.cover(id, "open", 100, 100), COVER);
+    await expect(den).not.toHaveClass(/pending/);
+    await expect(den).toHaveAttribute("aria-pressed", "true");
+    await expect(den).not.toHaveAttribute("aria-busy", "true");
+    await expect.poll(() => den.evaluate((element) => getComputedStyle(element, "::before").opacity)).toBe("1");
+  });
+
+  test("zastaví-li se změna na 5 s, pulzování skončí; každá změna odpočet obnoví", async ({ page }) => {
+    await page.clock.install({ time: new Date("2026-10-24T10:00:00Z") });
+    await open(page, "full");
+    await page.clock.pauseAt(new Date("2026-10-24T10:01:00Z"));
+    const room = page.locator(".room").first();
+    const den = room.locator(".preset").nth(0);
+    await den.dblclick();
+    await expect(den).toHaveClass(/pending/);
+    await page.clock.runFor(3_000);
+    await expect(den).toHaveClass(/pending/);
+    // The blind moves: the countdown starts again, so 6 s after sending it still pulses.
+    await page.evaluate((id) => window.__test.cover(id, "opening", 20, 0), COVER);
+    await page.clock.runFor(3_000);
+    await expect(den).toHaveClass(/pending/);
+    // Nothing changes for 5 s (stopped somewhere else): the pulsing ends, nothing is lit.
+    await page.clock.runFor(2_500);
+    await expect(den).not.toHaveClass(/pending/);
+    await expect(room.locator('.preset[aria-pressed="true"]')).toHaveCount(0);
+  });
+
+  test("blind už v poloze předvolby: nic nepulzuje; chyba skriptu pulzování ukončí", async ({ page }) => {
+    await open(page, "full");
+    const room = page.locator(".room").first();
+    // Ložnice is already in Tma.
+    await room.locator(".preset").nth(2).dblclick();
+    await expect.poll(() => page.evaluate(() => window.__test.services.length)).toBe(1);
+    await expect(room.locator(".preset.pending")).toHaveCount(0);
+    await expect(room.locator(".preset").nth(2)).toHaveAttribute("aria-pressed", "true");
+    // A failing script: the pulse ends, failure haptic and a notice.
+    await page.evaluate(() => {
+      window.__test.failNext = true;
+    });
+    await room.locator(".preset").nth(0).dblclick();
+    await expect(page.locator(".notice")).toContainText("skript žaluzií se nepodařilo spustit");
+    await expect(room.locator(".preset.pending")).toHaveCount(0);
+    expect(await page.evaluate(() => window.__test.haptics)).toContain("failure");
   });
 });
 

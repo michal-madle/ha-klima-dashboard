@@ -31,6 +31,7 @@ import { climateView, heatingView, spokenSystem } from "./systems";
 import type { SystemView } from "./systems";
 import type {
   BlindPreset,
+  BlindPresetId,
   DashboardConfig,
   DashboardThresholds,
   EntityId,
@@ -45,6 +46,7 @@ import type {
 } from "./types";
 import {
   BLIND_PRESETS,
+  blindMatchesPreset,
   COLORS,
   COVER_SCRIPT,
   CLIMATE_COLORS,
@@ -73,6 +75,11 @@ const NBSP = " ";
 const LONG_PRESS_MS = 550;
 const DOUBLE_TAP_MS = 400;
 const FLASH_MS = 700;
+/**
+ * A sent preset pulses until the blind arrives; the pulsing stops when the blind's state,
+ * position and tilt have not changed for this long (the movement was stopped somewhere else).
+ */
+const MOVE_STALL_MS = 5_000;
 /** How long the "hold or double tap" hint stays after a single tap on a preset. */
 const HINT_MS = 1_600;
 
@@ -142,6 +149,10 @@ export class HaKlimaDashboard extends LitElement {
   @state()
   private _flash?: string;
 
+  /** Preset on its way per room (room name -> preset id): its icon pulses until the blind arrives. */
+  @state()
+  private _moving: Record<string, BlindPresetId> = {};
+
   /** Blind preset that shows a hint bubble ("hold or double tap" / "unavailable"). */
   @state()
   private _hint?: { key: string; text: string };
@@ -174,6 +185,8 @@ export class HaKlimaDashboard extends LitElement {
   private _flashTimer?: number;
   private _hintTimer?: number;
   private _hintHideTimer?: number;
+  /** Per room with a preset on its way: last seen blind state and the stall timer. */
+  private _movingWatch = new Map<string, { signature: string; timer?: number }>();
   private _pressing = false;
   private _pressFired = false;
   private _lastTap?: { key: string; time: number };
@@ -197,6 +210,9 @@ export class HaKlimaDashboard extends LitElement {
     for (const timer of [this._noticeTimer, this._pressTimer, this._flashTimer, this._hintTimer, this._hintHideTimer]) {
       window.clearTimeout(timer);
     }
+    for (const roomName of [...this._movingWatch.keys()]) {
+      this.endMoving(roomName);
+    }
     window.clearInterval(this._trendTimer);
     this._trendTimer = undefined;
     this._noticeTimer = undefined;
@@ -212,6 +228,12 @@ export class HaKlimaDashboard extends LitElement {
       return this.hasRelevantEntityChanged(changedProperties.get("hass") as HomeAssistant | undefined);
     }
     return true;
+  }
+
+  protected willUpdate(changedProperties: PropertyValues): void {
+    if (changedProperties.has("hass")) {
+      this.trackMovingPresets();
+    }
   }
 
   protected updated(changedProperties: PropertyValues): void {
@@ -763,11 +785,10 @@ export class HaKlimaDashboard extends LitElement {
     tilt: number | undefined,
     available: boolean,
   ): TemplateResult {
-    const active =
-      position !== undefined &&
-      tilt !== undefined &&
-      Math.abs(position - preset.position) <= 2 &&
-      Math.abs(tilt - preset.tilt) <= 2;
+    // While a preset is on its way only that one is lit (pulsing); the others stay grey.
+    const target = this._moving[room.name];
+    const pending = target === preset.id;
+    const active = target === undefined && blindMatchesPreset(position, tilt, preset);
     const key = `${room.name}|${preset.id}`;
     const action = available
       ? "Spustí se dvojitým klepnutím nebo dlouhým stiskem."
@@ -779,9 +800,12 @@ export class HaKlimaDashboard extends LitElement {
     return html`
       <button
         type="button"
-        class="plain-button preset ${this._flash === key ? "sent" : ""} ${available ? "" : "unavailable"}"
+        class="plain-button preset ${this._flash === key ? "sent" : ""} ${available ? "" : "unavailable"} ${
+          pending ? "pending" : ""
+        }"
         title=${preset.label}
         aria-pressed=${active ? "true" : "false"}
+        aria-busy=${pending ? "true" : nothing}
         aria-disabled=${available ? "false" : "true"}
         aria-label=${`${room.name}: žaluzie ${preset.label}, ${preset.description}. ${action}`}
         @pointerdown=${(event: PointerEvent) => this.pressStart(event, room, preset, available)}
@@ -885,6 +909,8 @@ export class HaKlimaDashboard extends LitElement {
       this.showUnavailable(`${room.name}|${preset.id}`);
       return;
     }
+    // The icon starts pulsing at once; the script may run until the blind has arrived.
+    this.startMoving(room, room.cover, preset);
     try {
       await this.hass.callService(COVER_SCRIPT.domain, COVER_SCRIPT.service, {
         entity: room.cover,
@@ -899,9 +925,92 @@ export class HaKlimaDashboard extends LitElement {
       }, FLASH_MS);
     } catch (error) {
       console.error("Klima Dashboard: skript žaluzií selhal", error);
+      this.endMoving(room.name);
       this.haptic("failure");
       this.showNotice(`${room.name}: skript žaluzií se nepodařilo spustit.`);
     }
+  }
+
+  /**
+   * Preset sent: its icon pulses until the blind has arrived at its position and tilt, or
+   * nothing has changed for MOVE_STALL_MS. A blind that is already there needs no pulsing.
+   */
+  private startMoving(room: RoomConfig, entityId: EntityId, preset: BlindPreset): void {
+    const entity = this.getState(entityId);
+    const reached =
+      blindMatchesPreset(
+        numberAttribute(entity?.attributes.current_position),
+        numberAttribute(entity?.attributes.current_tilt_position),
+        preset,
+      ) && !this.isMoving(entityId);
+    if (reached) {
+      this.endMoving(room.name);
+      return;
+    }
+    this._moving = { ...this._moving, [room.name]: preset.id };
+    this._movingWatch.set(room.name, { signature: this.coverSignature(entityId) });
+    this.armStall(room.name);
+  }
+
+  /** Called on every Home Assistant update: ends the pulsing on arrival, restarts the stall timer on change. */
+  private trackMovingPresets(): void {
+    for (const room of this._config?.rooms ?? []) {
+      const presetId = this._moving[room.name];
+      const preset = BLIND_PRESETS.find((item) => item.id === presetId);
+      const watch = this._movingWatch.get(room.name);
+      if (!preset || !watch || !room.cover) {
+        continue;
+      }
+      const entity = this.getState(room.cover);
+      const state = entity?.state.toLowerCase();
+      if (
+        state === undefined ||
+        isUnavailable(state) ||
+        (blindMatchesPreset(
+          numberAttribute(entity?.attributes.current_position),
+          numberAttribute(entity?.attributes.current_tilt_position),
+          preset,
+        ) &&
+          !this.isMoving(room.cover))
+      ) {
+        this.endMoving(room.name);
+        continue;
+      }
+      const signature = this.coverSignature(room.cover);
+      if (signature !== watch.signature) {
+        watch.signature = signature;
+        this.armStall(room.name);
+      }
+    }
+  }
+
+  private armStall(roomName: string): void {
+    const watch = this._movingWatch.get(roomName);
+    if (!watch) {
+      return;
+    }
+    window.clearTimeout(watch.timer);
+    watch.timer = window.setTimeout(() => this.endMoving(roomName), MOVE_STALL_MS);
+  }
+
+  private endMoving(roomName: string): void {
+    window.clearTimeout(this._movingWatch.get(roomName)?.timer);
+    this._movingWatch.delete(roomName);
+    if (roomName in this._moving) {
+      const { [roomName]: _ended, ...rest } = this._moving;
+      this._moving = rest;
+    }
+  }
+
+  private isMoving(entityId: EntityId): boolean {
+    const state = this.entityState(entityId)?.toLowerCase();
+    return state === "opening" || state === "closing";
+  }
+
+  /** What changes while a blind moves: its state, position and tilt. */
+  private coverSignature(entityId: EntityId): string {
+    const entity = this.getState(entityId);
+    return `${entity?.state}|${entity?.attributes.current_position}|${entity?.attributes.current_tilt_position}`;
   }
 
   /** Haptic feedback through the Home Assistant app (ignored in a plain browser). */
