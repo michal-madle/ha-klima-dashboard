@@ -648,6 +648,8 @@ function lt(i, t, e, n = {}) {
   X(i, Object.keys(t), e);
   const s = { ...t };
   for (const [o, r] of Object.entries(i)) {
+    if (r === null)
+      continue;
     (typeof r != "number" || !Number.isFinite(r)) && y(`${e}.${o} must be a number.`);
     const a = n[o];
     if (a) {
@@ -714,8 +716,8 @@ function ke(i, t) {
   return i === !1 ? { present: !1 } : { entity: P(i, t), present: !0 };
 }
 function Zi(i, t) {
-  i.image !== void 0 && i.scene !== void 0 && y(`${t}: use either image or scene (older name), not both.`);
-  const e = i.image !== void 0 ? "image" : "scene", n = i.image ?? i.scene;
+  i.image != null && i.scene != null && y(`${t}: use either image or scene (older name), not both.`);
+  const e = i.image != null ? "image" : "scene", n = i.image ?? i.scene;
   if (n == null) {
     const o = Bi[Q(i.name)];
     return o ? { kind: "scene", scene: o } : void 0;
@@ -749,7 +751,7 @@ function Ji(i, t, e) {
   "windows" in o && y(`${s}: the key is "window" (one entity or a list of them), not "windows".`), X(o, Wi, s);
   const r = F(i.heating, `${s}.heating`);
   "heating" in r && y(`${s}: key "heating.heating" was renamed to "heating.intensity".`), X(r, Ki, `${s}.heating`);
-  const a = i.heating === void 0 ? void 0 : {
+  const a = i.heating == null ? void 0 : {
     climate: P(r.climate, `${s}.heating.climate`),
     overlay: P(r.overlay, `${s}.heating.overlay`),
     target: P(r.target, `${s}.heating.target`),
@@ -767,7 +769,7 @@ function Ji(i, t, e) {
     hasPm25: p.present,
     windows: Gi(i, s),
     cover: P(i.cover, `${s}.cover`),
-    presets: i.cover_presets === void 0 ? e.presets : jt(i.cover_presets, `${s}.cover_presets`),
+    presets: i.cover_presets == null ? e.presets : jt(i.cover_presets, `${s}.cover_presets`),
     thresholds: l,
     heating: a,
     air_conditioner: P(i.air_conditioner, `${s}.air_conditioner`),
@@ -776,7 +778,7 @@ function Ji(i, t, e) {
   };
 }
 function Qi(i) {
-  (!gt(i) || !Array.isArray(i.rooms) || i.rooms.length === 0) && y("the configuration requires a non-empty rooms list."), i.title !== void 0 && typeof i.title != "string" && y("title must be a text (an empty text leaves the heading out).");
+  (!gt(i) || !Array.isArray(i.rooms) || i.rooms.length === 0) && y("the configuration requires a non-empty rooms list."), i.title != null && typeof i.title != "string" && y("title must be a text (an empty text leaves the heading out).");
   const t = i.theme ?? "auto";
   ye.includes(t) || y(`theme must be one of ${ye.join(", ")}.`);
   const e = P(i.house_mode_entity, "house_mode_entity") ?? Hi, n = F(i.house_modes, "house_modes");
@@ -786,7 +788,7 @@ function Qi(i) {
     summer: it(n.summer, "house_modes.summer") ?? be.summer
   };
   Q(s.winter) === Q(s.summer) && y("house_modes.winter and house_modes.summer must differ.");
-  const o = i.outside === void 0 ? void 0 : F(i.outside, "outside");
+  const o = i.outside == null ? void 0 : F(i.outside, "outside");
   if (o) {
     X(o, xe, "outside");
     for (const b of xe)
@@ -816,8 +818,8 @@ function Qi(i) {
     }),
     script: Nt.script
   };
-  d !== void 0 && ((typeof d != "string" || !/^script\.[a-z0-9_]+$/.test(d.trim())) && y("covers.script must be a script entity such as script.zaluzie_posun."), h.script = d.trim());
-  const g = jt(p === void 0 ? ji : p, "covers.presets"), w = i.rooms.map((b, _) => Ji(b, _, { thresholds: r, presets: g })), k = /* @__PURE__ */ new Set();
+  d != null && ((typeof d != "string" || !/^script\.[a-z0-9_]+$/.test(d.trim())) && y("covers.script must be a script entity such as script.zaluzie_posun."), h.script = d.trim());
+  const g = p == null ? jt(ji, "covers.presets") : jt(p, "covers.presets"), w = i.rooms.map((b, _) => Ji(b, _, { thresholds: r, presets: g })), k = /* @__PURE__ */ new Set();
   for (const b of w)
     k.has(b.name) && y(`room name "${b.name}" is used twice; room names must be unique.`), k.add(b.name);
   return {

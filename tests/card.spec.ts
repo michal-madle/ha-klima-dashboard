@@ -76,28 +76,53 @@ async function sceneOverlaps(page: Page): Promise<string[]> {
 }
 
 test.describe("konfigurace", () => {
-  test("scénář „real“ používá stejná ID entit jako examples/domov_prototyp_loznice.yaml", async ({ page }) => {
-    const yaml = readFileSync(new URL("../examples/domov_prototyp_loznice.yaml", import.meta.url), "utf8")
-      .split("\n")
-      .filter((line) => !line.trim().startsWith("#"))
-      .join("\n");
-    const fromExample = new Set(yaml.match(/\b(?:sensor|binary_sensor|cover|climate|input_select)\.[a-z0-9_]+/g));
+  const example = () => parse(readFileSync(new URL("../examples/domov_prototyp_loznice.yaml", import.meta.url), "utf8"));
+
+  test("scénář „real“ je přímo examples/domov_prototyp_loznice.yaml a karta ho přijme", async ({ page }) => {
     await open(page, "real");
-    const fromScenario = await page.evaluate(() => {
-      const ids = new Set<string>();
-      const walk = (value: unknown): void => {
-        if (typeof value === "string" && /^[a-z_]+\.[a-z0-9_]+$/.test(value) && !value.startsWith("custom")) ids.add(value);
-        else if (value && typeof value === "object") Object.values(value).forEach(walk);
-      };
-      // @ts-expect-error test hook
-      walk(window.__test.config);
-      return [...ids].sort();
-    });
-    expect(fromScenario).toEqual([...fromExample].sort());
+    // @ts-expect-error test hook
+    expect(await page.evaluate(() => window.__test.config)).toEqual(example());
+    await expect(page.locator(".room")).toHaveCount(5);
+    // Obývák has no CO₂ / PM2.5 sensor (false): no rows; the others without IDs keep "––".
+    await expect(page.locator(".room").nth(4).locator(".air-block")).toHaveCount(0);
+    await expect(page.locator(".room").nth(3).locator(".air-block")).toHaveCount(1);
+  });
+
+  test("příklad YAML obsahuje úplně všechna nastavení (CURRENT_SPEC.md, Konfigurace)", async () => {
+    // Every key of the configuration contract as a path; "[]" is an item of a list.
+    const all = [
+      "type", "title", "theme", "house_mode_entity", "house_modes.winter", "house_modes.summer",
+      ...["temperature", "minimum", "maximum", "rain_probability", "pm25"].map((key) => `outside.${key}`),
+      ...["humidity_min", "humidity_max", "co2_warning", "co2_critical", "pm25_warning", "pm25_critical", "winter_min",
+        "winter_max", "summer_min", "summer_max", "stale_minutes", "heating_waves_2", "heating_waves_3"].map((key) => `thresholds.${key}`),
+      ...["minutes", "samples", "temperature_step", "co2_step", "pm25_step"].map((key) => `trends.${key}`),
+      ...["hours", "night_start", "night_end", "min_temperature_span"].map((key) => `history.${key}`),
+      "covers.script", "covers.tolerance", "covers.stall_seconds",
+      ...["name", "icon", "position", "tilt", "description"].map((key) => `covers.presets[].${key}`),
+      ...["name", "image", "link", "temperature", "humidity", "carbon_dioxide", "pm25", "window[].entity", "window[].name",
+        "cover", "cover_presets", "thresholds", "heating.climate", "heating.overlay", "heating.target", "heating.intensity",
+        "air_conditioner"].map((key) => `rooms[].${key}`),
+    ];
+    const leaves = (value: unknown, path = ""): string[] => {
+      if (Array.isArray(value)) return value.flatMap((item) => leaves(item, `${path}[]`));
+      if (value && typeof value === "object") {
+        return Object.entries(value).flatMap(([key, item]) => leaves(item, path ? `${path}.${key}` : key));
+      }
+      return [path];
+    };
+    const found = new Set(leaves(example()));
+    expect(all.filter((key) => !found.has(key)), "chybí v příkladu").toEqual([]);
+    expect([...found].filter((key) => !all.includes(key)), "neznámé klíče").toEqual([]);
+    // Every room lists every room key (an empty value is the default).
+    for (const room of example().rooms as Array<Record<string, unknown>>) {
+      expect(Object.keys(room), room.name as string).toEqual([
+        "name", "image", "link", "temperature", "humidity", "carbon_dioxide", "pm25", "window", "cover",
+        "cover_presets", "thresholds", "heating", "air_conditioner",
+      ]);
+    }
   });
 
   test("příklad YAML projde kontrolou a vypisuje přesně výchozí hodnoty (CURRENT_SPEC.md, Konfigurace)", async ({ page }) => {
-    const example = parse(readFileSync(new URL("../examples/domov_prototyp_loznice.yaml", import.meta.url), "utf8"));
     await open(page, "full");
     const [explicit, implicit] = await page.evaluate((config) => {
       const normalized = (value: unknown) => {
@@ -110,7 +135,7 @@ test.describe("konfigurace", () => {
       for (const key of ["theme", "house_modes", "thresholds", "trends", "history", "covers"]) delete bare[key];
       for (const room of bare.rooms) delete room.image;
       return [normalized(config), normalized(bare)];
-    }, example);
+    }, example());
     expect(explicit).toEqual(implicit);
   });
 });
@@ -1230,6 +1255,9 @@ test.describe("konfigurace karty (Konfigurace)", () => {
       [{}, { window: "binary_sensor.loznice_okno_loznice" }],
       [{}, { carbon_dioxide: false, pm25: false }],
       [{ title: "", theme: "light", trends: { minutes: 60 } }, { image: "/local/obrazky/loznice.jpg", link: "https://example.com" }],
+      // A key without a value (null in YAML) is the default, as in the example.
+      [{ title: null, theme: null, trends: { minutes: null }, covers: { presets: null, script: null }, outside: { pm25: null } },
+        { link: null, cover_presets: null, thresholds: null, heating: null, image: null, scene: "office", carbon_dioxide: null }],
     ] as Array<[Record<string, unknown>, Record<string, unknown>]>) {
       expect(await configError(page, top, room), JSON.stringify([top, room])).toBe("");
     }

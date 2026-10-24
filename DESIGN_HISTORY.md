@@ -188,6 +188,9 @@ Formát každého bodu: **Navrženo** → **Opuštěno, protože** → **Nahraze
 57. **První popisek časové osy historie vždy vycentrovaný pod čarou**
     - Opuštěno, protože: krátce po celé hodině (např. 17:20) byl popisek „18:00“ u levého okraje oříznutý (nalezeno na snímku).
     - Nahrazeno: popisek u okraje grafu se zarovná k okraji.
+58. **Příklad YAML se zakomentovanými volitelnými klíči (odkaz, dvě okna, vlastní předvolby a prahy místnosti, venkovní podmínky)**
+    - Opuštěno, protože: uživatel (24. 10. večer) – „Musíš upravit ten example. Musí tam být kompletně všechny nastavení. Bez co2 a pm udělej Obývák“; společnou konfiguraci pro celý dům v příkladu nenašel.
+    - Nahrazeno: příklad má dvě oddělené části, „Společné nastavení pro celý dům“ a „Místnosti“; každý klíč je uvedený, u místnosti i prázdné `link:`, `cover_presets:`, `thresholds:` a okna jako seznam se jménem. Klíč bez hodnoty karta bere jako výchozí. Obývák má `carbon_dioxide: false` a `pm25: false`. Scénář testů „real“ načítá přímo tento soubor.
 
 ## Zamítnuté návrhy
 

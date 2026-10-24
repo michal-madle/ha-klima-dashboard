@@ -82,8 +82,8 @@ Bez žaluzií (stejné rozložení karty).
 |---|---|
 | Teplota místnosti | – (viz Chybějící entity) |
 | Vlhkost | – |
-| CO₂ | – |
-| PM2.5 | – |
+| CO₂ | není – Obývák čidlo CO₂ nemá (uživatel 24. 10.; v konfiguraci `carbon_dioxide: false`) |
+| PM2.5 | není – ani PM2.5 (uživatel 24. 10.; `pm25: false`) |
 | „Okno“ = dveře na zahradu (IKEA MYGGBETT) | `binary_sensor.obyvak_dvere_zahrada` |
 | Topení – klimatizační entita | `climate.obyvak_tado_ce_obyvak` |
 | Topení – Overlay | `sensor.obyvak_tado_ce_obyvak_overlay` |
@@ -105,7 +105,8 @@ Co nelze z Memory ani exportů jednoznačně určit:
 | Co chybí | Kde | Poznámka |
 |---|---|---|
 | ALPSTUGA CO₂ a PM2.5 | Pracovna | export obsahuje jen teploměr (teplota, vlhkost) |
-| ALPSTUGA teplota, vlhkost, CO₂, PM2.5 | Maxík, Mikuláš, Obývák | v exportech žádný teploměr |
+| ALPSTUGA teplota, vlhkost, CO₂, PM2.5 | Maxík, Mikuláš | v exportech žádný teploměr |
+| Teploměr (teplota, vlhkost) | Obývák | v exportech žádný; CO₂ a PM2.5 Obývák nemá (uživatel 24. 10.) |
 | Typ teploměru v Pracovně | Pracovna | Memory ho nepopisuje (zmiňuje plánovaný TIMMERFLOTTE v Pracovně, nepotvrzeno) |
 | Venkovní teplota | hlavička | žádná entita v Memory ani exportech |
 | Denní minimum a maximum venkovní teploty | hlavička | zdroj není v Memory určen |

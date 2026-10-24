@@ -1,7 +1,8 @@
 // Test scenarios for the Klima Dashboard card: a configuration and a fake `hass` object.
-// Open /tests/harness.html?s=<scenario>. The "real" scenario uses the configuration of
-// examples/domov_prototyp_loznice.yaml (a test checks that the entity IDs match).
+// Open /tests/harness.html?s=<scenario>. The "real" scenario is the configuration of
+// examples/domov_prototyp_loznice.yaml itself, read and parsed here.
 import "/ha-klima-dashboard.js";
+import { parse } from "/node_modules/yaml/browser/index.js";
 
 const params = new URLSearchParams(location.search);
 const scenario = params.get("s") ?? "full";
@@ -10,17 +11,20 @@ const HOUR = 3_600_000;
 const iso = (msAgo) => new Date(now - msAgo).toISOString();
 
 const ROOMS = [
-  { name: "Ložnice", slug: "loznice", sensors: ["temperature", "humidity", "carbon_dioxide", "pm2_5"], cover: true },
-  { name: "Pracovna", slug: "pracovna", sensors: ["temperature", "humidity"], cover: true },
-  { name: "Maxík", slug: "maxik", sensors: [], cover: true },
-  { name: "Mikuláš", slug: "mikulas", sensors: [], cover: true },
-  { name: "Obývák", slug: "obyvak", sensors: [], cover: false, window: "binary_sensor.obyvak_dvere_zahrada" },
+  { name: "Ložnice", slug: "loznice", cover: true },
+  { name: "Pracovna", slug: "pracovna", cover: true },
+  { name: "Maxík", slug: "maxik", cover: true },
+  { name: "Mikuláš", slug: "mikulas", cover: true },
+  { name: "Obývák", slug: "obyvak", cover: false, window: "binary_sensor.obyvak_dvere_zahrada" },
 ];
 const ALL_SENSORS = ["temperature", "humidity", "carbon_dioxide", "pm2_5"];
 const CONFIG_KEY = { temperature: "temperature", humidity: "humidity", carbon_dioxide: "carbon_dioxide", pm2_5: "pm25" };
 
-/** Card configuration; "real" keeps only the sensors of the example YAML. */
-export function buildConfig(name) {
+/** Card configuration; "real" is the example YAML, the others are built from ROOMS. */
+export async function buildConfig(name) {
+  if (name === "real") {
+    return parse(await (await fetch("/examples/domov_prototyp_loznice.yaml")).text());
+  }
   const rooms = ROOMS.map((room) => {
     const config = {
       name: room.name,
@@ -36,7 +40,7 @@ export function buildConfig(name) {
     if (room.cover) {
       config.cover = `cover.${room.slug}_zaluzie_${room.slug}`;
     }
-    for (const sensor of name === "real" ? room.sensors : ALL_SENSORS) {
+    for (const sensor of ALL_SENSORS) {
       config[CONFIG_KEY[sensor]] = `sensor.${room.slug}_teplomer_${room.slug}_${sensor}`;
     }
     return config;
@@ -77,7 +81,7 @@ export function windowIds(room) {
   return [room.window ?? []].flat().map((window) => (typeof window === "string" ? window : window.entity));
 }
 
-const config = buildConfig(scenario);
+const config = await buildConfig(scenario);
 const state = (value, attributes = {}, minutesAgo = 3) => ({
   state: String(value),
   attributes,

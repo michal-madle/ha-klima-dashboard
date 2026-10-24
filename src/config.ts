@@ -19,8 +19,9 @@ import type {
 
 /*
  * Card configuration (CURRENT_SPEC.md, Konfigurace): every key is optional and falls back to
- * the defaults below, so an older configuration keeps working. A wrong value stops the card
- * with an error that names the key; nothing is silently ignored.
+ * the defaults below, so an older configuration keeps working. A key without a value (`link:`
+ * in YAML, i.e. null) is the same as no key, so the example can list every setting. A wrong
+ * value stops the card with an error that names the key; nothing is silently ignored.
  */
 
 export const HOUSE_MODE_ENTITY = "input_select.house_mode";
@@ -175,6 +176,9 @@ function numbers<T extends object>(
   checkKeys(input, Object.keys(defaults), where);
   const result = { ...defaults } as Record<string, number>;
   for (const [key, value] of Object.entries(input)) {
+    if (value === null) {
+      continue;
+    }
     if (typeof value !== "number" || !Number.isFinite(value)) {
       fail(`${where}.${key} must be a number.`);
     }
@@ -297,10 +301,10 @@ function airSensor(value: unknown, where: string): { entity?: string; present: b
 }
 
 function image(room: RoomConfig, where: string): RoomImage | undefined {
-  if (room.image !== undefined && room.scene !== undefined) {
+  if (room.image != null && room.scene != null) {
     fail(`${where}: use either image or scene (older name), not both.`);
   }
-  const key = room.image !== undefined ? "image" : "scene";
+  const key = room.image != null ? "image" : "scene";
   const value = room.image ?? room.scene;
   if (value === undefined || value === null) {
     const scene = SCENE_BY_NAME[plainText(room.name)];
@@ -368,7 +372,7 @@ function normalizeRoom(
   }
   checkKeys(heatingInput, HEATING_KEYS, `${where}.heating`);
   const heating =
-    room.heating === undefined
+    room.heating == null
       ? undefined
       : {
           climate: entityId(heatingInput.climate, `${where}.heating.climate`),
@@ -392,7 +396,7 @@ function normalizeRoom(
     hasPm25: pm25.present,
     windows: windows(room, where),
     cover: entityId(room.cover, `${where}.cover`),
-    presets: room.cover_presets === undefined ? shared.presets : presets(room.cover_presets, `${where}.cover_presets`),
+    presets: room.cover_presets == null ? shared.presets : presets(room.cover_presets, `${where}.cover_presets`),
     thresholds,
     heating,
     air_conditioner: entityId(room.air_conditioner, `${where}.air_conditioner`),
@@ -405,7 +409,7 @@ export function normalizeConfig(config: DashboardConfig): Settings {
   if (!isRecord(config) || !Array.isArray(config.rooms) || config.rooms.length === 0) {
     fail("the configuration requires a non-empty rooms list.");
   }
-  if (config.title !== undefined && typeof config.title !== "string") {
+  if (config.title != null && typeof config.title !== "string") {
     fail("title must be a text (an empty text leaves the heading out).");
   }
   const theme = config.theme ?? "auto";
@@ -422,7 +426,7 @@ export function normalizeConfig(config: DashboardConfig): Settings {
   if (plainText(houseModes.winter) === plainText(houseModes.summer)) {
     fail("house_modes.winter and house_modes.summer must differ.");
   }
-  const outside = config.outside === undefined ? undefined : section(config.outside, "outside");
+  const outside = config.outside == null ? undefined : section(config.outside, "outside");
   if (outside) {
     checkKeys(outside, OUTSIDE_KEYS, "outside");
     for (const key of OUTSIDE_KEYS) {
@@ -457,13 +461,13 @@ export function normalizeConfig(config: DashboardConfig): Settings {
     }),
     script: DEFAULT_COVERS.script,
   };
-  if (scriptInput !== undefined) {
+  if (scriptInput != null) {
     if (typeof scriptInput !== "string" || !/^script\.[a-z0-9_]+$/.test(scriptInput.trim())) {
       fail("covers.script must be a script entity such as script.zaluzie_posun.");
     }
     covers.script = scriptInput.trim();
   }
-  const sharedPresets = presetInput === undefined ? presets(DEFAULT_PRESETS, "covers.presets") : presets(presetInput, "covers.presets");
+  const sharedPresets = presetInput == null ? presets(DEFAULT_PRESETS, "covers.presets") : presets(presetInput, "covers.presets");
 
   const rooms = config.rooms.map((room, index) => normalizeRoom(room, index, { thresholds, presets: sharedPresets }));
   const names = new Set<string>();
