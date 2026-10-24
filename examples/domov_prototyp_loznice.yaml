@@ -1,6 +1,66 @@
+# Klima Dashboard – kompletní konfigurace jedné karty (CURRENT_SPEC.md, Konfigurace).
+# Všechno kromě rooms a name místnosti je volitelné. Nastavení jsou vypsaná s výchozími
+# hodnotami: stačí přepsat číslo nebo text; smazaný klíč se vrátí na výchozí hodnotu.
 type: custom:ha-klima-dashboard
-title: Domov prototyp
+title: Domov prototyp           # "" vynechá nadpis
+theme: auto                     # auto = podle Home Assistantu / systému iPhonu; dark; light
 house_mode_entity: input_select.house_mode
+house_modes:                    # hodnoty režimu domu (velikost písmen a diakritika nerozhodují)
+  winter: Zima
+  summer: Léto
+
+# Prahy pro všechny místnosti; místnost je může přepsat vlastním thresholds.
+thresholds:
+  humidity_min: 35              # Sucho pod (%)
+  humidity_max: 70              # Vlhko nad (%)
+  co2_warning: 1000             # Vydýchaný vzduch od (ppm)
+  co2_critical: 1500            # Silně vydýchaný vzduch od (ppm)
+  pm25_warning: 15              # oranžové číslo od (µg/m³); i venkovní vzduch
+  pm25_critical: 35             # Znečištěný vzduch od (µg/m³)
+  winter_min: 20                # komfortní pásmo v zimě (°C)
+  winter_max: 24
+  summer_min: 21                # komfortní pásmo v létě (°C)
+  summer_max: 25
+  stale_minutes: 30             # měření starší než tolik minut je šedé a chybí ve stavu
+  heating_waves_2: 35           # od kolika % intenzity vytápění dvě vlny
+  heating_waves_3: 68           # od kolika % tři vlny (jedna vlna = cokoli nad 0 %)
+
+# Mikrotrendy CO₂, PM2.5 a teploty.
+trends:
+  minutes: 120                  # zobrazený úsek (10–1440 min)
+  samples: 12                   # počet bodů (2–120)
+  temperature_step: 1           # krok společné osy (°C); polovina = práh „stoupá / klesá“
+  co2_step: 100                 # (ppm)
+  pm25_step: 5                  # (µg/m³)
+
+# Popup Historie místnosti.
+history:
+  hours: 24                     # délka období (1–168 h)
+  night_start: 22               # ztmavená noc v grafu (celé hodiny)
+  night_end: 6
+  min_temperature_span: 1.5     # nejmenší rozsah osy teploty (°C)
+
+# Žaluzie: předvolby pro všechny žaluzie (místnost je může přepsat vlastním cover_presets).
+covers:
+  script: script.zaluzie_posun  # skript s poli entity, pos, tilt
+  tolerance: 5                  # ± % pro shodu žaluzie s předvolbou
+  stall_seconds: 5              # pulzování předvolby skončí po tolika sekundách beze změny
+  presets:                      # 1–3 předvolby shora dolů; icon: open (Den) | shade (Stín) | dark (Tma)
+    - name: Den
+      icon: open
+      position: 100             # poloha: 100 = nahoře
+      tilt: 100                 # naklopení: 100 = lamely otevřené
+      description: vytaženo nahoru
+    - name: Stín
+      icon: shade
+      position: 0
+      tilt: 100
+      description: spuštěno, lamely otevřené
+    - name: Tma
+      icon: dark
+      position: 0
+      tilt: 0
+      description: úplné zatemnění
 
 # Outside entity IDs are not mapped yet; add them when confirmed.
 # outside:
@@ -10,17 +70,27 @@ house_mode_entity: input_select.house_mode
 #   rain_probability: sensor.rain_probability
 #   pm25: sensor.outdoor_pm2_5
 
-# scene is optional: without it the illustration is chosen from the room name
-# (Ložnice, Pracovna, Maxík, Mikuláš, Obývák); scene: none turns it off.
+# Místnosti. image: bedroom | office | kids | living | none, nebo adresa vlastního obrázku
+# (/local/klima/loznice.jpg); bez image se ilustrace zvolí podle názvu místnosti.
 rooms:
   - name: Ložnice
-    scene: bedroom
+    image: bedroom
+    # link: /lovelace/loznice   # klepnutí na název místnosti otevře stránku (nebo https://…)
     temperature: sensor.loznice_teplomer_loznice_temperature
     humidity: sensor.loznice_teplomer_loznice_humidity
-    carbon_dioxide: sensor.loznice_teplomer_loznice_carbon_dioxide
+    carbon_dioxide: sensor.loznice_teplomer_loznice_carbon_dioxide   # false = místnost čidlo nemá
     pm25: sensor.loznice_teplomer_loznice_pm2_5
     window: binary_sensor.loznice_okno_loznice
+    # Dvě okna (popup „Okna“ ukáže obě; jména jsou volitelná):
+    # window:
+    #   - entity: binary_sensor.loznice_okno_loznice
+    #     name: Okno
+    #   - entity: binary_sensor.vase_druhe_okno
+    #     name: Balkon
     cover: cover.loznice_zaluzie_loznice
+    # cover_presets:            # vlastní předvolby jen pro tuto žaluzii (stejný tvar jako covers.presets)
+    # thresholds:               # vlastní prahy jen pro tuto místnost, např. chladnější ložnice
+    #   winter_min: 19
     heating:
       climate: climate.loznice_tado_ce_loznice
       overlay: sensor.loznice_tado_ce_loznice_overlay
@@ -29,9 +99,12 @@ rooms:
     air_conditioner: climate.loznice_ac_loznice
 
   - name: Pracovna
-    scene: office
+    image: office
     temperature: sensor.pracovna_teplomer_pracovna_temperature
     humidity: sensor.pracovna_teplomer_pracovna_humidity
+    # Nemá-li Pracovna čidlo CO₂ a PM2.5, odkomentujte (řádky zmizí a stav nebude „Bez dat“):
+    # carbon_dioxide: false
+    # pm25: false
     window: binary_sensor.pracovna_okno_pracovna
     cover: cover.pracovna_zaluzie_pracovna
     heating:
@@ -42,7 +115,7 @@ rooms:
     air_conditioner: climate.pracovna_ac_pracovna
 
   - name: Maxík
-    scene: kids
+    image: kids
     window: binary_sensor.maxik_okno_maxik
     cover: cover.maxik_zaluzie_maxik
     heating:
@@ -53,7 +126,7 @@ rooms:
     air_conditioner: climate.maxik_ac_maxik
 
   - name: Mikuláš
-    scene: kids
+    image: kids
     window: binary_sensor.mikulas_okno_mikulas
     cover: cover.mikulas_zaluzie_mikulas
     heating:
@@ -64,7 +137,7 @@ rooms:
     air_conditioner: climate.mikulas_ac_mikulas
 
   - name: Obývák
-    scene: living
+    image: living
     window: binary_sensor.obyvak_dvere_zahrada
     heating:
       climate: climate.obyvak_tado_ce_obyvak
@@ -72,17 +145,3 @@ rooms:
       target: sensor.obyvak_tado_ce_obyvak_target
       intensity: sensor.obyvak_tado_ce_obyvak_heating
     air_conditioner: climate.obyvak_ac_obyvak
-
-# Thresholds default to the values in CURRENT_SPEC.md and rarely need changing.
-# thresholds:
-#   humidity_min: 35
-#   humidity_max: 70
-#   co2_warning: 1000
-#   co2_critical: 1500
-#   pm25_warning: 15
-#   pm25_critical: 35
-#   winter_min: 20
-#   winter_max: 24
-#   summer_min: 21
-#   summer_max: 25
-#   stale_minutes: 30   # measurement not reported for longer is shown grey and counts as missing

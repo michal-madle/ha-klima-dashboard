@@ -1,45 +1,28 @@
-import { HOUSE_MODE_ENTITY } from "./config";
 import type {
   BlindPreset,
-  DashboardConfig,
+  ClimateMode,
   DashboardThresholds,
   EntityId,
   Reading,
+  Room,
   RoomStatus,
-  ClimateMode,
+  Settings,
   TrendKind,
+  TrendSettings,
 } from "./types";
 
-/** Script called by the blind presets (fields: entity, pos, tilt). */
-export const COVER_SCRIPT = { domain: "script", service: "zaluzie_posun" } as const;
-
-/**
- * Position / tilt: 0 = closed (down / vertical slats), 100 = open (up / horizontal slats).
- * The order is the order of the buttons from top to bottom: raised first, closed last.
- */
-export const BLIND_PRESETS: BlindPreset[] = [
-  { id: "open", label: "Den", description: "vytaženo nahoru", position: 100, tilt: 100 },
-  { id: "shade", label: "Stín", description: "spuštěno, lamely otevřené", position: 0, tilt: 100 },
-  { id: "dark", label: "Tma", description: "úplné zatemnění", position: 0, tilt: 0 },
-];
-
-/**
- * Tolerance (position and tilt, in %) within which a blind counts as being in a preset. The
- * blind moves up by 3-4 % when its slats open, so "Stín" (0 / 100) is really reported as 4 / 100.
- */
-const PRESET_TOLERANCE = 5;
-
-/** True when the blind's position and tilt (both known) are those of the preset. */
+/** True when the blind's position and tilt (both known) are those of the preset, within ± tolerance %. */
 export function blindMatchesPreset(
   position: number | undefined,
   tilt: number | undefined,
   preset: BlindPreset,
+  tolerance: number,
 ): boolean {
   return (
     position !== undefined &&
     tilt !== undefined &&
-    Math.abs(position - preset.position) <= PRESET_TOLERANCE &&
-    Math.abs(tilt - preset.tilt) <= PRESET_TOLERANCE
+    Math.abs(position - preset.position) <= tolerance &&
+    Math.abs(tilt - preset.tilt) <= tolerance
   );
 }
 
@@ -47,37 +30,44 @@ export function blindMatchesPreset(
  * Rounding step of the house-wide trend axis per quantity (°C, ppm, µg/m³); it is also the
  * smallest axis range, so sensor noise is not drawn as a trend.
  */
-export const TREND_AXIS_STEP: Record<TrendKind, number> = { temperature: 1, co2: 100, pm25: 5 };
+export function trendStep(trends: TrendSettings, kind: TrendKind): number {
+  return kind === "temperature" ? trends.temperature_step : kind === "co2" ? trends.co2_step : trends.pm25_step;
+}
 
+/**
+ * Colours are CSS custom properties of the card (CURRENT_SPEC.md, Barvy): the dark set is the
+ * default on :host, the light set overrides it (styles.ts). Use them only where CSS is parsed
+ * (style attributes, CSS), never in SVG presentation attributes.
+ */
 export const COLORS = {
-  background: "#1C1C1E",
-  open: "#D8D8DC",
-  closed: "#6B6B70",
+  /** Main text and the temperature curve. */
+  white: "var(--kd-text)",
+  /** Topení "Vypnuto" strip in the history chart. */
+  closed: "var(--kd-closed)",
   /** Lowered blind (champagne) and the window behind it (sky). */
-  blind: "#E8D9B5",
-  sky: "#64D2FF",
+  blind: "var(--kd-blind)",
+  sky: "var(--kd-sky)",
   /** CO₂ icon and its micro trend (muted sage green) and PM2.5 icon and its micro trend (muted lavender). */
-  co2: "#8FBF9F",
-  pm25: "#A59DCF",
+  co2: "var(--kd-co2)",
+  pm25: "var(--kd-pm25)",
   /** Temperature micro trend. */
-  peach: "#FFB36B",
+  peach: "var(--kd-peach)",
   /** Humidity value: deliberately uncoloured. */
-  neutral: "#C7C7CC",
-  /** Dashed humidity curve in the 24 h room history. */
-  humidityLine: "#64D2FF",
-  label: "#9A9AA0",
-  off: "#8E8E93",
-  white: "#FFFFFF",
-  plan: "#F2F2F7",
-  warning: "#FF9F0A",
-  alert: "#FF453A",
-  /** The same red, lighter, for the lighter ground of a popup option (contrast 4.5 : 1 for 17 px text). */
-  alertOnPopup: "#FF6961",
-  cold: "#64D2FF",
-  cool: "#64D2FF",
-  dry: "#FFD60A",
-  heat: "#FF9F0A",
-  auto: "#BF5AF2",
+  neutral: "var(--kd-neutral)",
+  /** Dashed humidity curve in the room history. */
+  humidityLine: "var(--kd-sky)",
+  label: "var(--kd-label)",
+  off: "var(--kd-off)",
+  plan: "var(--kd-plan)",
+  warning: "var(--kd-warning)",
+  alert: "var(--kd-alert)",
+  /** The critical red on the lighter ground of a popup option (contrast 4.5 : 1 for 17 px text). */
+  alertOnPopup: "var(--kd-alert-popup)",
+  cold: "var(--kd-sky)",
+  cool: "var(--kd-sky)",
+  dry: "var(--kd-dry)",
+  heat: "var(--kd-warning)",
+  auto: "var(--kd-auto)",
 };
 
 export const CLIMATE_COLORS: Record<ClimateMode, string> = {
@@ -153,15 +143,16 @@ export function getRoomStatus(
   readings: RoomReadings,
   isSummer: boolean,
   modeKnown: boolean,
-  thresholds: DashboardThresholds,
+  room: Pick<Room, "thresholds" | "hasCo2" | "hasPm25">,
 ): RoomStatus {
+  const { thresholds } = room;
   // "Bez dat" names the first missing or stale required value, so the user knows what to fix
-  // (CURRENT_SPEC.md, Chybějící data).
+  // (CURRENT_SPEC.md, Chybějící data). CO₂ and PM2.5 are required only in a room that has them.
   const required: Array<[string, Reading | undefined]> = [
     ["teplota", readings.temperature],
     ["vlhkost", readings.humidity],
-    ["CO₂", readings.co2],
-    ["PM2.5", readings.pm25],
+    ...(room.hasCo2 ? [["CO₂", readings.co2] as [string, Reading]] : []),
+    ...(room.hasPm25 ? [["PM2.5", readings.pm25] as [string, Reading]] : []),
     ["režim domu", modeKnown ? { value: 1 } : undefined],
   ];
   for (const [name, reading] of required) {
@@ -175,8 +166,8 @@ export function getRoomStatus(
   }
   const temperature = readings.temperature.value as number;
   const humidity = readings.humidity.value as number;
-  const co2 = readings.co2.value as number;
-  const pm25 = readings.pm25.value as number;
+  const co2 = room.hasCo2 ? (readings.co2.value as number) : Number.NEGATIVE_INFINITY;
+  const pm25 = room.hasPm25 ? (readings.pm25.value as number) : Number.NEGATIVE_INFINITY;
   if (pm25 >= thresholds.pm25_critical) {
     return { label: "Znečištěný vzduch", color: COLORS.alert, kind: "critical", cause: "pm25" };
   }
@@ -236,20 +227,24 @@ export function formatHalf(value: number): string {
   );
 }
 
-export function heatingWaveCount(value: number | undefined): number {
+/**
+ * Heating intensity (%) as 0–3 waves (CURRENT_SPEC.md, Topení): 0 % none, above 0 one wave,
+ * from `heating_waves_2` two, from `heating_waves_3` three (defaults 35 and 68).
+ */
+export function heatingWaveCount(
+  value: number | undefined,
+  bands: Pick<DashboardThresholds, "heating_waves_2" | "heating_waves_3">,
+): number {
   if (value === undefined || value <= 0) {
     return 0;
   }
-  if (value <= 34) {
-    return 1;
+  if (value >= bands.heating_waves_3) {
+    return 3;
   }
-  if (value <= 67) {
-    return 2;
-  }
-  return 3;
+  return value >= bands.heating_waves_2 ? 2 : 1;
 }
 
-export function configuredEntityIds(config: DashboardConfig): Set<EntityId> {
+export function configuredEntityIds(settings: Settings): Set<EntityId> {
   const entityIds = new Set<EntityId>();
   const add = (entityId: EntityId | undefined): void => {
     if (entityId) {
@@ -257,19 +252,19 @@ export function configuredEntityIds(config: DashboardConfig): Set<EntityId> {
     }
   };
 
-  add(config.house_mode_entity ?? HOUSE_MODE_ENTITY);
-  add(config.outside?.temperature);
-  add(config.outside?.minimum);
-  add(config.outside?.maximum);
-  add(config.outside?.rain_probability);
-  add(config.outside?.pm25);
+  add(settings.houseModeEntity);
+  add(settings.outside?.temperature);
+  add(settings.outside?.minimum);
+  add(settings.outside?.maximum);
+  add(settings.outside?.rain_probability);
+  add(settings.outside?.pm25);
 
-  for (const room of config.rooms) {
+  for (const room of settings.rooms) {
     add(room.temperature);
     add(room.humidity);
     add(room.carbon_dioxide);
     add(room.pm25);
-    add(room.window);
+    room.windows.forEach((window) => add(window.entity));
     add(room.cover);
     add(room.heating?.climate);
     add(room.heating?.overlay);
@@ -281,9 +276,9 @@ export function configuredEntityIds(config: DashboardConfig): Set<EntityId> {
 }
 
 /** Entities whose recent history is drawn as a micro trend. */
-export function trendEntityIds(config: DashboardConfig): EntityId[] {
+export function trendEntityIds(settings: Settings): EntityId[] {
   const entityIds = new Set<EntityId>();
-  for (const room of config.rooms) {
+  for (const room of settings.rooms) {
     for (const entityId of [room.temperature, room.carbon_dioxide, room.pm25]) {
       if (entityId) {
         entityIds.add(entityId);
@@ -324,7 +319,7 @@ export function formatAge(minutes: number): string {
 
 /**
  * Spoken direction of a micro trend for screen readers: the change between the first and the
- * last sample against half of the axis step (0,5 °C, 50 ppm, 2,5 µg/m³ over 2 h).
+ * last sample against half of the axis step (by default 0,5 °C, 50 ppm, 2,5 µg/m³ over 2 h).
  */
 export function trendDirection(
   samples: Array<number | undefined> | undefined,
@@ -392,10 +387,31 @@ export function plural(count: number, one: string, few: string, many: string): s
   return count >= 2 && count <= 4 ? few : many;
 }
 
+/**
+ * A period after "za" for screen readers (accusative): "2 hodiny", "24 hodin", "1 hodinu",
+ * "90 minut". Whole hours are said in hours, anything else in minutes.
+ */
+export function spokenPeriod(minutes: number): string {
+  const total = Math.max(1, Math.round(minutes));
+  if (total % 60 === 0) {
+    const hours = total / 60;
+    return `${hours} ${plural(hours, "hodinu", "hodiny", "hodin")}`;
+  }
+  return `${total} ${plural(total, "minutu", "minuty", "minut")}`;
+}
+
+/** "poslední hodinu", "poslední 3 hodiny", "posledních 24 hodin" (after "za"). */
+export function lastHours(hours: number): string {
+  if (hours === 1) {
+    return "poslední hodinu";
+  }
+  return hours >= 2 && hours <= 4 ? `poslední ${hours} hodiny` : `posledních ${hours} hodin`;
+}
+
 /** The four ALPSTUGA measurements of a room, the only entities checked for stale data. */
-export function measurementEntityIds(config: DashboardConfig): EntityId[] {
+export function measurementEntityIds(settings: Settings): EntityId[] {
   const entityIds = new Set<EntityId>();
-  for (const room of config.rooms) {
+  for (const room of settings.rooms) {
     for (const entityId of [room.temperature, room.humidity, room.carbon_dioxide, room.pm25]) {
       if (entityId) {
         entityIds.add(entityId);

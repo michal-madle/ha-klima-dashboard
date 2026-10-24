@@ -1,6 +1,6 @@
 import { html, nothing, svg } from "lit";
 import type { TemplateResult } from "lit";
-import type { BlindPresetId, ClimateMode } from "./types";
+import type { BlindIcon, ClimateMode } from "./types";
 import { COLORS } from "./utils";
 
 /** PM2.5 icon: scattered dots of different sizes, no frame and no text (CURRENT_SPEC.md, Room Card). */
@@ -32,7 +32,7 @@ export function renderParticlesIcon(): TemplateResult {
  * lowered, slats closed (the same four slats, thick and almost touching). The rail spans
  * 27 of the 32 units of the viewBox (`--preset-icon` x 27/32 in styles.ts). CURRENT_SPEC.md, Žaluzie.
  */
-export function renderPresetIcon(id: BlindPresetId): TemplateResult {
+export function renderPresetIcon(id: BlindIcon): TemplateResult {
   const fill = (x: number, y: number, width: number, height: number): TemplateResult =>
     svg`<rect x=${x} y=${y} width=${width} height=${height} rx=${height / 2 > 1.2 ? 1.2 : height / 2} fill="currentColor" stroke="none"></rect>`;
   const cord = (bottom: number): TemplateResult => svg`<path d="M27.5 6.7V${bottom}" stroke-width="1.6"></path>
@@ -70,7 +70,7 @@ export function renderHeatingWaves(count: number, dashed: boolean): TemplateResu
       ${[0, 1, 2].map(
         (index) => svg`<path
           d="M${6 + 6 * index} 20q-3-2.4 0-4.8t0-4.8t0-4.8"
-          stroke=${index < count ? COLORS.warning : COLORS.off}
+          style=${`stroke: ${index < count ? COLORS.warning : COLORS.off}`}
           stroke-dasharray=${dashed ? "1.6 2.6" : nothing}
         ></path>`,
       )}
@@ -117,7 +117,7 @@ export function renderClimateIcon(mode: ClimateMode, color: string, dashed: bool
     <svg
       viewBox="0 0 24 24"
       fill="none"
-      stroke=${color}
+      style=${`stroke: ${color}`}
       stroke-width="1.8"
       stroke-linecap="round"
       stroke-linejoin="round"
@@ -135,7 +135,7 @@ export function renderWindowIcon(color: string, dashed: boolean): TemplateResult
     <svg
       viewBox="0 0 24 24"
       fill="none"
-      stroke=${color}
+      style=${`stroke: ${color}`}
       stroke-width="1.8"
       stroke-linecap="round"
       stroke-linejoin="round"

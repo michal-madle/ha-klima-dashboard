@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import type { CDPSession, Page } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
+import { parse } from "yaml";
 
 // Browser tests of the Klima Dashboard card against tests/harness.html (fake hass data).
 // Every case names the spec section or TODO item it guards. `npm test` builds the card first.
@@ -93,6 +94,24 @@ test.describe("konfigurace", () => {
       return [...ids].sort();
     });
     expect(fromScenario).toEqual([...fromExample].sort());
+  });
+
+  test("příklad YAML projde kontrolou a vypisuje přesně výchozí hodnoty (CURRENT_SPEC.md, Konfigurace)", async ({ page }) => {
+    const example = parse(readFileSync(new URL("../examples/domov_prototyp_loznice.yaml", import.meta.url), "utf8"));
+    await open(page, "full");
+    const [explicit, implicit] = await page.evaluate((config) => {
+      const normalized = (value: unknown) => {
+        const card = document.createElement("ha-klima-dashboard") as unknown as { setConfig(value: unknown): void; _config: unknown };
+        card.setConfig(value);
+        return JSON.stringify(card._config);
+      };
+      // The same card without the listed defaults and without the pictures chosen by name.
+      const bare = structuredClone(config);
+      for (const key of ["theme", "house_modes", "thresholds", "trends", "history", "covers"]) delete bare[key];
+      for (const room of bare.rooms) delete room.image;
+      return [normalized(config), normalized(bare)];
+    }, example);
+    expect(explicit).toEqual(implicit);
   });
 });
 
@@ -232,6 +251,11 @@ test.describe("rozložení (Room Card, Dashboard Domov)", () => {
     expect(await tooSmall(page, "alarm")).toEqual([]);
     await open(page, "full", 734, 3200);
     expect(await tooSmall(page, "dva sloupce")).toEqual([]);
+    // Room link, two presets, two windows (CURRENT_SPEC.md, Konfigurace).
+    for (const width of [320, 393]) {
+      await open(page, "config", width, 3200);
+      expect(await tooSmall(page, `konfigurace ${width}`)).toEqual([]);
+    }
   });
 
   test("klikací prvky v oknech (Topení, Kvalita vzduchu, Historie) mají cíl aspoň 44 px (TODO P1.2)", async ({ page }) => {
@@ -422,7 +446,7 @@ test.describe("přístupnost", () => {
     await open(page, "alarm");
     expect(await axeViolations(page)).toEqual([]);
     await page.locator(".air-block").first().click();
-    await expect(page.locator(".air-options")).toBeVisible();
+    await expect(page.locator(".list-options")).toBeVisible();
     expect(await axeViolations(page)).toEqual([]);
   });
 
@@ -493,8 +517,10 @@ test.describe("panel a předvolby žaluzií (Žaluzie)", () => {
     const heights = await page.evaluate(() =>
       [...document.querySelector("ha-klima-dashboard")!.shadowRoot!.querySelectorAll(".room")].slice(0, 3).map((room) => {
         const slats = [...room.querySelectorAll(".cover-panel rect:not(.rail)")];
-        const by = (fill: string) => slats.filter((slat) => slat.getAttribute("fill") === fill).map((slat) => +slat.getAttribute("height")!);
-        return { count: slats.length, blind: by("#E8D9B5"), window: by("#64D2FF") };
+        // The colour is a CSS variable in the style (dark theme: champagne blind, sky window).
+        const by = (colour: string) =>
+          slats.filter((slat) => getComputedStyle(slat).fill === colour).map((slat) => +slat.getAttribute("height")!);
+        return { count: slats.length, blind: by("rgb(232, 217, 181)"), window: by("rgb(100, 210, 255)") };
       }),
     );
     // Ložnice 0 / 0: all 11 lowered, nearly solid.
@@ -927,7 +953,7 @@ test.describe("historie místnosti (Historie a grafy)", () => {
         const chart = document.querySelector("ha-klima-dashboard")!.shadowRoot!.querySelector("svg.chart")!;
         const ticks = [...chart.querySelectorAll("text")].map((text) => text.textContent ?? "").filter((text) => text.includes(":"));
         const nights = [...chart.querySelectorAll("rect")]
-          .filter((rect) => rect.getAttribute("fill") === "rgb(0 0 0 / 30%)")
+          .filter((rect) => rect.classList.contains("night"))
           .map((rect) => Number(rect.getAttribute("width")));
         return { ticks, nights };
       });
@@ -995,11 +1021,11 @@ test.describe("příčina stavu, konflikty a kvalita vzduchu (TODO P2.14, P2.15,
   test("blok CO₂ / PM2.5 otevře popup Kvalita vzduchu a z něj detail každé veličiny", async ({ page }) => {
     await open(page, "full");
     await page.locator(".room").first().locator(".air-block").click();
-    const options = page.locator(".air-option");
+    const options = page.locator(".list-option");
     await expect(options).toHaveCount(2);
     await expect(options.nth(0)).toContainText("CO₂");
-    await expect(options.nth(0).locator(".air-value")).toHaveText("656 ppm");
-    await expect(options.nth(1).locator(".air-value")).toHaveText("2 µg/m³");
+    await expect(options.nth(0).locator(".list-value")).toHaveText("656 ppm");
+    await expect(options.nth(1).locator(".list-value")).toHaveText("2 µg/m³");
     await options.nth(0).click();
     await expect(page.locator(".sheet")).toHaveCount(0);
     expect(await page.evaluate(() => window.__test.moreInfo)).toEqual(["sensor.loznice_teplomer_loznice_carbon_dioxide"]);
@@ -1070,17 +1096,43 @@ test.describe("doba otevření okna, písmo hodnot a hlavička (TODO P1.10, P3.1
     await expect(windowRow(page)).toContainText(/Otevřeno\s*·\s*< 1 min/);
   });
 
-  test("doba otevření se vejde i na 320 px s tečkou konfliktu a nic se neořízne", async ({ page }) => {
-    await open(page, "alarm", 320);
-    const rows = await page.locator(".slot-window").evaluateAll((items) =>
+  /** Window rows: is anything cut, and is the conflict dot on the visible (first) line of the row. */
+  const windowRows = (page: Page) =>
+    page.locator(".slot-window").evaluateAll((items) =>
       items.map((item) => {
         const label = item.querySelector(".row-label")!;
         const text = item.querySelector(".row-text")!;
-        return { cut: label.scrollWidth > label.clientWidth + 0.5 || text.scrollWidth > text.clientWidth + 0.5, text: item.textContent?.replace(/\s+/g, " ").trim() };
+        const dot = item.querySelector(".conflict-dot")?.getBoundingClientRect();
+        const line = text.getBoundingClientRect();
+        return {
+          cut: label.scrollWidth > label.clientWidth + 0.5 || text.scrollWidth > text.clientWidth + 0.5,
+          dotHidden: dot ? dot.top >= line.bottom || dot.right > line.right + 0.5 : false,
+          dot: Boolean(dot),
+          text: item.textContent?.replace(/\s+/g, " ").trim(),
+        };
       }),
     );
-    expect(rows.filter((row) => row.cut)).toEqual([]);
-    expect(rows[0].text).toMatch(/Otevřeno · 3 min/);
+
+  test("doba otevření se vejde i na 320 px s tečkou konfliktu a nic se neořízne", async ({ page }) => {
+    await open(page, "alarm", 320);
+    const rows = await windowRows(page);
+    expect(rows.filter((row) => row.cut || row.dotHidden)).toEqual([]);
+    // With a conflict the dot stands right after the label, in place of the "·" before the time.
+    expect(rows[0]).toMatchObject({ dot: true, text: "Otevřeno 3 min" });
+    expect(rows.find((row) => !row.dot)?.text).toBe("Otevřeno · 3 min");
+    // Two open windows and a conflict on the narrowest card: the time may give way, the dot never.
+    await open(page, "config", 320);
+    await page.evaluate(() => {
+      // @ts-expect-error test hook
+      const { states, update } = window.__test;
+      update({
+        "binary_sensor.loznice_okno_loznice": { ...states["binary_sensor.loznice_okno_loznice"], state: "on" },
+        "binary_sensor.loznice_okno_balkon": { ...states["binary_sensor.loznice_okno_balkon"], state: "on" },
+      });
+    });
+    await expect(page.locator(".room").first().locator(".slot-window .row-label")).toHaveText("Otevřena 2");
+    const narrow = await windowRows(page);
+    expect(narrow[0]).toMatchObject({ cut: false, dot: true, dotHidden: false });
   });
 
   test("hodnoty CO₂ a PM2.5 mají stejné písmo jako Plán (polotučné, jednotka běžná)", async ({ page }) => {
@@ -1121,6 +1173,331 @@ test.describe("doba otevření okna, písmo hodnot a hlavička (TODO P1.10, P3.1
       card.setConfig({ ...config, title: undefined });
     });
     await expect(page.locator("h1")).toHaveText("Domov");
+  });
+});
+
+test.describe("konfigurace karty (Konfigurace)", () => {
+  /** setConfig of a copy of the scenario config with `patch` on the top level and `roomPatch` on Ložnice; "" = accepted. */
+  const configError = (page: Page, patch: Record<string, unknown>, roomPatch: Record<string, unknown> = {}) =>
+    page.evaluate(
+      ([top, room]) => {
+        // @ts-expect-error test hook
+        const config = structuredClone(window.__test.config);
+        Object.assign(config, top);
+        Object.assign(config.rooms[0], room);
+        try {
+          (document.createElement("ha-klima-dashboard") as unknown as { setConfig(value: unknown): void }).setConfig(config);
+          return "";
+        } catch (error) {
+          return (error as Error).message;
+        }
+      },
+      [patch, roomPatch] as const,
+    );
+
+  test("chybná hodnota zastaví kartu srozumitelnou chybou s názvem klíče; dosavadní konfigurace projde", async ({ page }) => {
+    await open(page, "full");
+    const preset = (extra: Record<string, unknown>) => [{ name: "X", position: 10, tilt: 0, ...extra }];
+    const cases: Array<[Record<string, unknown>, Record<string, unknown>, RegExp]> = [
+      [{ thresholds: { co2_warning: 1600 } }, {}, /co2_warning \(1600\) must be below co2_critical \(1500\)/],
+      [{ thresholds: { co2_warnig: 900 } }, {}, /thresholds: unknown key "co2_warnig"/],
+      [{ thresholds: { heating_waves_2: 70 } }, {}, /heating_waves_2 \(70\) must be below heating_waves_3 \(68\)/],
+      [{ trends: { minutes: 5 } }, {}, /trends\.minutes must be a whole number from 10 to 1440/],
+      [{ history: { hours: 0 } }, {}, /history\.hours must be a whole number from 1 to 168/],
+      [{ theme: "blue" }, {}, /theme must be one of auto, dark, light/],
+      [{ house_modes: { winter: "Léto", summer: "leto" } }, {}, /must differ/],
+      [{ covers: { presets: [...preset({}), ...preset({}), ...preset({}), ...preset({})] } }, {}, /covers\.presets must be a list of 1 to 3 presets/],
+      [{ covers: { script: "zaluzie_posun" } }, {}, /covers\.script must be a script entity/],
+      [{}, { cover_presets: preset({ position: 120 }) }, /cover_presets\[1\]\.position must be a number from 0 to 100/],
+      [{}, { cover_presets: preset({ icon: "moon" }) }, /cover_presets\[1\]\.icon must be one of open, shade, dark/],
+      [{}, { window: [] }, /window must not be an empty list/],
+      [{}, { window: ["binary_sensor.a", "binary_sensor.a"] }, /lists binary_sensor\.a twice/],
+      [{}, { windows: ["binary_sensor.a"] }, /the key is "window"/],
+      [{}, { image: "javascript:alert(1)" }, /image must be one of bedroom, office, kids, living, none or an image address/],
+      [{}, { image: "bedroom", scene: "office" }, /either image or scene/],
+      [{}, { link: "lovelace/loznice" }, /link must be a Home Assistant path/],
+      [{}, { carbon_dioxide: true }, /carbon_dioxide must be an entity ID/],
+      [{}, { thresholds: { winter_min: 25 } }, /room "Ložnice"\.thresholds: winter_min \(25\) must be at most winter_max \(24\)/],
+      [{}, { pocet_oken: 2 }, /room "Ložnice": unknown key "pocet_oken"/],
+      [{}, { name: "Pracovna" }, /room name "Pracovna" is used twice/],
+    ];
+    for (const [top, room, message] of cases) {
+      expect(await configError(page, top, room), JSON.stringify([top, room])).toMatch(message);
+    }
+    // Accepted: the older `scene`, one window as a text, `false` for a missing sensor, empty title.
+    for (const [top, room] of [
+      [{}, { scene: "office" }],
+      [{}, { window: "binary_sensor.loznice_okno_loznice" }],
+      [{}, { carbon_dioxide: false, pm25: false }],
+      [{ title: "", theme: "light", trends: { minutes: 60 } }, { image: "/local/obrazky/loznice.jpg", link: "https://example.com" }],
+    ] as Array<[Record<string, unknown>, Record<string, unknown>]>) {
+      expect(await configError(page, top, room), JSON.stringify([top, room])).toBe("");
+    }
+  });
+
+  test("prahy, vlny topení a režim domu z konfigurace; prahy místnosti přepíšou společné", async ({ page }) => {
+    await open(page, "config");
+    // Maxík (22,4 °C) has winter_min 23 of its own: Chladno, and the temperature is blue; the others keep 20–24 °C.
+    expect(tidy(await statuses(page))).toEqual(["Příjemné", "Příjemné", "Chladno", "Příjemné", "Příjemné"]);
+    const wavesLit = () =>
+      page.locator(".room").first().locator(".hvac .row-icon").first().evaluate((icon) =>
+        [...icon.querySelectorAll("path")].filter((path) => getComputedStyle(path).stroke === "rgb(255, 159, 10)").length,
+      );
+    expect(await wavesLit()).toBe(1); // Ložnice 20 %: one wave by the default bands.
+    await page.evaluate(() => {
+      // @ts-expect-error test hook
+      const { card, config } = window.__test;
+      card.setConfig({ ...config, thresholds: { heating_waves_2: 10, heating_waves_3: 15 }, house_modes: { winter: "Topná sezóna", summer: "Chladicí sezóna" } });
+    });
+    expect(await wavesLit()).toBe(3);
+    // The house mode now has other names: "Zima" is unknown (Bez dat), "Chladicí sezóna" is summer (Klimatizace first).
+    await expect(page.locator(".status-line").first()).toContainText("Bez dat · režim domu");
+    await page.evaluate(() => {
+      // @ts-expect-error test hook
+      const { states, update } = window.__test;
+      update({ "input_select.house_mode": { ...states["input_select.house_mode"], state: "Chladicí sezóna" } });
+    });
+    await expect(page.locator(".room").first().locator(".hvac .system-row").first()).toContainText("Vypnuto");
+    await expect(page.locator(".room").first().locator(".hvac .system-row").nth(1)).toContainText("Plán");
+  });
+
+  test("místnost bez CO₂ a PM2.5 (false): bez řádků a bez „Bez dat“, ostatní řádky na stejném místě", async ({ page }) => {
+    await open(page, "config");
+    const pracovna = page.locator(".room").nth(1);
+    await expect(pracovna.locator(".air-block")).toHaveCount(0);
+    await expect(pracovna.locator(".status-line")).toContainText("Příjemné");
+    // The rows below stay where they are in a room with both sensors (the same layout).
+    const offsets = await page.locator(".room").evaluateAll((rooms) =>
+      rooms.slice(0, 2).map((room) => {
+        const lower = room.querySelector(".lower")!.getBoundingClientRect().top;
+        return {
+          hvac: room.querySelector(".hvac")!.getBoundingClientRect().top - lower,
+          window: room.querySelector(".slot-window")!.getBoundingClientRect().top - lower,
+          panel: room.querySelector(".cover-panel")!.getBoundingClientRect().height,
+        };
+      }),
+    );
+    expect(offsets[1]).toEqual(offsets[0]);
+    // A sensor that is only missing from the configuration (key left out) still means Bez dat.
+    await open(page, "real");
+    await expect(page.locator(".room").nth(1).locator(".status-line")).toContainText("Bez dat · CO₂");
+  });
+
+  test("dvě okna: jeden řádek, „Otevřena 2“, nejdéle otevřené, neznámé „––“, popup Okna a souhrn počítá okna", async ({ page }) => {
+    await page.clock.install();
+    await open(page, "config");
+    const row = page.locator(".room").first().locator(".slot-window");
+    const set = (id: string, state: string) =>
+      page.evaluate(
+        ([entity, value]) => {
+          // @ts-expect-error test hook
+          const { states, update } = window.__test;
+          update({ [entity]: { ...states[entity], state: value } });
+        },
+        [id, state] as const,
+      );
+    const okno = "binary_sensor.loznice_okno_loznice";
+    const balkon = "binary_sensor.loznice_okno_balkon";
+    await expect(row).toHaveText(/^\s*Zavřeno\s*$/);
+    await expect(row).toHaveAccessibleDescription("Ložnice: všechna okna zavřená. Otevře přehled oken.");
+    await set(balkon, "on");
+    await page.clock.fastForward("05:00");
+    // Ložnice heats (one wave): the conflict dot stands in place of the "·".
+    await expect(row).toContainText(/^\s*Otevřeno\s*5 min/);
+    await expect(row.locator(".conflict-dot")).toHaveCount(1);
+    await expect(row).toHaveAccessibleDescription(/okno Balkon otevřené 5 minut; konflikt: otevřené okno při topení/);
+    await set(okno, "on");
+    // Two open: the count, and the time of the one open longest (Balkon).
+    await expect(row).toContainText(/Otevřena\s2\s*5 min/);
+    await expect(row).toHaveAccessibleDescription(/otevřená okna Okno, Balkon, nejdéle 5 minut/);
+    // House summary counts windows, not rooms: 2 in Ložnice + 1 in Pracovna.
+    const windowsChip = page.locator(".summary .chip").filter({ hasText: "okna otevřená" });
+    await expect(windowsChip).toHaveText(/3 okna otevřená/);
+    await expect(windowsChip).toHaveAttribute("aria-label", "Otevřená okna: Ložnice (2), Pracovna");
+    // The popup lists both windows with their state; a row opens the window's own detail.
+    await row.click();
+    await expect(page.locator("#sheet-title")).toHaveText("Okna");
+    const options = page.locator(".window-option");
+    await expect(options).toHaveCount(2);
+    await expect(options.nth(0)).toContainText(/Okno.*Otevřeno\s*·\s*< 1 min/s);
+    await expect(options.nth(1)).toContainText(/Balkon.*Otevřeno\s*·\s*5 min/s);
+    await options.nth(1).click();
+    await expect(page.locator(".sheet")).toHaveCount(0);
+    // @ts-expect-error test hook
+    expect(await page.evaluate(() => window.__test.moreInfo)).toEqual([balkon]);
+    // Unknown is never taken as closed: none open and one unavailable is "––".
+    await set(okno, "off");
+    await set(balkon, "unavailable");
+    await expect(row).toHaveText(/^\s*––\s*$/);
+    await expect(row).toHaveAccessibleDescription(/stav oken neznámý/);
+  });
+
+  test("vlastní předvolby místnosti, tolerance a skript z konfigurace", async ({ page }) => {
+    await open(page, "config");
+    const presets = page.locator(".room").first().locator(".preset");
+    await expect(presets).toHaveCount(2);
+    await expect(presets.nth(0)).toHaveAttribute("title", "Ráno");
+    await expect(presets.nth(1)).toHaveAccessibleName(/žaluzie Polostín, poloha 50 %, naklopení 60 %/);
+    // Two presets share the height of the panel; each stays at least 44 px.
+    const heights = await presets.evaluateAll((items) => items.map((item) => item.getBoundingClientRect().height));
+    expect(Math.min(...heights)).toBeGreaterThanOrEqual(44);
+    // covers.tolerance: 3 → 52 / 62 is still Polostín (50 / 60), 54 / 60 is not.
+    const cover = (position: number, tilt: number) =>
+      page.evaluate(
+        ([p, t]) => {
+          // @ts-expect-error test hook
+          window.__test.cover("cover.loznice_zaluzie_loznice", "open", p, t);
+        },
+        [position, tilt] as const,
+      );
+    await cover(52, 62);
+    await expect(presets.nth(1)).toHaveAttribute("aria-pressed", "true");
+    await cover(54, 60);
+    await expect(presets.nth(1)).toHaveAttribute("aria-pressed", "false");
+    // covers.script: a different script gets the same fields.
+    await page.evaluate(() => {
+      // @ts-expect-error test hook
+      const { card, config } = window.__test;
+      card.setConfig({ ...config, covers: { script: "script.moje_zaluzie" } });
+    });
+    await presets.nth(0).focus();
+    await page.keyboard.press("Enter");
+    // @ts-expect-error test hook
+    expect(await page.evaluate(() => window.__test.services)).toEqual([
+      ["script", "moje_zaluzie", { entity: "cover.loznice_zaluzie_loznice", pos: 100, tilt: 100 }],
+    ]);
+  });
+
+  test("vlastní obrázek místnosti a odkaz z názvu místnosti", async ({ page }) => {
+    await open(page, "config");
+    const maxik = page.locator(".room").nth(2);
+    await expect(maxik.locator(".scene.photo img")).toHaveAttribute("src", /^data:image\/svg\+xml,/);
+    await expect(maxik.locator(".scene.photo img")).toHaveAttribute("alt", "");
+    await expect(maxik.locator(".scene")).toHaveAttribute("aria-hidden", "true");
+    // The picture fades out like the illustration and does not cover the values.
+    expect(await sceneOverlaps(page)).toEqual([]);
+    const link = page.locator(".room").first().locator(".room-link");
+    await expect(link).toHaveAccessibleName("Ložnice");
+    await expect(link).toHaveAccessibleDescription("Otevře stránku místnosti.");
+    await link.click();
+    // @ts-expect-error test hook
+    expect(await page.evaluate(() => window.__test.actions)).toEqual([
+      { config: { tap_action: { action: "navigate", navigation_path: "/lovelace/loznice" } }, action: "tap" },
+    ]);
+    // The link does not move the status line: the header is as tall as in a room without one.
+    const statusTops = await page.locator(".room").evaluateAll((rooms) =>
+      rooms.slice(0, 2).map((room) => room.querySelector(".status-line")!.getBoundingClientRect().top - room.getBoundingClientRect().top),
+    );
+    expect(statusTops[0]).toBeCloseTo(statusTops[1], 0);
+  });
+
+  test("délka mikrotrendů a historie, noc a texty pro čtečku podle konfigurace", async ({ page }) => {
+    await open(page, "config");
+    // trends: 60 min, 7 samples.
+    const points = await page.locator(".room").first().locator(".slot-co2 polyline").getAttribute("points");
+    expect(points?.trim().split(/\s+/)).toHaveLength(7);
+    await expect(page.locator(".room").first().locator(".trend-button")).toHaveAccessibleName(
+      /teplota za 1 hodinu (stoupá|klesá|stabilní), historie místnosti za 12 hodin/,
+    );
+    // history: 12 h, night 23–7 h.
+    await page.locator(".room .temperature").first().click();
+    await expect(page.locator("#sheet-title")).toHaveText("Historie místnosti – 12 h");
+    await expect(page.locator(".legend").first()).toContainText("Noc 23–7 h");
+    await expect(page.locator(".chart-wrap")).toHaveAccessibleName(/^Graf za 12 hodin\./);
+  });
+});
+
+test.describe("světlý a tmavý režim (Barvy)", () => {
+  const theme = (page: Page) => page.locator("ha-klima-dashboard").getAttribute("data-theme");
+  const roomLook = (page: Page) =>
+    page.locator(".room").first().evaluate((room) => ({ background: getComputedStyle(room).backgroundColor, color: getComputedStyle(room).color }));
+
+  test("auto podle Home Assistantu (bez obnovení stránky), dark / light vynutí, bez údaje podle systému", async ({ page }) => {
+    await open(page, "full");
+    expect(await theme(page)).toBe("dark");
+    // The dark theme is the existing palette, unchanged.
+    expect(await roomLook(page)).toEqual({ background: "rgba(0, 0, 0, 0)", color: "rgb(255, 255, 255)" });
+    await page.evaluate(() => {
+      // @ts-expect-error test hook
+      window.__test.setDarkMode(false);
+    });
+    await expect(page.locator("ha-klima-dashboard")).toHaveAttribute("data-theme", "light");
+    expect(await roomLook(page)).toEqual({ background: "rgb(255, 255, 255)", color: "rgb(28, 28, 30)" });
+    // theme: dark wins over a light Home Assistant.
+    await page.evaluate(() => {
+      // @ts-expect-error test hook
+      const { card, config } = window.__test;
+      card.setConfig({ ...config, theme: "dark" });
+    });
+    await expect(page.locator("ha-klima-dashboard")).toHaveAttribute("data-theme", "dark");
+    // Without the dark mode from Home Assistant: the system colour scheme, live.
+    await page.evaluate(() => {
+      // @ts-expect-error test hook
+      const { card, config, dropThemes } = window.__test;
+      card.setConfig({ ...config, theme: "auto" });
+      dropThemes();
+    });
+    await page.emulateMedia({ colorScheme: "light" });
+    await expect(page.locator("ha-klima-dashboard")).toHaveAttribute("data-theme", "light");
+    await page.emulateMedia({ colorScheme: "dark" });
+    await expect(page.locator("ha-klima-dashboard")).toHaveAttribute("data-theme", "dark");
+  });
+
+  test("axe ve světlém režimu: karta a všechny popupy bez porušení (kontrast textu 4,5 : 1)", async ({ page }) => {
+    await page.setViewportSize({ width: 393, height: 852 });
+    for (const scenario of ["alarm", "config"]) {
+      await page.goto(`/tests/harness.html?s=${scenario}&theme=light`);
+      await expect(page.locator("ha-klima-dashboard")).toHaveAttribute("data-theme", "light");
+      await expect(page.locator(".spark.loading")).toHaveCount(0);
+      expect(await axeViolations(page), scenario).toEqual([]);
+    }
+    for (const trigger of [".air-block", ".hvac", ".temperature", ".slot-window"]) {
+      await page.locator(".room").first().locator(trigger).click();
+      await expect(page.locator(".sheet")).toBeVisible();
+      expect(await axeViolations(page), trigger).toEqual([]);
+      await page.keyboard.press("Escape");
+      await expect(page.locator(".sheet")).toHaveCount(0);
+    }
+    // The error notice after a failed blind script.
+    await page.evaluate(() => {
+      // @ts-expect-error test hook
+      window.__test.failNext = true;
+    });
+    await page.locator(".room").first().locator(".preset").first().focus();
+    await page.keyboard.press("Enter");
+    await expect(page.locator(".notice")).toBeVisible();
+    expect(await axeViolations(page), "hláška").toEqual([]);
+  });
+
+  test("světlý režim: ikony předvoleb a čáry aspoň 3 : 1 na bílé, svítící předvolba se liší", async ({ page }) => {
+    await page.goto(`/tests/harness.html?s=full&theme=light`);
+    await expect(page.locator(".room").first()).toBeVisible();
+    const colours = await page.locator(".room").first().evaluate((room) => {
+      const presets = [...room.querySelectorAll(".preset")].map((preset) => ({
+        on: preset.getAttribute("aria-pressed") === "true",
+        color: getComputedStyle(preset).color,
+      }));
+      const icon = (selector: string) => getComputedStyle(room.querySelector(selector)!).color;
+      return { presets, co2: icon(".slot-co2 .row-icon"), pm25: icon(".slot-pm25 .row-icon") };
+    });
+    const channels = (colour: string) => colour.match(/\d+(\.\d+)?/g)!.slice(0, 3).map(Number);
+    const luminance = (colour: string) => {
+      const [r, g, b] = channels(colour).map((value) => {
+        const c = value / 255;
+        return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+      });
+      return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    };
+    const onWhite = (colour: string) => 1.05 / (luminance(colour) + 0.05);
+    for (const preset of colours.presets) {
+      expect(onWhite(preset.color), JSON.stringify(preset)).toBeGreaterThanOrEqual(3);
+    }
+    const lit = colours.presets.filter((preset) => preset.on).map((preset) => preset.color);
+    const idle = colours.presets.filter((preset) => !preset.on).map((preset) => preset.color);
+    expect(lit).toHaveLength(1);
+    expect(idle).not.toContain(lit[0]);
+    expect(onWhite(colours.co2)).toBeGreaterThanOrEqual(4.5);
+    expect(onWhite(colours.pm25)).toBeGreaterThanOrEqual(4.5);
   });
 });
 

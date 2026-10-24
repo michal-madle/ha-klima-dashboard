@@ -3,7 +3,7 @@ import type { TemplateResult } from "lit";
 import { HOUR_MS, buildSegments, numericSeries } from "./history";
 import type { HistoryMap, Segment } from "./history";
 import { renderClimateIcon, renderHeatingWaves } from "./icons";
-import type { ClimateMode, RoomConfig } from "./types";
+import type { ClimateMode, HistorySettings, Room } from "./types";
 import {
   CLIMATE_COLORS,
   CLIMATE_LABELS,
@@ -15,7 +15,8 @@ import {
 } from "./utils";
 
 /**
- * „Historie místnosti – 24 h“ (CURRENT_SPEC.md, Historie a grafy), modelled on the day report
+ * „Historie místnosti – 24 h“ (CURRENT_SPEC.md, Historie a grafy; the length is
+ * `history.hours`), modelled on the day report
  * of the heating app: temperature curve over a grey area, heating as orange fill under the
  * curve (strength = 0–3 waves), the Topení target as a stepped dashed line, night shading,
  * dashed humidity, and time layers for Topení and Klimatizace. The chart is drawn 1:1 in CSS
@@ -46,8 +47,6 @@ const CLIMATE_STRIP_Y = PLOT_BOTTOM + 55;
 const AXIS_Y = PLOT_BOTTOM + 83;
 export const CHART_HEIGHT = PLOT_BOTTOM + 90;
 const FONT = 11;
-const NIGHT_FROM_HOUR = 22;
-const NIGHT_TO_HOUR = 6;
 const INTENSITY_OPACITY = [0, 0.24, 0.44, 0.68];
 const CLIP_ID = "history-under-temperature";
 const PLOT_CLIP_ID = "history-plot";
@@ -67,6 +66,14 @@ const HEATING_LABELS: Record<string, string> = {
 };
 
 const timeFormat = new Intl.DateTimeFormat("cs-CZ", { hour: "2-digit", minute: "2-digit" });
+const dayFormat = new Intl.DateTimeFormat("cs-CZ", { day: "numeric", month: "numeric" });
+
+/*
+ * Colours are CSS custom properties (styles.ts), set through `style`: SVG presentation
+ * attributes do not take var() reliably in every browser.
+ */
+const fill = (color: string) => `fill: ${color}`;
+const stroke = (color: string) => `stroke: ${color}`;
 
 export interface RoomChartModel {
   range: ChartRange;
@@ -85,6 +92,8 @@ export interface RoomChartModel {
   tempStep: number;
   humidityMin?: number;
   humidityMax?: number;
+  /** Night shading, whole hours [start, end] (start = end: none). */
+  night: [number, number];
 }
 
 function heatingMode(overlay: string | undefined, climate: string | undefined): string | undefined {
@@ -103,27 +112,26 @@ function finite(state: string | undefined): number | undefined {
   return Number.isFinite(value) ? value : undefined;
 }
 
-/** Smallest temperature range of the axis (°C), so sensor noise is not drawn as a swing. */
-const MIN_TEMPERATURE_SPAN = 1.5;
 /** Share of the span added above and below the curve so the line stays inside the plot. */
 const AXIS_MARGIN = 0.05;
 
 /**
  * Temperature axis that stretches the values over the whole plot height: the range is
- * min–max of `values` plus a small margin, at least `MIN_TEMPERATURE_SPAN` (centred). Labels sit on
- * multiples of `step` (0,5 / 1 / 2 / 5 °C by range) that fall inside the range.
+ * min–max of `values` plus a small margin, at least `minSpan` (°C, centred; so sensor noise is
+ * not drawn as a swing). Labels sit on multiples of `step` (0,5 / 1 / 2 / 5 °C by range) that
+ * fall inside the range.
  */
-export function temperatureAxis(values: number[]): { min: number; max: number; step: number } {
+export function temperatureAxis(values: number[], minSpan: number): { min: number; max: number; step: number } {
   const finiteValues = values.filter((value) => Number.isFinite(value));
   let low = 19;
   let high = 23;
   if (finiteValues.length > 0) {
     low = Math.min(...finiteValues);
     high = Math.max(...finiteValues);
-    if (high - low < MIN_TEMPERATURE_SPAN) {
+    if (high - low < minSpan) {
       const middle = (low + high) / 2;
-      low = middle - MIN_TEMPERATURE_SPAN / 2;
-      high = middle + MIN_TEMPERATURE_SPAN / 2;
+      low = middle - minSpan / 2;
+      high = middle + minSpan / 2;
     }
     const margin = (high - low) * AXIS_MARGIN;
     low -= margin;
@@ -144,7 +152,12 @@ export function temperatureTicks(min: number, max: number, step: number): number
   return ticks;
 }
 
-export function buildRoomChart(history: HistoryMap, room: RoomConfig, range: ChartRange): RoomChartModel {
+export function buildRoomChart(
+  history: HistoryMap,
+  room: Room,
+  range: ChartRange,
+  settings: HistorySettings,
+): RoomChartModel {
   const series = (entityId: string | undefined) => (entityId ? history[entityId] : undefined);
   const { startMs, endMs } = range;
   const overlay = series(room.heating?.overlay);
@@ -159,7 +172,7 @@ export function buildRoomChart(history: HistoryMap, room: RoomConfig, range: Cha
     endMs,
     ([o, c, value]) => {
       const mode = heatingMode(o, c);
-      const waves = heatingWaveCount(finite(value));
+      const waves = heatingWaveCount(finite(value), room.thresholds);
       return mode === undefined || mode === "off" || waves === 0 ? undefined : String(waves);
     },
   );
@@ -190,6 +203,7 @@ export function buildRoomChart(history: HistoryMap, room: RoomConfig, range: Cha
   const measured = temperature.map((point) => point.v);
   const { min: tempMin, max: tempMax, step: tempStep } = temperatureAxis(
     measured.length > 0 ? measured : target.map((segment) => Number(segment.value)),
+    settings.min_temperature_span,
   );
 
   const humidityValues = humidity.map((point) => point.v);
@@ -206,6 +220,7 @@ export function buildRoomChart(history: HistoryMap, room: RoomConfig, range: Cha
     tempStep,
     humidityMin: humidityValues.length > 0 ? Math.min(...humidityValues) : undefined,
     humidityMax: humidityValues.length > 0 ? Math.max(...humidityValues) : undefined,
+    night: [settings.night_start, settings.night_end],
   };
 }
 
@@ -245,17 +260,23 @@ function segmentAt(segments: Segment[], time: number, endMs: number): string | u
   )?.value;
 }
 
-function nightBands(range: ChartRange): Array<[number, number]> {
+/** Night intervals inside the range; a night from 22 to 6 h runs over midnight, one from 0 to 6 h does not. */
+function nightBands(range: ChartRange, [startHour, endHour]: [number, number]): Array<[number, number]> {
   const bands: Array<[number, number]> = [];
+  if (startHour === endHour) {
+    return bands;
+  }
   const day = new Date(range.startMs);
   day.setHours(0, 0, 0, 0);
   day.setDate(day.getDate() - 1);
   while (day.getTime() < range.endMs) {
     const from = new Date(day);
-    from.setHours(NIGHT_FROM_HOUR, 0, 0, 0);
+    from.setHours(startHour, 0, 0, 0);
     const to = new Date(day);
-    to.setDate(to.getDate() + 1);
-    to.setHours(NIGHT_TO_HOUR, 0, 0, 0);
+    if (endHour < startHour) {
+      to.setDate(to.getDate() + 1);
+    }
+    to.setHours(endHour, 0, 0, 0);
     const start = Math.max(from.getTime(), range.startMs);
     const end = Math.min(to.getTime(), range.endMs);
     if (end > start) {
@@ -266,19 +287,74 @@ function nightBands(range: ChartRange): Array<[number, number]> {
   return bands;
 }
 
-/** Clock ticks every 6 hours (00, 06, 12, 18) inside the range. */
+/**
+ * Hours between two clock ticks: every 6 h up to a day (00, 06, 12, 18), then 12 h up to two
+ * days and whole days beyond, so a longer history keeps about four to eight labels.
+ */
+function tickHours(range: ChartRange): number {
+  const hours = (range.endMs - range.startMs) / HOUR_MS;
+  if (hours <= 12) {
+    return 3;
+  }
+  if (hours <= 24) {
+    return 6;
+  }
+  if (hours <= 48) {
+    return 12;
+  }
+  return hours <= 96 ? 24 : 48;
+}
+
+/** Clock ticks on whole multiples of `tickHours` inside the range (local time). */
 function clockTicks(range: ChartRange): number[] {
+  const step = tickHours(range);
   const ticks: number[] = [];
   const tick = new Date(range.startMs);
   tick.setMinutes(0, 0, 0);
-  tick.setHours(Math.ceil(tick.getHours() / 6) * 6);
+  if (step >= 24) {
+    tick.setHours(0);
+    while (tick.getTime() < range.startMs) {
+      tick.setDate(tick.getDate() + 1);
+    }
+  } else {
+    tick.setHours(Math.ceil(tick.getHours() / step) * step);
+  }
   while (tick.getTime() <= range.endMs) {
     if (tick.getTime() >= range.startMs) {
       ticks.push(tick.getTime());
     }
-    tick.setHours(tick.getHours() + 6);
+    if (step >= 24) {
+      tick.setDate(tick.getDate() + step / 24);
+    } else {
+      tick.setHours(tick.getHours() + step);
+    }
   }
   return ticks;
+}
+
+/**
+ * A tick label is centred under its line, but one close to an edge of the plot is aligned to
+ * that edge instead, so "18:00" just after the start of the range is not cut off.
+ */
+function tickAnchor(x: number, left: number, right: number): { x: number; anchor: "start" | "middle" | "end" } {
+  const half = 16;
+  if (x - half < left) {
+    return { x: left, anchor: "start" };
+  }
+  if (x + half > right) {
+    return { x: right, anchor: "end" };
+  }
+  return { x, anchor: "middle" };
+}
+
+/** In the light theme a switched-off air conditioner is a light strip, like Topení Vypnuto. */
+function climateStripColor(mode: ClimateMode): string {
+  return mode === "off" ? "var(--kd-strip-off)" : CLIMATE_COLORS[mode] ?? COLORS.off;
+}
+
+/** Label of a tick: the time, or the date for ticks a day or more apart ("24. 10."). */
+function tickLabel(tick: number, range: ChartRange): string {
+  return tickHours(range) >= 24 ? dayFormat.format(tick) : timeFormat.format(tick);
 }
 
 function legendItem(color: string, label: string, kind: "line" | "dashed" | "block" = "block"): TemplateResult {
@@ -300,8 +376,14 @@ function renderReadout(model: RoomChartModel, time: number | undefined): Templat
 
   let when = "Teď";
   if (time !== undefined) {
-    const sameDay = new Date(time).toDateString() === new Date(model.range.endMs).toDateString();
-    when = `${sameDay ? "" : "včera "}${timeFormat.format(time)}`;
+    const day = (ms: number) => {
+      const date = new Date(ms);
+      date.setHours(12, 0, 0, 0);
+      return date.getTime();
+    };
+    const daysAgo = Math.round((day(model.range.endMs) - day(time)) / (24 * HOUR_MS));
+    const prefix = daysAgo === 0 ? "" : daysAgo === 1 ? "včera " : `${dayFormat.format(time)} `;
+    when = `${prefix}${timeFormat.format(time)}`;
   }
   const heatingText =
     heating === undefined
@@ -332,6 +414,7 @@ function renderReadout(model: RoomChartModel, time: number | undefined): Templat
 }
 
 export function renderRoomChart(model: RoomChartModel, width: number, scrubTime: number | undefined): TemplateResult {
+  // Ground, night and grid of the plot follow the theme (styles.ts).
   const { range } = model;
   const x = (time: number): number => xOf(time, range, width);
   const yTemp = (value: number): number =>
@@ -364,12 +447,12 @@ export function renderRoomChart(model: RoomChartModel, width: number, scrubTime:
     segments.map((segment) => {
       const left = x(segment.start);
       return svg`<rect x=${left.toFixed(1)} y=${y} width=${Math.max(x(segment.end) - left, 0.8).toFixed(1)}
-        height=${STRIP_HEIGHT} rx="2" fill=${color(segment.value)}></rect>`;
+        height=${STRIP_HEIGHT} rx="2" style=${fill(color(segment.value))}></rect>`;
     });
 
   const scrubX = scrubTime === undefined ? undefined : x(scrubTime);
   const scrubTemperature = scrubTime === undefined ? undefined : valueAt(model.temperature, scrubTime);
-  const nights = nightBands(range);
+  const nights = nightBands(range, model.night);
   const heatingKinds = ["schedule", "manual", "off"].filter((kind) => model.heating.some((segment) => segment.value === kind));
   const climateModes = [...new Set(model.climate.map((segment) => segment.value as ClimateMode))];
 
@@ -388,60 +471,62 @@ export function renderRoomChart(model: RoomChartModel, width: number, scrubTime:
           <rect x=${PAD_LEFT} y=${PLOT_TOP} width=${plotWidth(width)} height=${PLOT_HEIGHT}></rect>
         </clipPath>
       </defs>
-      <rect x=${PAD_LEFT} y=${PLOT_TOP} width=${plotWidth(width)} height=${PLOT_HEIGHT} rx="8" fill="rgb(255 255 255 / 5%)"></rect>
+      <rect x=${PAD_LEFT} y=${PLOT_TOP} width=${plotWidth(width)} height=${PLOT_HEIGHT} rx="8" style=${fill("var(--kd-fill)")}></rect>
       ${nights.map(
-        ([start, end]) => svg`<rect x=${x(start).toFixed(1)} y=${PLOT_TOP} width=${(x(end) - x(start)).toFixed(1)}
-          height=${PLOT_HEIGHT} fill="rgb(0 0 0 / 30%)"></rect>`,
+        ([start, end]) => svg`<rect class="night" x=${x(start).toFixed(1)} y=${PLOT_TOP} width=${(x(end) - x(start)).toFixed(1)}
+          height=${PLOT_HEIGHT} style=${fill("var(--kd-night)")}></rect>`,
       )}
       ${grid.map(
         (value) => svg`<line x1=${PAD_LEFT} x2=${right} y1=${yTemp(value).toFixed(1)} y2=${yTemp(value).toFixed(1)}
-            stroke="rgb(255 255 255 / 8%)" stroke-width="1"></line>
-          <text x=${right + 6} y=${(yTemp(value) + 4).toFixed(1)} fill=${COLORS.label} font-size=${FONT}>${TICK_FORMAT.format(value)}°</text>`,
+            style=${stroke("var(--kd-grid)")} stroke-width="1"></line>
+          <text x=${right + 6} y=${(yTemp(value) + 4).toFixed(1)} style=${fill(COLORS.label)} font-size=${FONT}>${TICK_FORMAT.format(value)}°</text>`,
       )}
-      ${temperatureArea ? svg`<path d=${temperatureArea} fill="rgb(255 255 255 / 7%)"></path>` : nothing}
+      ${temperatureArea ? svg`<path d=${temperatureArea} style=${fill("var(--kd-area)")}></path>` : nothing}
       <g clip-path=${`url(#${CLIP_ID})`}>
         ${model.intensity.map(
           (segment) => svg`<rect x=${x(segment.start).toFixed(1)} y=${PLOT_TOP}
             width=${Math.max(x(segment.end) - x(segment.start), 0.8).toFixed(1)} height=${PLOT_HEIGHT}
-            fill=${COLORS.warning} opacity=${INTENSITY_OPACITY[Number(segment.value)] ?? 0}></rect>`,
+            style=${fill(COLORS.warning)} opacity=${INTENSITY_OPACITY[Number(segment.value)] ?? 0}></rect>`,
         )}
       </g>
       ${model.humidity.length > 0
-        ? svg`<path d=${line(model.humidity, yHumidity)} fill="none" stroke=${COLORS.humidityLine}
+        ? svg`<path d=${line(model.humidity, yHumidity)} fill="none" style=${stroke(COLORS.humidityLine)}
             stroke-width="1.5" stroke-dasharray="4 3" stroke-linejoin="round" opacity="0.85"></path>`
         : nothing}
       ${targetPath
-        ? svg`<path d=${targetPath} fill="none" stroke=${COLORS.plan} stroke-width="1.4"
+        ? svg`<path d=${targetPath} fill="none" style=${stroke(COLORS.plan)} stroke-width="1.4"
             stroke-dasharray="3 3" opacity="0.6" clip-path=${`url(#${PLOT_CLIP_ID})`}></path>`
         : nothing}
       ${temperatureLine
-        ? svg`<path d=${temperatureLine} fill="none" stroke=${COLORS.white} stroke-width="2"
+        ? svg`<path class="temperature-curve" d=${temperatureLine} fill="none" style=${stroke(COLORS.white)} stroke-width="2"
             stroke-linejoin="round" stroke-linecap="round"></path>`
         : nothing}
       ${last && scrubTime === undefined
-        ? svg`<circle cx=${x(last.t).toFixed(1)} cy=${yTemp(last.v).toFixed(1)} r="3.5" fill=${COLORS.white}></circle>`
+        ? svg`<circle cx=${x(last.t).toFixed(1)} cy=${yTemp(last.v).toFixed(1)} r="3.5" style=${fill(COLORS.white)}></circle>`
         : nothing}
 
-      <text x=${PAD_LEFT} y=${HEATING_LABEL_Y} fill=${COLORS.label} font-size=${FONT}>Topení</text>
-      <rect x=${PAD_LEFT} y=${HEATING_STRIP_Y} width=${plotWidth(width)} height=${STRIP_HEIGHT} rx="2" fill="rgb(255 255 255 / 5%)"></rect>
+      <text x=${PAD_LEFT} y=${HEATING_LABEL_Y} style=${fill(COLORS.label)} font-size=${FONT}>Topení</text>
+      <rect x=${PAD_LEFT} y=${HEATING_STRIP_Y} width=${plotWidth(width)} height=${STRIP_HEIGHT} rx="2" style=${fill("var(--kd-fill)")}></rect>
       ${strip(model.heating, HEATING_STRIP_Y, (value) => HEATING_COLORS[value] ?? COLORS.off)}
-      <text x=${PAD_LEFT} y=${CLIMATE_LABEL_Y} fill=${COLORS.label} font-size=${FONT}>Klimatizace</text>
-      <rect x=${PAD_LEFT} y=${CLIMATE_STRIP_Y} width=${plotWidth(width)} height=${STRIP_HEIGHT} rx="2" fill="rgb(255 255 255 / 5%)"></rect>
-      ${strip(model.climate, CLIMATE_STRIP_Y, (value) => CLIMATE_COLORS[value as ClimateMode] ?? COLORS.off)}
+      <text x=${PAD_LEFT} y=${CLIMATE_LABEL_Y} style=${fill(COLORS.label)} font-size=${FONT}>Klimatizace</text>
+      <rect x=${PAD_LEFT} y=${CLIMATE_STRIP_Y} width=${plotWidth(width)} height=${STRIP_HEIGHT} rx="2" style=${fill("var(--kd-fill)")}></rect>
+      ${strip(model.climate, CLIMATE_STRIP_Y, (value) => climateStripColor(value as ClimateMode))}
 
-      ${clockTicks(range).map(
-        (tick) => svg`<line x1=${x(tick).toFixed(1)} x2=${x(tick).toFixed(1)} y1=${PLOT_TOP} y2=${CLIMATE_STRIP_Y + STRIP_HEIGHT}
-            stroke="rgb(255 255 255 / 6%)" stroke-width="1"></line>
-          <text x=${x(tick).toFixed(1)} y=${AXIS_Y} fill=${COLORS.label} font-size=${FONT} text-anchor="middle">${timeFormat.format(tick)}</text>`,
-      )}
+      ${clockTicks(range).map((tick) => {
+        const label = tickAnchor(x(tick), PAD_LEFT, right);
+        return svg`<line x1=${x(tick).toFixed(1)} x2=${x(tick).toFixed(1)} y1=${PLOT_TOP} y2=${CLIMATE_STRIP_Y + STRIP_HEIGHT}
+            style=${stroke("var(--kd-grid-soft)")} stroke-width="1"></line>
+          <text class="tick" x=${label.x.toFixed(1)} y=${AXIS_Y} style=${fill(COLORS.label)} font-size=${FONT}
+            text-anchor=${label.anchor}>${tickLabel(tick, range)}</text>`;
+      })}
       ${scrubX === undefined
         ? nothing
         : svg`<line x1=${scrubX.toFixed(1)} x2=${scrubX.toFixed(1)} y1=${PLOT_TOP} y2=${CLIMATE_STRIP_Y + STRIP_HEIGHT}
-              stroke=${COLORS.white} stroke-width="1" opacity="0.7"></line>
+              style=${stroke(COLORS.white)} stroke-width="1" opacity="0.7"></line>
             ${scrubTemperature === undefined
               ? nothing
-              : svg`<circle cx=${scrubX.toFixed(1)} cy=${yTemp(scrubTemperature).toFixed(1)} r="4" fill=${COLORS.white}
-                  stroke="#1c1c1e" stroke-width="2"></circle>`}`}
+              : svg`<circle cx=${scrubX.toFixed(1)} cy=${yTemp(scrubTemperature).toFixed(1)} r="4"
+                  style=${`${fill(COLORS.white)}; ${stroke("var(--kd-sheet-bg)")}`} stroke-width="2"></circle>`}`}
     </svg>
     <div class="legend">
       ${legendItem(COLORS.white, "Teplota", "line")}
@@ -454,11 +539,11 @@ export function renderRoomChart(model: RoomChartModel, width: number, scrubTime:
             "dashed",
           )
         : nothing}
-      ${nights.length > 0 ? legendItem("rgb(0 0 0 / 55%)", "Noc 22–6 h") : nothing}
+      ${nights.length > 0 ? legendItem("var(--kd-night-swatch)", `Noc ${model.night[0]}–${model.night[1]} h`) : nothing}
     </div>
     <div class="legend">
       ${heatingKinds.map((kind) => legendItem(HEATING_COLORS[kind], `Topení ${HEATING_LABELS[kind]}`))}
-      ${climateModes.map((mode) => legendItem(CLIMATE_COLORS[mode], `Klimatizace ${CLIMATE_LABELS[mode]}`))}
+      ${climateModes.map((mode) => legendItem(climateStripColor(mode), `Klimatizace ${CLIMATE_LABELS[mode]}`))}
     </div>
   `;
 }

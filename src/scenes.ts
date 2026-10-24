@@ -1,45 +1,14 @@
 import { html, svg } from "lit";
 import type { TemplateResult } from "lit";
-import { SCENE_NONE } from "./types";
-import type { RoomConfig, RoomScene } from "./types";
-
-/** Default illustration by room name (lower case, without diacritics). */
-const SCENE_BY_NAME: Record<string, RoomScene> = {
-  loznice: "bedroom",
-  pracovna: "office",
-  maxik: "kids",
-  mikulas: "kids",
-  obyvak: "living",
-  "obyvaci pokoj": "living",
-};
+import type { RoomScene } from "./types";
 
 /**
- * Illustration of a room: the configured `scene`, otherwise the default for the room name
- * (CURRENT_SPEC.md, Room Card). `scene: none` and unknown names give no illustration.
+ * Accent colour of each illustration; the picture and its glow are drawn in it. A CSS custom
+ * property, so the light theme has its own, darker tones (styles.ts).
  */
-export function resolveScene(room: RoomConfig): RoomScene | undefined {
-  if (room.scene === SCENE_NONE) {
-    return undefined;
-  }
-  if (room.scene) {
-    return room.scene;
-  }
-  const key = room.name
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, " ");
-  return SCENE_BY_NAME[key];
+export function sceneTone(scene: RoomScene): string {
+  return `var(--kd-scene-${scene})`;
 }
-
-/** Accent colour of each illustration; the picture and its glow are drawn in it. */
-export const SCENE_TONES: Record<RoomScene, string> = {
-  bedroom: "#A5A1F2",
-  office: "#7FC8F8",
-  kids: "#FFB36B",
-  living: "#E8D9B5",
-};
 
 /**
  * Line illustrations for the free top-right corner of a room card (viewBox 150 x 112).

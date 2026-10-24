@@ -1,9 +1,120 @@
 import { css } from "lit";
 
 export const styles = css`
+    /*
+     * Colours (CURRENT_SPEC.md, Barvy): the dark theme is the default set, the light theme
+     * overrides it. The card sets data-theme on itself (theme: auto | dark | light), so the
+     * popups, which sit outside .dashboard, follow it as well.
+     */
     :host {
       display: block;
       color: var(--primary-text-color);
+      --kd-text: #ffffff;
+      --kd-label: #9a9aa0;
+      --kd-off: #8e8e93;
+      --kd-neutral: #c7c7cc;
+      --kd-plan: #f2f2f7;
+      --kd-closed: #6b6b70;
+      --kd-strip-off: #8e8e93;
+      --kd-warning: #ff9f0a;
+      --kd-alert: #ff453a;
+      --kd-alert-popup: #ff6961;
+      --kd-sky: #64d2ff;
+      --kd-dry: #ffd60a;
+      --kd-auto: #bf5af2;
+      --kd-co2: #8fbf9f;
+      --kd-pm25: #a59dcf;
+      --kd-peach: #ffb36b;
+      --kd-blind: #e8d9b5;
+      --kd-blind-opacity: 0.5;
+      --kd-window-opacity: 0.28;
+      --kd-rail-opacity: 0.7;
+      --kd-preset-idle: #6f6f74;
+      --kd-preset-on: #c9c0a8;
+      --kd-preset-unavailable: rgb(111 111 116 / 55%);
+      --kd-card-bg: #1c1c1e;
+      --kd-card-gradient: linear-gradient(165deg, #232326 0%, #1c1c1e 55%);
+      --kd-card-border: rgb(255 255 255 / 7%);
+      --kd-card-shadow: inset 0 1px 0 rgb(255 255 255 / 6%);
+      --kd-chip-tint: 14%;
+      --kd-notice-tint: 16%;
+      --kd-hint-bg: #3a3a3c;
+      --kd-hint-text: #ffffff;
+      --kd-hint-shadow: 0 4px 16px rgb(0 0 0 / 40%);
+      --kd-backdrop: 60%;
+      --kd-sheet-bg: #1c1c1e;
+      --kd-sheet-border: rgb(255 255 255 / 10%);
+      --kd-grabber: rgb(255 255 255 / 28%);
+      --kd-segmented-bg: rgb(118 118 128 / 24%);
+      --kd-segment-on: #636366;
+      --kd-segment-shadow: 0 2px 6px rgb(0 0 0 / 30%);
+      --kd-fill: rgb(255 255 255 / 5%);
+      --kd-fill-border: rgb(255 255 255 / 8%);
+      --kd-night: rgb(0 0 0 / 30%);
+      --kd-night-swatch: rgb(0 0 0 / 55%);
+      --kd-grid: rgb(255 255 255 / 8%);
+      --kd-grid-soft: rgb(255 255 255 / 6%);
+      --kd-area: rgb(255 255 255 / 7%);
+      --kd-scene-bedroom: #a5a1f2;
+      --kd-scene-office: #7fc8f8;
+      --kd-scene-kids: #ffb36b;
+      --kd-scene-living: #e8d9b5;
+      --kd-image-opacity: 0.5;
+    }
+
+    /* Light theme: the same meanings, darker tones (text 4.5 : 1, icons and lines 3 : 1 on white). */
+    :host([data-theme="light"]) {
+      --kd-text: #1c1c1e;
+      --kd-label: #6c6c70;
+      --kd-off: #6e6e73;
+      --kd-neutral: #48484a;
+      --kd-plan: #3a3a3c;
+      --kd-closed: #c7c7cc;
+      --kd-strip-off: #d1d1d6;
+      --kd-warning: #a85200;
+      --kd-alert: #c4001a;
+      --kd-alert-popup: #c4001a;
+      --kd-sky: #006b9c;
+      --kd-dry: #7a5e00;
+      --kd-auto: #8944ab;
+      --kd-co2: #3d7a55;
+      --kd-pm25: #6158a8;
+      --kd-peach: #b8641c;
+      --kd-blind: #8f7a52;
+      --kd-blind-opacity: 0.6;
+      --kd-window-opacity: 0.16;
+      --kd-rail-opacity: 0.8;
+      --kd-preset-idle: #8e8e93;
+      --kd-preset-on: #7a5c2e;
+      --kd-preset-unavailable: rgb(142 142 147 / 45%);
+      --kd-card-bg: #ffffff;
+      --kd-card-gradient: #ffffff;
+      --kd-card-border: rgb(0 0 0 / 6%);
+      --kd-card-shadow: 0 1px 3px rgb(0 0 0 / 6%);
+      --kd-chip-tint: 10%;
+      --kd-notice-tint: 8%;
+      --kd-hint-bg: #ffffff;
+      --kd-hint-text: #1c1c1e;
+      --kd-hint-shadow: 0 4px 16px rgb(0 0 0 / 16%), 0 0 0 1px rgb(0 0 0 / 6%);
+      --kd-backdrop: 35%;
+      --kd-sheet-bg: #ffffff;
+      --kd-sheet-border: rgb(0 0 0 / 8%);
+      --kd-grabber: rgb(60 60 67 / 30%);
+      --kd-segmented-bg: rgb(118 118 128 / 12%);
+      --kd-segment-on: #ffffff;
+      --kd-segment-shadow: 0 2px 6px rgb(0 0 0 / 12%);
+      --kd-fill: rgb(0 0 0 / 4%);
+      --kd-fill-border: rgb(0 0 0 / 8%);
+      --kd-night: rgb(0 0 0 / 6%);
+      --kd-night-swatch: rgb(0 0 0 / 14%);
+      --kd-grid: rgb(0 0 0 / 8%);
+      --kd-grid-soft: rgb(0 0 0 / 6%);
+      --kd-area: rgb(0 0 0 / 5%);
+      --kd-scene-bedroom: #6f67d6;
+      --kd-scene-office: #2c8bc9;
+      --kd-scene-kids: #d9822b;
+      --kd-scene-living: #a88f5c;
+      --kd-image-opacity: 0.6;
     }
 
     ha-card {
@@ -60,7 +171,7 @@ export const styles = css`
       min-height: 30px;
       padding: 0 12px 0 9px;
       border-radius: 15px;
-      background: color-mix(in srgb, var(--chip-color) 14%, #1c1c1e);
+      background: color-mix(in srgb, var(--chip-color) var(--kd-chip-tint), var(--kd-card-bg));
       color: var(--chip-color);
       font-size: 14px;
       font-weight: 500;
@@ -82,8 +193,8 @@ export const styles = css`
     .notice {
       padding: 8px 12px;
       border-radius: 12px;
-      background: rgb(255 159 10 / 16%);
-      color: #ff9f0a;
+      background: color-mix(in srgb, var(--kd-warning) var(--kd-notice-tint), transparent);
+      color: var(--kd-warning);
       font-size: 13px;
     }
 
@@ -126,8 +237,8 @@ export const styles = css`
        * Blind preset icons: dim grey; the one matching the blind changes its colour to a muted
        * tone of the blind's champagne (colour only, no background).
        */
-      --preset-idle: #6f6f74;
-      --preset-on: #c9c0a8;
+      --preset-idle: var(--kd-preset-idle);
+      --preset-on: var(--kd-preset-on);
       /* The window row is a little taller than the others: it is the lowest touch target (44 px with the invisible area below). */
       --window-h: 32px;
       /* Width of the CO₂ / PM2.5 value column; the value may run past it, the trend starts right behind it. */
@@ -141,16 +252,17 @@ export const styles = css`
       box-sizing: border-box;
       width: 100%;
       padding: 16px;
-      border: 1px solid rgb(255 255 255 / 7%);
+      border: 1px solid var(--kd-card-border);
       border-radius: 24px;
-      background: linear-gradient(165deg, #232326 0%, #1c1c1e 55%);
-      box-shadow: inset 0 1px 0 rgb(255 255 255 / 6%);
-      color: #ffffff;
+      background: var(--kd-card-gradient);
+      box-shadow: var(--kd-card-shadow);
+      color: var(--kd-text);
       font: inherit;
       text-align: left;
     }
 
-    .room > *:not(.scene) {
+    /* Above the picture; the screen-reader descriptions keep their own absolute position. */
+    .room > *:not(.scene, .sr-only) {
       position: relative;
     }
 
@@ -179,6 +291,19 @@ export const styles = css`
         linear-gradient(to top, transparent, #000 15%);
       mask-composite: intersect;
       pointer-events: none;
+    }
+
+    /* A picture of the user's fills the soft rectangle and fades out the same way. */
+    .scene.photo {
+      background: none;
+    }
+
+    .scene img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: var(--kd-image-opacity);
     }
 
     .scene svg {
@@ -231,6 +356,37 @@ export const styles = css`
       white-space: nowrap;
     }
 
+    /* Room name with a link: the name and a chevron; the touch target is 44 px high (invisible area). */
+    .room-link {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      max-width: 100%;
+      overflow: visible;
+    }
+
+    .room-link::after {
+      content: "";
+      position: absolute;
+      inset: -6px 0;
+    }
+
+    .room-name {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .room-chevron {
+      flex: none;
+      color: var(--kd-label);
+      font-size: 24px;
+      font-weight: 400;
+      line-height: 32px;
+    }
+
     .status-line {
       display: flex;
       align-items: center;
@@ -266,7 +422,7 @@ export const styles = css`
     }
 
     .temperature-unit {
-      color: #9a9aa0;
+      color: var(--kd-label);
       font-size: 18px;
       letter-spacing: 0;
     }
@@ -275,7 +431,7 @@ export const styles = css`
     .humidity {
       position: relative;
       min-width: 44px;
-      color: #c7c7cc;
+      color: var(--kd-neutral);
       font-size: 18px;
       line-height: 28px;
     }
@@ -288,13 +444,13 @@ export const styles = css`
     }
 
     .missing {
-      color: #8e8e93;
+      color: var(--kd-off);
     }
 
     /* Stale value: dimmed, never coloured (CURRENT_SPEC.md, Chybějící data). */
     .temperature.stale,
     .humidity.stale {
-      color: #8e8e93;
+      color: var(--kd-off);
     }
 
     /*
@@ -473,7 +629,7 @@ export const styles = css`
       height: 6px;
       margin-left: 2px;
       border-radius: 50%;
-      background: #ff9f0a;
+      background: var(--kd-warning);
       opacity: 0.85;
     }
 
@@ -482,7 +638,7 @@ export const styles = css`
     }
 
     .row-unit {
-      color: #9a9aa0;
+      color: var(--kd-label);
       font-weight: 400;
     }
 
@@ -551,7 +707,7 @@ export const styles = css`
     }
 
     .spark.loading {
-      color: #8e8e93;
+      color: var(--kd-off);
       animation: loading 1.4s ease-in-out infinite alternate;
     }
 
@@ -667,7 +823,7 @@ export const styles = css`
 
     /* Blind unavailable: buttons stay focusable but dim; a tap only explains why. */
     .preset.unavailable {
-      color: rgb(111 111 116 / 55%);
+      color: var(--kd-preset-unavailable);
     }
 
     .preset.unavailable:active svg {
@@ -686,9 +842,9 @@ export const styles = css`
       right: calc(100% + 8px);
       padding: 6px 10px;
       border-radius: 10px;
-      background: #3a3a3c;
-      box-shadow: 0 4px 16px rgb(0 0 0 / 40%);
-      color: #ffffff;
+      background: var(--kd-hint-bg);
+      box-shadow: var(--kd-hint-shadow);
+      color: var(--kd-hint-text);
       font-size: 13px;
       font-weight: 500;
       line-height: 18px;
@@ -758,7 +914,7 @@ export const styles = css`
       display: flex;
       align-items: flex-end;
       justify-content: center;
-      background: rgb(0 0 0 / calc(60% * var(--backdrop-opacity, 1)));
+      background: rgb(0 0 0 / calc(var(--kd-backdrop) * var(--backdrop-opacity, 1)));
     }
 
     .sheet {
@@ -768,11 +924,11 @@ export const styles = css`
       max-height: 90vh;
       overflow: auto;
       padding: 16px 16px max(16px, env(safe-area-inset-bottom));
-      border: 1px solid rgb(255 255 255 / 10%);
+      border: 1px solid var(--kd-sheet-border);
       border-bottom: 0;
       border-radius: 24px 24px 0 0;
-      background: #1c1c1e;
-      color: #ffffff;
+      background: var(--kd-sheet-bg);
+      color: var(--kd-text);
       animation: rise 220ms ease-out;
       transition: transform 220ms ease-out;
     }
@@ -794,7 +950,7 @@ export const styles = css`
       height: 5px;
       margin: 0 auto 10px;
       border-radius: 3px;
-      background: rgb(255 255 255 / 28%);
+      background: var(--kd-grabber);
     }
 
     @keyframes rise {
@@ -810,7 +966,7 @@ export const styles = css`
       }
 
       .sheet {
-        border-bottom: 1px solid rgb(255 255 255 / 10%);
+        border-bottom: 1px solid var(--kd-sheet-border);
         border-radius: 24px;
       }
 
@@ -828,21 +984,21 @@ export const styles = css`
       margin: 4px 0 14px;
       padding: 2px;
       border-radius: 10px;
-      background: rgb(118 118 128 / 24%);
+      background: var(--kd-segmented-bg);
     }
 
     .segment {
       min-height: 44px;
       border-radius: 8px;
-      color: #ffffff;
+      color: var(--kd-text);
       font-size: 14px;
       font-weight: 500;
       text-align: center;
     }
 
     .segment[aria-selected="true"] {
-      background: #636366;
-      box-shadow: 0 2px 6px rgb(0 0 0 / 30%);
+      background: var(--kd-segment-on);
+      box-shadow: var(--kd-segment-shadow);
     }
 
     .system-name {
@@ -865,7 +1021,7 @@ export const styles = css`
     }
 
     .sheet-sub {
-      color: #9a9aa0;
+      color: var(--kd-label);
       font-size: 14px;
       line-height: 20px;
     }
@@ -875,24 +1031,24 @@ export const styles = css`
       height: 44px;
       flex: 0 0 44px;
       margin: -8px -8px 0 0;
-      color: #9a9aa0;
+      color: var(--kd-label);
       font-size: 18px;
       text-align: center;
     }
 
     .sheet-message {
       margin: 16px 0;
-      color: #9a9aa0;
+      color: var(--kd-label);
       font-size: 14px;
     }
 
     .sheet-message.error {
-      color: #ff9f0a;
+      color: var(--kd-warning);
     }
 
     .sheet-label {
       margin: 16px 0 8px;
-      color: #9a9aa0;
+      color: var(--kd-label);
       font-size: 13px;
     }
 
@@ -908,10 +1064,10 @@ export const styles = css`
       gap: 10px;
       min-height: 56px;
       padding: 8px 12px;
-      border: 1px solid rgb(255 255 255 / 8%);
+      border: 1px solid var(--kd-fill-border);
       border-radius: 16px;
-      background: rgb(255 255 255 / 5%);
-      color: #ffffff;
+      background: var(--kd-fill);
+      color: var(--kd-text);
       font-size: 15px;
     }
 
@@ -925,11 +1081,12 @@ export const styles = css`
       color: var(--tone);
     }
 
-    .air-options {
+    /* One option per row: Kvalita vzduchu (CO₂, PM2.5) and Okna. */
+    .list-options {
       grid-template-columns: minmax(0, 1fr);
     }
 
-    .air-option {
+    .list-option {
       width: 100%;
       text-align: left;
     }
@@ -938,11 +1095,17 @@ export const styles = css`
       flex: 1;
     }
 
-    .air-value {
+    .list-value {
       margin-left: auto;
       font-size: 17px;
       font-variant-numeric: tabular-nums;
       white-space: nowrap;
+    }
+
+    /* How long a window has been open, faintly after its state. */
+    .list-extra {
+      color: var(--kd-label);
+      font-size: 15px;
     }
 
     .option-icon ha-icon {
@@ -963,7 +1126,7 @@ export const styles = css`
     }
 
     .option-hint {
-      color: #9a9aa0;
+      color: var(--kd-label);
       font-size: 11px;
       line-height: 14px;
     }
@@ -986,16 +1149,16 @@ export const styles = css`
     .chip-button {
       min-height: 44px;
       padding: 0 16px;
-      border: 1px solid rgb(255 255 255 / 8%);
+      border: 1px solid var(--kd-fill-border);
       border-radius: 22px;
-      background: rgb(255 255 255 / 5%);
-      color: #ffffff;
+      background: var(--kd-fill);
+      color: var(--kd-text);
       font-size: 14px;
     }
 
     .chip-button[aria-pressed="true"] {
-      border-color: rgb(100 210 255 / 70%);
-      background: rgb(100 210 255 / 18%);
+      border-color: color-mix(in srgb, var(--kd-sky) 70%, transparent);
+      background: color-mix(in srgb, var(--kd-sky) 18%, transparent);
     }
 
     .sheet-link {
@@ -1004,12 +1167,12 @@ export const styles = css`
       min-height: 44px;
       margin-top: 16px;
       border-radius: 14px;
-      color: #64d2ff;
+      color: var(--kd-sky);
       font-size: 15px;
       text-align: center;
     }
 
-    /* „Historie místnosti – 24 h“: readout, chart 1:1 in CSS pixels, legend. */
+    /* „Historie místnosti – 24 h“ (history.hours): readout, chart 1:1 in CSS pixels, legend. */
     .chart-wrap {
       margin: 0 -2px;
       padding: 0 2px;
@@ -1040,7 +1203,7 @@ export const styles = css`
 
     .readout-time {
       min-width: 3.4em;
-      color: #9a9aa0;
+      color: var(--kd-label);
       font-size: 15px;
     }
 
@@ -1050,7 +1213,7 @@ export const styles = css`
     }
 
     .readout-hum {
-      color: #64d2ff;
+      color: var(--kd-sky);
       font-size: 15px;
     }
 
@@ -1087,7 +1250,7 @@ export const styles = css`
       flex-wrap: wrap;
       gap: 4px 14px;
       margin-top: 8px;
-      color: #9a9aa0;
+      color: var(--kd-label);
       font-size: 13px;
       line-height: 18px;
     }

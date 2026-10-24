@@ -1,6 +1,5 @@
 import { svg } from "lit";
 import type { TemplateResult } from "lit";
-import { COLORS } from "./utils";
 
 /** Width of the blind panel (--col in styles.ts). */
 export const BLIND_WIDTH = 60;
@@ -12,13 +11,14 @@ const RAIL_HEIGHT = 3;
 const MIN_GAP = 0.8;
 /** Thickness of a fully open (100 %) slat; also the constant slat thickness of the window part. */
 const MIN_SLAT = 2;
-const WINDOW_OPACITY = 0.28;
-/**
- * The lowered blind is champagne, dimmed so a closed blind does not glare on a dark screen,
- * yet still clearly lighter than the sky-tinted window part (CURRENT_SPEC.md, Žaluzie).
+/*
+ * Colours and opacities are CSS custom properties (styles.ts), so the light theme has its own:
+ * the lowered blind is champagne, dimmed so a closed blind does not glare on a dark screen, yet
+ * still clearly lighter than the sky-tinted window part (CURRENT_SPEC.md, Žaluzie).
  */
-const BLIND_OPACITY = 0.5;
-const RAIL_OPACITY = 0.7;
+const BLIND_STYLE = "fill: var(--kd-blind); opacity: var(--kd-blind-opacity)";
+const WINDOW_STYLE = "fill: var(--kd-sky); opacity: var(--kd-window-opacity)";
+const RAIL_STYLE = "fill: var(--kd-blind); opacity: var(--kd-rail-opacity)";
 
 /**
  * Miniature of a real blind seen from inside (see CURRENT_SPEC.md, Žaluzie).
@@ -41,7 +41,7 @@ export function renderBlindShape(
       height=${BLIND_HEIGHT - 1.5}
       rx="6"
       fill="none"
-      stroke=${COLORS.off}
+      style="stroke: var(--kd-off)"
       stroke-width="1.5"
       stroke-dasharray="3 3"
     ></rect>`;
@@ -63,8 +63,7 @@ export function renderBlindShape(
       width=${BLIND_WIDTH}
       height=${height.toFixed(2)}
       rx=${Math.min(1.5, height / 2).toFixed(2)}
-      fill=${lowered ? COLORS.blind : COLORS.sky}
-      opacity=${lowered ? BLIND_OPACITY : WINDOW_OPACITY}
+      style=${lowered ? BLIND_STYLE : WINDOW_STYLE}
     ></rect>`;
   });
 
@@ -75,7 +74,6 @@ export function renderBlindShape(
       width=${BLIND_WIDTH}
       height=${RAIL_HEIGHT}
       rx="1.5"
-      fill=${COLORS.blind}
-      opacity=${RAIL_OPACITY}
+      style=${RAIL_STYLE}
     ></rect>${slats}`;
 }

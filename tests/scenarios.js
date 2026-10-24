@@ -45,7 +45,36 @@ export function buildConfig(name) {
     rooms[0].name = "Ložnice pro hosty";
     rooms[4].name = "Obývací pokoj";
   }
-  return { type: "custom:ha-klima-dashboard", house_mode_entity: "input_select.house_mode", rooms };
+  const config = { type: "custom:ha-klima-dashboard", house_mode_entity: "input_select.house_mode", rooms };
+  if (name === "config") {
+    // New configuration (CURRENT_SPEC.md, Konfigurace): Ložnice has two windows with names, a link
+    // and its own presets; Pracovna has no CO₂ / PM2.5 sensor; Maxík has its own picture and a
+    // warmer winter band (22,4 °C is "Chladno" there); shorter trends and history.
+    rooms[0].window = [
+      { entity: "binary_sensor.loznice_okno_loznice", name: "Okno" },
+      { entity: "binary_sensor.loznice_okno_balkon", name: "Balkon" },
+    ];
+    rooms[0].link = "/lovelace/loznice";
+    rooms[0].cover_presets = [
+      { name: "Ráno", position: 100, tilt: 100 },
+      { name: "Polostín", position: 50, tilt: 60, icon: "shade" },
+    ];
+    rooms[1].carbon_dioxide = false;
+    rooms[1].pm25 = false;
+    rooms[2].image = `data:image/svg+xml,${encodeURIComponent(
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 30"><rect width="40" height="30" fill="#5b8"/><circle cx="28" cy="10" r="5" fill="#fd5"/></svg>',
+    )}`;
+    rooms[2].thresholds = { winter_min: 23, winter_max: 26 };
+    config.trends = { minutes: 60, samples: 7 };
+    config.history = { hours: 12, night_start: 23, night_end: 7 };
+    config.covers = { tolerance: 3 };
+  }
+  return config;
+}
+
+/** Entity IDs of the windows of a room in the configuration (one entity or a list). */
+export function windowIds(room) {
+  return [room.window ?? []].flat().map((window) => (typeof window === "string" ? window : window.entity));
 }
 
 const config = buildConfig(scenario);
@@ -64,7 +93,7 @@ config.rooms.forEach((room, index) => {
   if (room.humidity) states[room.humidity] = state(humidity, { unit_of_measurement: "%" });
   if (room.carbon_dioxide) states[room.carbon_dioxide] = state(co2, { unit_of_measurement: "ppm" });
   if (room.pm25) states[room.pm25] = state(pm25, { unit_of_measurement: "µg/m³" });
-  states[room.window] = state(index === 1 ? "on" : "off");
+  for (const id of windowIds(room)) states[id] = state(index === 1 ? "on" : "off");
   if (room.cover) {
     states[room.cover] = state("open", {
       current_position: [0, 100, 40, 0][index],
@@ -98,7 +127,7 @@ if (scenario === "alarm") {
   states["sensor.pracovna_teplomer_pracovna_pm2_5"].state = "41";
   states["sensor.maxik_teplomer_maxik_humidity"].state = "76";
   for (const room of config.rooms) {
-    states[room.window].state = "on";
+    for (const id of windowIds(room)) states[id].state = "on";
     states[room.heating.overlay].state = "Manual";
     states[room.heating.target].state = "23.5";
   }
@@ -132,13 +161,27 @@ function series(value) {
   }));
 }
 
-const test = { services: [], haptics: [], moreInfo: [], states, config };
+const test = { services: [], haptics: [], moreInfo: [], actions: [], states, config };
 window.__test = test;
 window.addEventListener("haptic", (event) => test.haptics.push(event.detail));
 window.addEventListener("hass-more-info", (event) => test.moreInfo.push(event.detail.entityId));
+// Home Assistant handles "hass-action" (navigate, url) in the app root.
+window.addEventListener("hass-action", (event) => test.actions.push(event.detail));
+
+// Like Home Assistant: the frontend reports the dark mode in effect (?theme=light for the light one).
+const light = params.get("theme") === "light";
+if (light) {
+  // Home Assistant's default light theme around the card.
+  document.documentElement.style.background = "#fafafa";
+  document.body.style.background = "#fafafa";
+  document.body.style.color = "#212121";
+  document.body.style.setProperty("--primary-text-color", "#212121");
+  document.body.style.setProperty("--secondary-text-color", "#727272");
+}
 
 const hass = {
   states,
+  themes: { darkMode: !light },
   callService: async (...args) => {
     if (test.failNext) {
       test.failNext = false;
@@ -178,6 +221,17 @@ test.update = (changes) => {
   }
   current = next;
   card.hass = next;
+};
+/** Home Assistant switching between its dark and light mode (theme "Auto" follows the system). */
+test.setDarkMode = (dark) => {
+  current = { ...current, themes: { darkMode: dark } };
+  card.hass = current;
+};
+/** A frontend that does not report its dark mode: the card follows the system colour scheme. */
+test.dropThemes = () => {
+  const { themes: _themes, ...rest } = current;
+  current = rest;
+  card.hass = current;
 };
 /** A blind reporting its state, position and tilt. */
 test.cover = (entityId, value, position, tilt) =>

@@ -7,7 +7,7 @@ Pravidla:
 - Priorita: **P1** chyby a rozhodnutí, která blokují další práci; **P2** zlepší denní používání; **P3** doladění.
 - Druh: **Chyba** (nalezeno testem), **Rozhodnutí** (čeká na uživatele), **Návrh** (UX zlepšení), **Ověření** (test na skutečném zařízení).
 
-Konsolidace 24. 10.: odstraněny hotové body P1.1, P1.3, P1.4, P2.2–P2.9, P2.11 (8:05) a P1.5, P1.6, P2.17, P2.22, P3.8, P3.10 (opraveno a hlídáno testy, 9:00); P3.6 sloučen do P2.14. Odpoledne po vašich odpovědích: odstraněny P1.2, P2.1, P2.12, P2.14, P2.15 (hotovo a hlídáno testy) a P1.7, P1.8 (uzavřeno uživatelem); z P1.10 odpadly body 1, 2, 4, 5, 6, 8, 9 a 10 (potvrzeno nebo vyřízeno), zůstávají 3, 7 a nové 11. Večer po vašem dalším kole: odstraněny P1.10 bod 11 (Přehled | Detail zamítnut, viz DESIGN_HISTORY) a P3.11 (`title: ""` vynechá nadpis); P1.11 a P1.12 přepsány (tolerance ±5 %, příčina jedné karty z kódu Home Assistantu).
+Konsolidace 24. 10.: odstraněny hotové body P1.1, P1.3, P1.4, P2.2–P2.9, P2.11 (8:05) a P1.5, P1.6, P2.17, P2.22, P3.8, P3.10 (opraveno a hlídáno testy, 9:00); P3.6 sloučen do P2.14. Odpoledne po vašich odpovědích: odstraněny P1.2, P2.1, P2.12, P2.14, P2.15 (hotovo a hlídáno testy) a P1.7, P1.8 (uzavřeno uživatelem); z P1.10 odpadly body 1, 2, 4, 5, 6, 8, 9 a 10 (potvrzeno nebo vyřízeno), zůstávají 3, 7 a nové 11. Večer po vašem dalším kole: odstraněny P1.10 bod 11 (Přehled | Detail zamítnut, viz DESIGN_HISTORY) a P3.11 (`title: ""` vynechá nadpis); P1.11 a P1.12 přepsány (tolerance ±5 %, příčina jedné karty z kódu Home Assistantu). Pozdě večer (konfigurace, dvě okna, světlý režim): odstraněn P3.2 (světlý režim hotový, hlídá ho axe-core); nové body P1.9.11–12 a P1.10.13–18.
 
 ## Přehled
 
@@ -25,7 +25,6 @@ Konsolidace 24. 10.: odstraněny hotové body P1.1, P1.3, P1.4, P2.2–P2.9, P2.
 | [P2.20](#p2-20) | Návrh | „WindFree Sleep“ – cíl se nevejde ani na velkém iPhonu |
 | [P2.21](#p2-21) | Návrh | Zastaralá hodnota je poznat jen z šedé barvy |
 | [P3.1](#p3-1) | Návrh | Písmo SF Pro na zařízeních Apple |
-| [P3.2](#p3-2) | Rozhodnutí | Světlý režim |
 | [P3.3](#p3-3) | Rozhodnutí | Větší písmo |
 | [P3.4](#p3-4) | Ověření | Paleta venku a na OLED |
 | [P3.5](#p3-5) | Ověření | Utlumení spuštěné žaluzie |
@@ -45,10 +44,12 @@ Všechno dosud ověřeno jen v Chromiu s náhradními daty a náhradní ikonou C
 4. Zastaralá data: REST `last_reported` funguje s vaším účtem (jinak se nic neoznačí jako zastaralé – karta to nehlásí).
 5. Ikona CO₂ (`mdi:molecule-co2`) má stejnou optickou velikost jako ostatní ikony.
 6. Vzhled: ikony předvoleb jen s přebarvením (tmavě šedé, aktivní šampaňská, pulzování barvou), 11 lamel, stálých 2 px lamel okna, tlumené CO₂ (šalvěj) a PM2.5 (levandule), trendy CO₂ a PM2.5 navazující na hodnotu, popup Kvalita vzduchu, tečka konfliktu u okna, utlumené žaluzie (viz [P1.10](#p1-10), [P3.5](#p3-5)), slabý údaj „Otevřeno · N min“ u okna a hodnoty CO₂ a PM2.5 ve stejné tloušťce jako ostatní.
-7. Pulzování předvolby: jak často Shelly hlásí polohu a naklopení za jízdy. Když méně často než jednou za 5 s, pulzování skončí dřív, než žaluzie dojede (podsvícení se pak ukáže až po dojezdu). Zkusit Ložnici a Maxíka; případně prodloužit limit.
+7. Pulzování předvolby: jak často Shelly hlásí polohu a naklopení za jízdy. Když méně často než jednou za 5 s, pulzování skončí dřív, než žaluzie dojede (podsvícení se pak ukáže až po dojezdu). Zkusit Ložnici a Maxíka; případně prodloužit limit (`covers.stall_seconds` v konfiguraci).
 8. Den změny času (25. 10.): graf historie – test v prohlížeči prošel (noc 22–6 h je ten den 9 h dlouhá, popisky času správně).
 9. Telefon na šířku: popup Historie místnosti je na výšku 393 px vyšší než displej a posouvá se uvnitř; je to pohodlné, nebo zkrátit graf? Dva sloupce viz [P1.12](#p1-12).
 10. Údaj o době otevření okna je čitelný, ale nevyrušuje; začátek mikrotrendu CO₂ a PM2.5 je od hodnoty dost daleko (78 px od levého okraje řádku).
+11. Světlý režim: s motivem „Automaticky“ v profilu Home Assistantu se karta po přepnutí Vzhledu na iPhonu (Nastavení → Displej a jas) přepne sama, bez obnovení stránky; paleta je čitelná venku (viz [P1.10](#p1-10) bod 13).
+12. Odkaz z názvu místnosti (`link`) otevře v aplikaci zadanou stránku a tlačítko zpět vrátí na nástěnku; vlastní obrázek (`image: /local/…`) se načte a nepřekáží textu.
 
 <a id="p1-10"></a>
 ### P1.10 Potvrdit rozhodnutí, která jsem udělal sám · Rozhodnutí
@@ -57,6 +58,12 @@ Všechno dosud ověřeno jen v Chromiu s náhradními daty a náhradní ikonou C
 3. Kroky osy trendů CO₂ 100 ppm a PM2.5 5 µg/m³ (teplotu 1 °C určil uživatel). Ponecháno, netestováno.
 7. Barvy CO₂ (šalvějová zelená `#8FBF9F`) a PM2.5 (levandulová `#A59DCF`) jsem po vašem „méně agresivní“ zvolil sám; sytost do 40 %, kontrast aspoň 6 : 1, liší se od sebe, od oranžové a červené varování. Ověřit na displeji, zda se zelená u CO₂ nečte jako „v pořádku“, když je číslo oranžové.
 12. Osa teploty v historii místnosti (24. 10. večer, na vaši připomínku): rozsah jen z naměřené teploty, 5% rezerva, nejméně 1,5 °C, popisky po 0,5 °C (rozsah do 3 °C), jinak 1, 2 nebo 5 °C. Cíl topení mimo osu se ořízne; cíl 5 °C (Vypnuto) se nekreslí nikdy, ani na přechodu. Rozhodl jsem sám: minimum 1,5 °C a popisky po 0,5°. Ověřit na displeji, zda plochý graf (změna do 0,3 °C) nepůsobí prázdně, nebo zda minimum zvětšit.
+13. Světlá paleta (24. 10. pozdě večer; tmavá zůstala beze změny): bílé karty, tmavší odstíny stejných významů (varování `#A85200`, kritické `#C4001A`, obloha `#006B9C`, CO₂ `#3D7A55`, PM2.5 `#6158A8`, svítící předvolba bronzová `#7A5C2E`, spuštěná žaluzie `#8F7A52` při 60 %); celá tabulka v CURRENT_SPEC.md, Barvy. Text má kontrast aspoň 4,5 : 1 (axe-core), ikony 3 : 1. Ověřit na displeji, hlavně žaluzii a svítící předvolbu.
+14. Dvě okna: jeden řádek, při dvou otevřených „Otevřena 2“ s dobou nejdéle otevřeného, „––“ když žádné není otevřené a některé je neznámé, popup „Okna“ se stavem každého okna; souhrn domu počítá okna. Tečka konfliktu je nově hned za popiskem místo „·“, aby na úzké kartě ustoupila doba, ne tečka.
+15. Místnost bez CO₂ a PM2.5 (`false`): místo řádků zůstane prázdné, ostatní řádky i panel žaluzie drží stejnou polohu jako v ostatních kartách (stejně jako Obývák bez žaluzie). Alternativa: kartu o 64 px zkrátit.
+16. „Link“ jsem pochopil jako odkaz z názvu místnosti (šipka „›“ za názvem, cesta v Home Assistantu nebo webová adresa). Jestli jste myslel odkaz na obrázek, ten dělá `image` s adresou.
+17. Neznámý klíč místnosti nebo sekcí `thresholds`, `trends`, `history`, `covers` je chyba (překlep se neztratí); neznámé klíče na horní úrovni karty se tolerují, protože tam Home Assistant přidává vlastní (např. `grid_options`).
+18. V kódu zůstaly rozměry, animace, gesta (dlouhý stisk 550 ms, dvojklik 400 ms), obnovování trendů po 5 min, cíl 5 °C topení při Vypnuto a barvy (jsou to CSS proměnné karty `--kd-…`, světlá a tmavá sada). Kdyby něco z toho mělo jít do konfigurace, doplním.
 
 <a id="p1-11"></a>
 ### P1.11 Stín: tolerance ±5 % na skutečné žaluzii · Ověření
@@ -128,11 +135,6 @@ Návrh: za zastaralou hodnotou malý symbol hodin (šedý), klepnutí na hodnotu
 
 `-apple-system`, `system-ui` na iOS, Roboto jinde; pro teplotu 38 px optická velikost Display. Čísla už jsou tabulková (`tabular-nums`). Pozor: změní šířky textu, po změně znovu změřit [P2.20](#p2-20) a přesah HVAC textu.
 
-<a id="p3-2"></a>
-### P3.2 Světlý režim · Rozhodnutí
-
-Karta má pevné tmavé barvy; při světlém motivu Home Assistantu zůstane tmavým ostrovem. Barvy převést na proměnné a doplnit světlou sadu, nebo vědomě rozhodnout „karta je vždy tmavá“.
-
 <a id="p3-3"></a>
 ### P3.3 Větší písmo · Rozhodnutí
 
@@ -165,4 +167,4 @@ Zastaralá data stojí 1 dotaz na každé měření každých 5 minut a na každ
 
 ## Jak se testuje
 
-`npm test` (viz README, oddíl Testy) spustí v Chromiu 64 testů nad sestavenou kartou a zkušební stránkou `tests/harness.html`: konfigurace z `examples/`, scénáře Zima / Léto / poplach / nedostupné / zastaralé / chyba REST / pohyb žaluzie / dlouhé názvy, šířky 320–768 px, jeden a dva sloupce včetně telefonu na šířku (852 × 393), velikost dotykových cílů měřená hit-testem, tolerance předvoleb, doba otevření okna, `title: ""`, konflikty, přístupnost (axe-core), klávesnice, dotyk, předvolby, historie (osa teploty, Vypnuto před cílem), den změny času a překreslování. Co se v prohlížeči ověřit nedá, je v [P1.9](#p1-9), [P1.11](#p1-11) a [P1.12](#p1-12).
+`npm test` (viz README, oddíl Testy) spustí v Chromiu 75 testů nad sestavenou kartou a zkušební stránkou `tests/harness.html`: konfigurace z `examples/` (i kontrola, že příklad vypisuje výchozí hodnoty), chybné hodnoty konfigurace, dvě okna, místnost bez CO₂ a PM2.5, vlastní předvolby, obrázek a odkaz, světlý a tmavý režim, scénáře Zima / Léto / poplach / nedostupné / zastaralé / chyba REST / pohyb žaluzie / dlouhé názvy, šířky 320–768 px, jeden a dva sloupce včetně telefonu na šířku (852 × 393), velikost dotykových cílů měřená hit-testem, tolerance předvoleb, doba otevření okna, `title: ""`, konflikty, přístupnost (axe-core), klávesnice, dotyk, předvolby, historie (osa teploty, Vypnuto před cílem), den změny času a překreslování. Co se v prohlížeči ověřit nedá, je v [P1.9](#p1-9), [P1.11](#p1-11) a [P1.12](#p1-12).

@@ -7,7 +7,7 @@ export interface HistoryPoint {
 
 export type HistoryMap = Record<EntityId, HistoryPoint[]>;
 
-/** One interval of a state layer in the 24 h room history. */
+/** One interval of a state layer in the room history. */
 export interface Segment {
   start: number;
   end: number;
@@ -26,8 +26,6 @@ interface RawHistoryState {
 }
 
 export const HOUR_MS = 3_600_000;
-export const TREND_WINDOW_MS = 120 * 60_000;
-export const TREND_SAMPLES = 12;
 
 function toMillis(value: RawTime): number | undefined {
   if (value === undefined || value === null) {

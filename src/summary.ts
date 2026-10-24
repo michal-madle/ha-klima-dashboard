@@ -1,6 +1,6 @@
-import type { EntityId, HassEntity, RoomConfig } from "./types";
+import type { EntityId, HassEntity, Room } from "./types";
 import { climateView, heatingView } from "./systems";
-import { COLORS, isUnavailable, plural } from "./utils";
+import { COLORS, plural } from "./utils";
 
 export type SummaryKind = "windows" | "manual" | "heating" | "climate" | "conflict-window" | "conflict-cooling";
 
@@ -27,25 +27,38 @@ function namesOrCount(names: string[]): string {
 /** What contradicts what in a room (CURRENT_SPEC.md, Konflikty): never a room status, never an alarm. */
 export type RoomConflict = "window-heating" | "window-cooling" | "cooling-cold";
 
-/**
- * Conflicts of one room: the window is open while it heats (Topení has at least one wave, or the
- * air conditioner heats) or cools (cool / WindFree), or it cools although the room is "Chladno".
- * An open window with cooling is reported once (not also as "cooling although cold"). Unknown
- * states are never a conflict.
- */
-export function roomConflicts(
-  room: RoomConfig,
+/** The windows of a room that are open now (state "on"); unknown windows are never counted. */
+export function openWindows(
+  room: Room,
   get: (entityId: EntityId | undefined) => HassEntity | undefined,
-  cold: boolean,
-): RoomConflict[] {
-  const window = get(room.window)?.state.toLowerCase();
-  const open = window !== undefined && !isUnavailable(window) && window === "on";
-  const heat = heatingView(
+): Room["windows"] {
+  return room.windows.filter((window) => get(window.entity)?.state.toLowerCase() === "on");
+}
+
+/** Topení of a room as shown on the card (the room's own wave bands). */
+export function roomHeating(room: Room, get: (entityId: EntityId | undefined) => HassEntity | undefined) {
+  return heatingView(
     get(room.heating?.climate),
     get(room.heating?.overlay),
     get(room.heating?.target),
     get(room.heating?.intensity),
+    room.thresholds,
   );
+}
+
+/**
+ * Conflicts of one room: a window is open while it heats (Topení has at least one wave, or the
+ * air conditioner heats) or cools (cool / WindFree), or it cools although the room is "Chladno".
+ * An open window with cooling is reported once (not also as "cooling although cold"). Unknown
+ * states are never a conflict. A room with several windows is open when any of them is.
+ */
+export function roomConflicts(
+  room: Room,
+  get: (entityId: EntityId | undefined) => HassEntity | undefined,
+  cold: boolean,
+): RoomConflict[] {
+  const open = openWindows(room, get).length > 0;
+  const heat = roomHeating(room, get);
   const mode = room.air_conditioner ? climateView(get(room.air_conditioner)).mode : "unknown";
   const heating = (!heat.unknown && heat.waves > 0) || mode === "heat";
   const cooling = mode === "cool" || mode === "wind_free";
@@ -69,12 +82,13 @@ export function roomConflicts(
  * "Chladno".
  */
 export function houseSummary(
-  roomList: RoomConfig[],
+  roomList: Room[],
   get: (entityId: EntityId | undefined) => HassEntity | undefined,
   coldRooms: ReadonlySet<string> = new Set(),
 ): SummaryChip[] {
   const conflicts: Record<RoomConflict, string[]> = { "window-heating": [], "window-cooling": [], "cooling-cold": [] };
-  const open: string[] = [];
+  /** Rooms with an open window and how many of their windows are open. */
+  const open: Array<[string, number]> = [];
   const manual: string[] = [];
   const heating: string[] = [];
   const climate: string[] = [];
@@ -83,16 +97,11 @@ export function houseSummary(
     for (const conflict of roomConflicts(room, get, coldRooms.has(room.name))) {
       conflicts[conflict].push(room.name);
     }
-    const window = get(room.window)?.state.toLowerCase();
-    if (window !== undefined && !isUnavailable(window) && window === "on") {
-      open.push(room.name);
+    const openCount = openWindows(room, get).length;
+    if (openCount > 0) {
+      open.push([room.name, openCount]);
     }
-    const heat = heatingView(
-      get(room.heating?.climate),
-      get(room.heating?.overlay),
-      get(room.heating?.target),
-      get(room.heating?.intensity),
-    );
+    const heat = roomHeating(room, get);
     if (heat.overlay === "manual") {
       manual.push(room.name);
     }
@@ -120,12 +129,14 @@ export function houseSummary(
       });
     }
   }
-  if (open.length > 0) {
+  // Windows are counted, not rooms: a room with two open windows adds two.
+  const openTotal = open.reduce((sum, [, count]) => sum + count, 0);
+  if (openTotal > 0) {
     chips.push({
       kind: "windows",
-      text: `${open.length} ${plural(open.length, "okno otevřené", "okna otevřená", "oken otevřených")}`,
+      text: `${openTotal} ${plural(openTotal, "okno otevřené", "okna otevřená", "oken otevřených")}`,
       color: COLORS.sky,
-      spoken: `Otevřená okna: ${open.join(", ")}`,
+      spoken: `Otevřená okna: ${open.map(([name, count]) => (count > 1 ? `${name} (${count})` : name)).join(", ")}`,
     });
   }
   if (manual.length > 0) {

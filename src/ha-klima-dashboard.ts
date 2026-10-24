@@ -2,7 +2,7 @@ import { LitElement, html, nothing } from "lit";
 import { property, state } from "lit/decorators.js";
 import type { PropertyValues, TemplateResult } from "lit";
 import { BLIND_HEIGHT, BLIND_WIDTH, renderBlindShape } from "./blind";
-import { DEFAULT_THRESHOLDS, HOUSE_MODE_ENTITY, normalizeConfig } from "./config";
+import { normalizeConfig, plainText } from "./config";
 import { SCRUB_STEP_MS, buildRoomChart, hasChartData, renderRoomChart, timeAtX } from "./charts";
 import type { RoomChartModel } from "./charts";
 import {
@@ -14,44 +14,33 @@ import {
   renderWindowIcon,
 } from "./icons";
 import type { HeatingOptionId } from "./icons";
-import { SCENE_TONES, renderScene, resolveScene } from "./scenes";
-import {
-  HOUR_MS,
-  TREND_SAMPLES,
-  TREND_WINDOW_MS,
-  fetchHistory,
-  normalizeToAxis,
-  sampleNumeric,
-  sharedAxis,
-} from "./history";
+import { renderScene, sceneTone } from "./scenes";
+import { HOUR_MS, fetchHistory, normalizeToAxis, sampleNumeric, sharedAxis } from "./history";
 import { styles } from "./styles";
-import { houseSummary, roomConflicts } from "./summary";
+import { houseSummary, openWindows, roomConflicts, roomHeating } from "./summary";
 import type { RoomConflict, SummaryChip } from "./summary";
-import { climateView, heatingView, spokenSystem } from "./systems";
+import { climateView, spokenSystem } from "./systems";
 import type { SystemView } from "./systems";
 import type {
   BlindPreset,
-  BlindPresetId,
   DashboardConfig,
-  DashboardThresholds,
   EntityId,
   HassEntity,
   HomeAssistant,
   Reading,
-  RoomConfig,
+  Room,
+  Settings,
   SheetKind,
   SheetState,
+  Theme,
   TrendAxis,
   TrendKind,
 } from "./types";
 import {
-  BLIND_PRESETS,
   blindMatchesPreset,
   COLORS,
-  COVER_SCRIPT,
   CLIMATE_COLORS,
   CLIMATE_LABELS,
-  TREND_AXIS_STEP,
   climateModeFromState,
   configuredEntityIds,
   formatAge,
@@ -60,13 +49,16 @@ import {
   formatPreset,
   getRoomStatus,
   isUnavailable,
+  lastHours,
   measurementEntityIds,
   numberAttribute,
   sameAttributes,
   spokenDuration,
+  spokenPeriod,
   stringList,
   trendDirection,
   trendEntityIds,
+  trendStep,
 } from "./utils";
 
 const TREND_REFRESH_MS = 5 * 60_000;
@@ -78,11 +70,6 @@ const NBSP = " ";
 const LONG_PRESS_MS = 550;
 const DOUBLE_TAP_MS = 400;
 const FLASH_MS = 700;
-/**
- * A sent preset pulses until the blind arrives; the pulsing stops when the blind's state,
- * position and tilt have not changed for this long (the movement was stopped somewhere else).
- */
-const MOVE_STALL_MS = 5_000;
 /** How long the "hold or double tap" hint stays after a single tap on a preset. */
 const HINT_MS = 1_600;
 
@@ -122,7 +109,7 @@ export class HaKlimaDashboard extends LitElement {
   static styles = styles;
 
   @state()
-  private _config?: DashboardConfig;
+  private _config?: Settings;
 
   @property({ attribute: false })
   hass?: HomeAssistant;
@@ -154,7 +141,13 @@ export class HaKlimaDashboard extends LitElement {
 
   /** Preset on its way per room (room name -> preset id): its icon pulses until the blind arrives. */
   @state()
-  private _moving: Record<string, BlindPresetId> = {};
+  private _moving: Record<string, string> = {};
+
+  /** The system colour scheme; decides `theme: auto` when Home Assistant does not say (CURRENT_SPEC.md, Barvy). */
+  @state()
+  private _prefersDark = true;
+
+  private _colorScheme?: MediaQueryList;
 
   /** Blind preset that shows a hint bubble ("hold or double tap" / "unavailable"). */
   @state()
@@ -210,6 +203,9 @@ export class HaKlimaDashboard extends LitElement {
 
   connectedCallback(): void {
     super.connectedCallback();
+    this._colorScheme = window.matchMedia?.("(prefers-color-scheme: dark)");
+    this._prefersDark = this._colorScheme?.matches ?? true;
+    this._colorScheme?.addEventListener("change", this.handleColorScheme);
     window.clearInterval(this._clockTimer);
     this._clockTimer = window.setInterval(() => {
       if (this.anyWindowOpen()) {
@@ -221,6 +217,8 @@ export class HaKlimaDashboard extends LitElement {
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
+    this._colorScheme?.removeEventListener("change", this.handleColorScheme);
+    this._colorScheme = undefined;
     window.removeEventListener("resize", this.handleResize);
     for (const timer of [this._noticeTimer, this._pressTimer, this._flashTimer, this._hintTimer, this._hintHideTimer]) {
       window.clearTimeout(timer);
@@ -242,7 +240,8 @@ export class HaKlimaDashboard extends LitElement {
 
   protected shouldUpdate(changedProperties: PropertyValues): boolean {
     if (changedProperties.size === 1 && changedProperties.has("hass")) {
-      return this.hasRelevantEntityChanged(changedProperties.get("hass") as HomeAssistant | undefined);
+      const previous = changedProperties.get("hass") as HomeAssistant | undefined;
+      return previous?.themes?.darkMode !== this.hass?.themes?.darkMode || this.hasRelevantEntityChanged(previous);
     }
     return true;
   }
@@ -251,7 +250,30 @@ export class HaKlimaDashboard extends LitElement {
     if (changedProperties.has("hass")) {
       this.trackMovingPresets();
     }
+    // The colours follow an attribute of the host, so the popup (outside .dashboard) gets them too.
+    const theme = this.theme();
+    if (this.dataset.theme !== theme) {
+      this.dataset.theme = theme;
+    }
   }
+
+  /**
+   * Dark or light (CURRENT_SPEC.md, Barvy): `theme: dark | light` forces it; `auto` follows the
+   * dark mode Home Assistant uses (with the "Auto" theme, the system appearance), and without
+   * that the system colour scheme of the browser.
+   */
+  private theme(): Theme {
+    const setting = this._config?.theme ?? "auto";
+    if (setting !== "auto") {
+      return setting;
+    }
+    const dark = this.hass?.themes?.darkMode;
+    return (typeof dark === "boolean" ? dark : this._prefersDark) ? "dark" : "light";
+  }
+
+  private handleColorScheme = (event: MediaQueryListEvent): void => {
+    this._prefersDark = event.matches;
+  };
 
   protected updated(changedProperties: PropertyValues): void {
     if (!this._trendsStarted && this.hass && this._config) {
@@ -273,7 +295,7 @@ export class HaKlimaDashboard extends LitElement {
   }
 
   private anyWindowOpen(): boolean {
-    return (this._config?.rooms ?? []).some((room) => this.entityState(room.window)?.toLowerCase() === "on");
+    return (this._config?.rooms ?? []).some((room) => openWindows(room, (entityId) => this.getState(entityId)).length > 0);
   }
 
   private hasRelevantEntityChanged(previousHass: HomeAssistant | undefined): boolean {
@@ -303,20 +325,20 @@ export class HaKlimaDashboard extends LitElement {
       return nothing;
     }
 
-    const mode = this.entityState(this._config.house_mode_entity ?? HOUSE_MODE_ENTITY)?.toLowerCase();
-    const isSummer = mode === "léto" || mode === "leto";
-    const modeKnown = isSummer || mode === "zima";
-    const thresholds = this.thresholds();
+    // House mode values are compared without case and diacritics ("Léto" = "leto").
+    const mode = plainText(this.entityState(this._config.houseModeEntity) ?? "");
+    const isSummer = mode === plainText(this._config.houseModes.summer);
+    const modeKnown = isSummer || mode === plainText(this._config.houseModes.winter);
     const axes = this.trendAxes(this._config);
     const now = Date.now();
     // An empty title leaves the heading out; the header disappears when nothing else is in it
     // (the second of two cards side by side in a Masonry view, CURRENT_SPEC.md, Dashboard Domov).
-    const title = this._config.title ?? "Domov";
+    const title = this._config.title;
     const outside = this.renderOutside();
     const chips = houseSummary(
       this._config.rooms,
       (entityId) => this.getState(entityId),
-      this.coldRooms(isSummer, modeKnown, thresholds, now),
+      this.coldRooms(isSummer, modeKnown, now),
     );
     const hasHeader = title !== "" || outside !== nothing || chips.length > 0;
 
@@ -332,7 +354,7 @@ export class HaKlimaDashboard extends LitElement {
           ${this._notice ? html`<div class="notice" role="alert">${this._notice}</div>` : nothing}
           <div class="rooms">
             ${this._config.rooms.map((room, index) =>
-              this.renderRoom(room, index, isSummer, modeKnown, thresholds, axes, now),
+              this.renderRoom(room, index, isSummer, modeKnown, axes, now),
             )}
           </div>
         </div>
@@ -341,15 +363,11 @@ export class HaKlimaDashboard extends LitElement {
     `;
   }
 
-  private thresholds(): DashboardThresholds {
-    return { ...DEFAULT_THRESHOLDS, ...this._config?.thresholds };
-  }
-
   /** Names of the rooms whose status is "Chladno" (for the conflict "cooling although cold"). */
-  private coldRooms(isSummer: boolean, modeKnown: boolean, thresholds: DashboardThresholds, now: number): Set<string> {
-    const stale = thresholds.stale_minutes;
+  private coldRooms(isSummer: boolean, modeKnown: boolean, now: number): Set<string> {
     const cold = new Set<string>();
     for (const room of this._config?.rooms ?? []) {
+      const stale = room.thresholds.stale_minutes;
       const status = getRoomStatus(
         {
           temperature: this.reading(room.temperature, stale, now),
@@ -359,7 +377,7 @@ export class HaKlimaDashboard extends LitElement {
         },
         isSummer,
         modeKnown,
-        thresholds,
+        room,
       );
       if (status.label === "Chladno") {
         cold.add(room.name);
@@ -372,16 +390,16 @@ export class HaKlimaDashboard extends LitElement {
    * One axis per quantity for the whole house (CURRENT_SPEC.md, Historie a grafy), so the
    * same value is drawn at the same height in every room.
    */
-  private trendAxes(config: DashboardConfig): TrendAxes {
-    const series = (pick: (room: RoomConfig) => EntityId | undefined) =>
-      config.rooms.map((room) => {
+  private trendAxes(settings: Settings): TrendAxes {
+    const series = (pick: (room: Room) => EntityId | undefined) =>
+      settings.rooms.map((room) => {
         const entityId = pick(room);
         return entityId ? this._trends[entityId] : undefined;
       });
     return {
-      temperature: sharedAxis(series((room) => room.temperature), TREND_AXIS_STEP.temperature),
-      co2: sharedAxis(series((room) => room.carbon_dioxide), TREND_AXIS_STEP.co2),
-      pm25: sharedAxis(series((room) => room.pm25), TREND_AXIS_STEP.pm25),
+      temperature: sharedAxis(series((room) => room.temperature), trendStep(settings.trends, "temperature")),
+      co2: sharedAxis(series((room) => room.carbon_dioxide), trendStep(settings.trends, "co2")),
+      pm25: sharedAxis(series((room) => room.pm25), trendStep(settings.trends, "pm25")),
     };
   }
 
@@ -410,8 +428,8 @@ export class HaKlimaDashboard extends LitElement {
       rain === undefined ? undefined : `☂${NBSP}${integer.format(rain)}${NBSP}%`,
     ].filter((part): part is string => part !== undefined);
 
-    // Outdoor air uses the same PM2.5 limits as the rooms (CURRENT_SPEC.md, Dashboard Domov).
-    const thresholds = this.thresholds();
+    // Outdoor air uses the shared PM2.5 limits of the rooms (CURRENT_SPEC.md, Dashboard Domov).
+    const thresholds = this._config!.thresholds;
     let airLabel = "––";
     let airColor = COLORS.label;
     if (pm25 !== undefined) {
@@ -460,21 +478,20 @@ export class HaKlimaDashboard extends LitElement {
   // ------------------------------------------------------------------ room
 
   private renderRoom(
-    room: RoomConfig,
+    room: Room,
     index: number,
     isSummer: boolean,
     modeKnown: boolean,
-    thresholds: DashboardThresholds,
     axes: TrendAxes,
     now: number,
   ): TemplateResult {
-    const stale = thresholds.stale_minutes;
+    const stale = room.thresholds.stale_minutes;
     const temperature = this.reading(room.temperature, stale, now);
     const humidity = this.reading(room.humidity, stale, now);
     const co2 = this.reading(room.carbon_dioxide, stale, now);
     const pm25 = this.reading(room.pm25, stale, now);
-    const status = getRoomStatus({ temperature, humidity, co2, pm25 }, isSummer, modeKnown, thresholds);
-    const scene = resolveScene(room);
+    const status = getRoomStatus({ temperature, humidity, co2, pm25 }, isSummer, modeKnown, room);
+    const image = room.image;
     // The measurement that decided the status is drawn in the status colour (CURRENT_SPEC.md,
     // Stavový systém); the other values stay neutral.
     const causeColour = (cause: "temperature" | "humidity") =>
@@ -485,10 +502,10 @@ export class HaKlimaDashboard extends LitElement {
       <div class="room-cell"><article
         class="room"
         aria-label=${room.name}
-        style=${scene ? `--scene-tone: ${SCENE_TONES[scene]}` : nothing}
+        style=${image?.kind === "scene" ? `--scene-tone: ${sceneTone(image.scene)}` : nothing}
       >
-        ${scene ? html`<div class="scene" aria-hidden="true">${renderScene(scene)}</div>` : nothing}
-        <div class="room-title">${room.name}</div>
+        ${this.renderImage(room)}
+        ${this.renderTitle(room, index)}
         <div class="status-line">
           <span
             class="status-dot"
@@ -509,7 +526,7 @@ export class HaKlimaDashboard extends LitElement {
             title=${this.staleTitle(temperature) ?? nothing}
             aria-label=${`${room.name}: teplota ${
               temperature.value === undefined ? "neznámá" : `${formatOne(temperature.value)} °C`
-            }${this.staleSpoken(temperature)}, historie místnosti za 24 hodin`}
+            }${this.staleSpoken(temperature)}, historie místnosti za ${this.historyPeriod()}`}
             @click=${(event: Event) => this.openSheet("history", room, event)}
           >
             ${temperature.value === undefined
@@ -534,7 +551,7 @@ export class HaKlimaDashboard extends LitElement {
         </div>
         <div class="lower">
           <div class="info">
-            ${this.renderAirBlock(room, index, co2, pm25, thresholds, axes)}
+            ${this.renderAirBlock(room, index, co2, pm25, axes)}
             ${this.renderHvac(room, isSummer, index)}
             ${this.renderTemperatureTrend(room, temperature, axes.temperature)}
             ${this.renderWindow(room, index, conflicts, now)}
@@ -546,6 +563,70 @@ export class HaKlimaDashboard extends LitElement {
         </div>
       </article></div>
     `;
+  }
+
+  /**
+   * Picture in the top-right corner (CURRENT_SPEC.md, Room Card): a built-in line drawing, or
+   * an image of the user's that fills the same soft rectangle. Both are decorative.
+   */
+  private renderImage(room: Room): TemplateResult | typeof nothing {
+    const image = room.image;
+    if (!image) {
+      return nothing;
+    }
+    if (image.kind === "scene") {
+      return html`<div class="scene" aria-hidden="true">${renderScene(image.scene)}</div>`;
+    }
+    return html`<div class="scene photo" aria-hidden="true">
+      <img src=${image.url} alt="" loading="lazy" decoding="async" />
+    </div>`;
+  }
+
+  /** Room name; with `link` a button that opens the page or address (CURRENT_SPEC.md, Room Card). */
+  private renderTitle(room: Room, index: number): TemplateResult {
+    const link = room.link;
+    if (!link) {
+      return html`<div class="room-title">${room.name}</div>`;
+    }
+    const descriptionId = `link-description-${index}`;
+    return html`
+      <button
+        type="button"
+        class="plain-button room-title room-link"
+        aria-describedby=${descriptionId}
+        @click=${() => this.openLink(link)}
+      >
+        <span class="room-name">${room.name}</span><span class="room-chevron" aria-hidden="true">›</span>
+      </button>
+      <span class="sr-only" id=${descriptionId}>${link.startsWith("/") ? "Otevře stránku místnosti." : "Otevře odkaz."}</span>
+    `;
+  }
+
+  /**
+   * The room link goes through Home Assistant's own action handling (navigate for a path,
+   * url for a web address), the same as a tap action of a built-in card.
+   */
+  private openLink(link: string): void {
+    const tapAction = link.startsWith("/")
+      ? { action: "navigate", navigation_path: link }
+      : { action: "url", url_path: link };
+    this.dispatchEvent(
+      new CustomEvent("hass-action", {
+        detail: { config: { tap_action: tapAction }, action: "tap" },
+        bubbles: true,
+        composed: true,
+      }),
+    );
+  }
+
+  /** The room history period after "za": "24 hodin". */
+  private historyPeriod(): string {
+    return spokenPeriod((this._config?.history.hours ?? 24) * 60);
+  }
+
+  /** The micro trend period after "za": "2 hodiny". */
+  private trendPeriod(): string {
+    return spokenPeriod(this._config?.trends.minutes ?? 120);
   }
 
   /** On the lighter ground of the popup options the critical red needs a lighter shade to stay readable. */
@@ -564,30 +645,35 @@ export class HaKlimaDashboard extends LitElement {
   /**
    * CO₂ and PM2.5 are one touch target over both rows (52 px, TODO P1.2). With both sensors it
    * opens the popup "Kvalita vzduchu" with a link to each detail; with one it opens that
-   * detail at once.
+   * detail at once. A sensor the room does not have (`carbon_dioxide: false`) has no row; without
+   * both the place stays empty, so the rows below keep their position (CURRENT_SPEC.md, Room Card).
    */
   private renderAirBlock(
-    room: RoomConfig,
+    room: Room,
     index: number,
     co2: Reading,
     pm25: Reading,
-    thresholds: DashboardThresholds,
     axes: TrendAxes,
-  ): TemplateResult {
+  ): TemplateResult | typeof nothing {
+    if (!room.hasCo2 && !room.hasPm25) {
+      return nothing;
+    }
+    const { thresholds } = room;
+    const trends = this._config!.trends;
     const configured = [room.carbon_dioxide, room.pm25].filter((entityId): entityId is EntityId => Boolean(entityId));
-    const spoken = (label: string, entityId: EntityId | undefined, reading: Reading, unit: string, slot: "co2" | "pm25") => {
-      if (!entityId) {
+    const spoken = (label: string, present: boolean, entityId: EntityId | undefined, reading: Reading, unit: string, slot: "co2" | "pm25") => {
+      if (!present || !entityId) {
         return undefined;
       }
       const direction =
-        reading.value === undefined ? undefined : trendDirection(this._trends[entityId], TREND_AXIS_STEP[slot]);
+        reading.value === undefined ? undefined : trendDirection(this._trends[entityId], trendStep(trends, slot));
       return `${label} ${reading.value === undefined ? "neznámé" : `${Math.round(reading.value)} ${unit}`}${
-        direction ? `, za 2 hodiny ${direction}` : ""
+        direction ? `, za ${this.trendPeriod()} ${direction}` : ""
       }${this.staleSpoken(reading)}`;
     };
     const description = [
-      spoken("CO₂", room.carbon_dioxide, co2, "ppm", "co2"),
-      spoken("PM2.5", room.pm25, pm25, "µg/m³", "pm25"),
+      spoken("CO₂", room.hasCo2, room.carbon_dioxide, co2, "ppm", "co2"),
+      spoken("PM2.5", room.hasPm25, room.pm25, pm25, "µg/m³", "pm25"),
     ]
       .filter(Boolean)
       .join("; ");
@@ -605,33 +691,38 @@ export class HaKlimaDashboard extends LitElement {
         aria-describedby=${descriptionId}
         @click=${(event: Event) => (popup ? this.openSheet("air", room, event) : this.showMoreInfo(configured[0]))}
       >
-        ${this.renderAirRow("co2", room.carbon_dioxide, html`<ha-icon icon="mdi:molecule-co2"></ha-icon>`,
-          co2, "ppm", thresholds.co2_warning, thresholds.co2_critical, axes.co2)}
-        ${this.renderAirRow("pm25", room.pm25, renderParticlesIcon(),
-          pm25, "µg/m³", thresholds.pm25_warning, thresholds.pm25_critical, axes.pm25)}
+        ${room.hasCo2
+          ? this.renderAirRow("co2", room.carbon_dioxide, html`<ha-icon icon="mdi:molecule-co2"></ha-icon>`,
+              co2, "ppm", thresholds.co2_warning, thresholds.co2_critical, axes.co2)
+          : nothing}
+        ${room.hasPm25
+          ? this.renderAirRow("pm25", room.pm25, renderParticlesIcon(),
+              pm25, "µg/m³", thresholds.pm25_warning, thresholds.pm25_critical, axes.pm25)
+          : nothing}
       </button>
       <span class="sr-only" id=${descriptionId}
-        >${`${room.name}: kvalita vzduchu, ${description}. ${popup ? "Otevře detaily." : "Otevře detail a historii."}`}</span
+        >${`${room.name}: kvalita vzduchu, ${description || "bez čidla"}. ${popup ? "Otevře detaily." : "Otevře detail a historii."}`}</span
       >
     `;
   }
 
   /** Popup "Kvalita vzduchu": CO₂ and PM2.5 with their values, each opens the standard entity detail. */
-  private renderAirBody(room: RoomConfig, thresholds: DashboardThresholds, now: number): TemplateResult {
+  private renderAirBody(room: Room, now: number): TemplateResult {
+    const { thresholds } = room;
     const stale = thresholds.stale_minutes;
     const rows = [
-      { slot: "co2" as const, label: "CO₂", unit: "ppm", entityId: room.carbon_dioxide, warning: thresholds.co2_warning, critical: thresholds.co2_critical },
-      { slot: "pm25" as const, label: "PM2.5", unit: "µg/m³", entityId: room.pm25, warning: thresholds.pm25_warning, critical: thresholds.pm25_critical },
-    ];
+      { slot: "co2" as const, label: "CO₂", unit: "ppm", present: room.hasCo2, entityId: room.carbon_dioxide, warning: thresholds.co2_warning, critical: thresholds.co2_critical },
+      { slot: "pm25" as const, label: "PM2.5", unit: "µg/m³", present: room.hasPm25, entityId: room.pm25, warning: thresholds.pm25_warning, critical: thresholds.pm25_critical },
+    ].filter((row) => row.present);
     return html`
-      <div class="options air-options" role="group" aria-label="Kvalita vzduchu">
+      <div class="options list-options" role="group" aria-label="Kvalita vzduchu">
         ${rows.map(({ slot, label, unit, entityId, warning, critical }) => {
           const reading = this.reading(entityId, stale, now);
           const hasValue = reading.value !== undefined;
           const accent = hasValue && !reading.stale ? COLORS[slot] : COLORS.off;
           return html`<button
             type="button"
-            class="plain-button option air-option"
+            class="plain-button option list-option"
             ?disabled=${!entityId}
             @click=${() => {
               this.closeSheet(false);
@@ -645,7 +736,7 @@ export class HaKlimaDashboard extends LitElement {
               <span>${label}</span>
               <span class="option-hint">Detail a historie</span>
             </span>
-            <span class="air-value" style=${`color: ${this.popupColor(this.airColor(reading, warning, critical))}`}>
+            <span class="list-value" style=${`color: ${this.popupColor(this.airColor(reading, warning, critical))}`}>
               ${hasValue
                 ? `${Math.round(reading.value as number)} ${unit}`
                 : html`<span aria-hidden="true">––</span><span class="sr-only">neznámé</span>`}
@@ -699,7 +790,7 @@ export class HaKlimaDashboard extends LitElement {
    * as tall as both of them (CURRENT_SPEC.md, Room Card). Opens the 24 h room history.
    */
   private renderTemperatureTrend(
-    room: RoomConfig,
+    room: Room,
     temperature: Reading,
     axis: TrendAxis | undefined,
   ): TemplateResult | typeof nothing {
@@ -710,12 +801,12 @@ export class HaKlimaDashboard extends LitElement {
     if (spark === nothing) {
       return nothing;
     }
-    const direction = trendDirection(this._trends[room.temperature], TREND_AXIS_STEP.temperature);
+    const direction = trendDirection(this._trends[room.temperature], trendStep(this._config!.trends, "temperature"));
     return html`
       <button
         type="button"
         class="plain-button trend-button slot-temperature-trend"
-        aria-label=${`${room.name}: teplota za 2 hodiny${direction ? ` ${direction}` : ""}, historie místnosti za 24 hodin`}
+        aria-label=${`${room.name}: teplota za ${this.trendPeriod()}${direction ? ` ${direction}` : ""}, historie místnosti za ${this.historyPeriod()}`}
         @click=${(event: Event) => this.openSheet("history", room, event)}
       >
         ${spark}
@@ -724,7 +815,7 @@ export class HaKlimaDashboard extends LitElement {
   }
 
   /**
-   * Micro trend (CURRENT_SPEC.md, Historie a grafy): the last 120 minutes as one thin line
+   * Micro trend (CURRENT_SPEC.md, Historie a grafy): the last `trends.minutes` (120) as one thin line
    * with a soft area and a dot at the latest sample, on the axis shared by the whole house.
    * It fades out to the left (text of the HVAC rows may run into it). Before the first
    * history arrives it is a dotted placeholder line; without history it is left out.
@@ -756,7 +847,7 @@ export class HaKlimaDashboard extends LitElement {
       .map((value, index) =>
         value === undefined
           ? undefined
-          : { x: (index / (TREND_SAMPLES - 1)) * 100, y: (1 - value) * 100 },
+          : { x: (index / Math.max(1, samples.length - 1)) * 100, y: (1 - value) * 100 },
       )
       .filter((point): point is { x: number; y: number } => point !== undefined);
     if (points.length < 2) {
@@ -795,13 +886,8 @@ export class HaKlimaDashboard extends LitElement {
    * system (by House Mode); a segmented control there switches to the other one
    * (CURRENT_SPEC.md, Ovládání Topení a Klimatizace).
    */
-  private renderHvac(room: RoomConfig, isSummer: boolean, index: number): TemplateResult {
-    const heating = heatingView(
-      this.getState(room.heating?.climate),
-      this.getState(room.heating?.overlay),
-      this.getState(room.heating?.target),
-      this.getState(room.heating?.intensity),
-    );
+  private renderHvac(room: Room, isSummer: boolean, index: number): TemplateResult {
+    const heating = roomHeating(room, (entityId) => this.getState(entityId));
     const climate = climateView(this.getState(room.air_conditioner));
     const heatingRow = (primary: boolean) =>
       this.renderSystemRow(renderHeatingWaves(heating.unknown ? 0 : heating.waves, heating.unknown), heating, primary);
@@ -834,7 +920,7 @@ export class HaKlimaDashboard extends LitElement {
   }
 
   /** The system the HVAC popup opens: the primary one, or the other when only that is configured. */
-  private hvacTarget(room: RoomConfig, order: Array<"heating" | "climate">): "heating" | "climate" | undefined {
+  private hvacTarget(room: Room, order: Array<"heating" | "climate">): "heating" | "climate" | undefined {
     const configured = (kind: "heating" | "climate") =>
       kind === "heating" ? Boolean(room.heating?.climate) : Boolean(room.air_conditioner);
     return order.find(configured);
@@ -864,19 +950,41 @@ export class HaKlimaDashboard extends LitElement {
 
   // ---------------------------------------------------------------- window
 
-  private renderWindow(room: RoomConfig, index: number, conflicts: RoomConflict[], now: number): TemplateResult {
-    const entityId = room.window;
+  /** One window: open / closed / unknown and, when open, for how many minutes (its last_changed). */
+  private windowState(entityId: EntityId, now: number): { state: "open" | "closed" | "unknown"; minutesOpen?: number } {
     const entity = this.getState(entityId);
     const state = entity?.state.toLowerCase();
-    const unavailable = state === undefined || isUnavailable(state);
-    const opened = state === "on";
+    if (state === undefined || isUnavailable(state)) {
+      return { state: "unknown" };
+    }
+    if (state !== "on") {
+      return { state: "closed" };
+    }
+    const changed = Date.parse(entity?.last_changed ?? "");
+    return { state: "open", minutesOpen: Number.isNaN(changed) ? undefined : Math.max(0, (now - changed) / 60_000) };
+  }
+
+  /**
+   * The window row (CURRENT_SPEC.md, Vizuální pravidla): one row also for a room with several
+   * windows. Any open window makes the room open ("Otevřeno", or "Otevřena 2" with two or more
+   * open) with the time of the one open longest; all closed is "Zavřeno"; none open and one
+   * unknown is "––" (unknown is never taken as closed). The conflict dot sits right after the
+   * label and takes the place of the "·" before the time, so on a narrow card the time is what
+   * gives way, never the dot.
+   */
+  private renderWindow(room: Room, index: number, conflicts: RoomConflict[], now: number): TemplateResult {
+    const states = room.windows.map((window) => ({ window, ...this.windowState(window.entity, now) }));
+    const open = states.filter((item) => item.state === "open");
+    const opened = open.length > 0;
+    const unavailable = !opened && (states.length === 0 || states.some((item) => item.state === "unknown"));
+    const multiple = room.windows.length > 1;
     // Red is reserved for critical air values (CURRENT_SPEC.md, Barvy); an open window is
     // emphasised in light sky blue.
-    const color = unavailable ? COLORS.label : opened ? COLORS.sky : COLORS.label;
-    const label = unavailable ? "––" : opened ? "Otevřeno" : "Zavřeno";
-    // How long the window has been open, faintly after the label (the state's last_changed).
-    const changed = opened ? Date.parse(entity?.last_changed ?? "") : Number.NaN;
-    const minutesOpen = Number.isNaN(changed) ? undefined : Math.max(0, (now - changed) / 60_000);
+    const color = opened ? COLORS.sky : COLORS.label;
+    const label = opened ? (open.length > 1 ? `Otevřena${NBSP}${open.length}` : "Otevřeno") : unavailable ? "––" : "Zavřeno";
+    // How long the room has had a window open, faintly after the label.
+    const durations = open.map((item) => item.minutesOpen).filter((minutes): minutes is number => minutes !== undefined);
+    const minutesOpen = durations.length > 0 ? Math.max(...durations) : undefined;
     // A subtle orange dot when the open window contradicts the heating or cooling.
     const conflict = conflicts.includes("window-heating")
       ? "otevřené okno při topení"
@@ -884,9 +992,19 @@ export class HaKlimaDashboard extends LitElement {
         ? "otevřené okno při chlazení"
         : undefined;
     const descriptionId = `window-description-${index}`;
-    const spoken = unavailable
-      ? "okno neznámé"
-      : `okno ${opened ? "otevřené" : "zavřené"}${minutesOpen === undefined ? "" : `, otevřené ${spokenDuration(minutesOpen)}`}`;
+    let spoken: string;
+    if (!multiple) {
+      spoken = unavailable
+        ? "okno neznámé"
+        : `okno ${opened ? "otevřené" : "zavřené"}${minutesOpen === undefined ? "" : `, otevřené ${spokenDuration(minutesOpen)}`}`;
+    } else if (opened) {
+      const names = open.map((item) => item.window.name).join(", ");
+      const longest = minutesOpen === undefined ? "" : ` ${spokenDuration(minutesOpen)}`;
+      spoken = open.length === 1 ? `okno ${names} otevřené${longest}` : `otevřená okna ${names}${longest ? `, nejdéle${longest}` : ""}`;
+    } else {
+      spoken = unavailable ? "stav oken neznámý" : "všechna okna zavřená";
+    }
+    const firstWindow = room.windows[0]?.entity;
 
     // The accessible name is the visible text (WCAG 2.5.3 Label in Name); the room, the
     // conflict and the action are the description.
@@ -895,28 +1013,69 @@ export class HaKlimaDashboard extends LitElement {
         type="button"
         class="plain-button system-row slot-window ${opened ? "strong" : ""}"
         style=${`--row-color: ${color}`}
-        ?disabled=${!entityId}
+        ?disabled=${!firstWindow}
+        aria-haspopup=${multiple ? "dialog" : nothing}
         aria-describedby=${descriptionId}
-        @click=${() => this.showMoreInfo(entityId)}
+        @click=${(event: Event) => (multiple ? this.openSheet("windows", room, event) : this.showMoreInfo(firstWindow))}
       >
         <span class="row-main">
           <span class="row-icon">${renderWindowIcon(unavailable ? COLORS.off : color, unavailable)}</span>
           <span class="row-text">
             <span class="row-label">${label}</span>
-            ${minutesOpen === undefined ? nothing : html`<span class="row-unit window-duration">${NBSP}·${NBSP}${formatDuration(minutesOpen)}</span>`}
             ${conflict ? html`<span class="conflict-dot" aria-hidden="true"></span>` : nothing}
+            ${minutesOpen === undefined
+              ? nothing
+              : html`<span class="row-unit window-duration"
+                  >${`${conflict ? "" : `${NBSP}·${NBSP}`}${formatDuration(minutesOpen)}`}</span
+                >`}
           </span>
         </span>
       </button>
       <span class="sr-only" id=${descriptionId}
-        >${`${room.name}: ${spoken}${conflict ? `; konflikt: ${conflict}` : ""}. Otevře detail a historii.`}</span
+        >${`${room.name}: ${spoken}${conflict ? `; konflikt: ${conflict}` : ""}. ${multiple ? "Otevře přehled oken." : "Otevře detail a historii."}`}</span
       >
+    `;
+  }
+
+  /** Popup "Okna" of a room with several windows: each window with its state; a row opens its detail. */
+  private renderWindowsBody(room: Room, now: number): TemplateResult {
+    return html`
+      <div class="options list-options" role="group" aria-label="Okna">
+        ${room.windows.map((window) => {
+          const { state, minutesOpen } = this.windowState(window.entity, now);
+          const unknown = state === "unknown";
+          const color = state === "open" ? COLORS.sky : COLORS.label;
+          return html`<button
+            type="button"
+            class="plain-button option list-option window-option"
+            @click=${() => {
+              this.closeSheet(false);
+              this.showMoreInfo(window.entity);
+            }}
+          >
+            <span class="option-icon" aria-hidden="true">${renderWindowIcon(unknown ? COLORS.off : color, unknown)}</span>
+            <span class="option-text">
+              <span>${window.name}</span>
+              <span class="option-hint">Detail a historie</span>
+            </span>
+            <span class="list-value" style=${`color: ${color}`}>
+              ${unknown
+                ? html`<span aria-hidden="true">––</span><span class="sr-only">neznámé</span>`
+                : state === "open"
+                  ? "Otevřeno"
+                  : "Zavřeno"}${minutesOpen === undefined
+                ? nothing
+                : html`<span class="list-extra">${NBSP}·${NBSP}${formatDuration(minutesOpen)}</span>`}
+            </span>
+          </button>`;
+        })}
+      </div>
     `;
   }
 
   // ----------------------------------------------------------------- cover
 
-  private renderCover(room: RoomConfig, entityId: EntityId): TemplateResult {
+  private renderCover(room: Room, entityId: EntityId): TemplateResult {
     const entity = this.getState(entityId);
     const state = entity?.state.toLowerCase();
     const available = state !== undefined && !isUnavailable(state);
@@ -944,13 +1103,13 @@ export class HaKlimaDashboard extends LitElement {
         </svg>
       </button>
       <div class="presets" role="group" aria-label=${`${room.name}: předvolby žaluzií`}>
-        ${BLIND_PRESETS.map((preset) => this.renderPreset(room, preset, position, tilt, available))}
+        ${room.presets.map((preset) => this.renderPreset(room, preset, position, tilt, available))}
       </div>
     `;
   }
 
   private renderPreset(
-    room: RoomConfig,
+    room: Room,
     preset: BlindPreset,
     position: number | undefined,
     tilt: number | undefined,
@@ -959,7 +1118,7 @@ export class HaKlimaDashboard extends LitElement {
     // While a preset is on its way only that one is lit (pulsing); the others stay grey.
     const target = this._moving[room.name];
     const pending = target === preset.id;
-    const active = target === undefined && blindMatchesPreset(position, tilt, preset);
+    const active = target === undefined && blindMatchesPreset(position, tilt, preset, this.tolerance());
     const key = `${room.name}|${preset.id}`;
     const action = available
       ? "Spustí se dvojitým klepnutím nebo dlouhým stiskem."
@@ -994,7 +1153,7 @@ export class HaKlimaDashboard extends LitElement {
           }
         }}
       >
-        ${renderPresetIcon(preset.id)}
+        ${renderPresetIcon(preset.icon)}
         ${this._hint?.key === key
           ? html`<span class="preset-hint" role="status">${this._hint.text}</span>`
           : nothing}
@@ -1002,7 +1161,7 @@ export class HaKlimaDashboard extends LitElement {
     `;
   }
 
-  private pressStart(event: PointerEvent, room: RoomConfig, preset: BlindPreset, available: boolean): void {
+  private pressStart(event: PointerEvent, room: Room, preset: BlindPreset, available: boolean): void {
     if (event.button !== 0 || !available) {
       return;
     }
@@ -1018,7 +1177,7 @@ export class HaKlimaDashboard extends LitElement {
     }, LONG_PRESS_MS);
   }
 
-  private pressEnd(room: RoomConfig, preset: BlindPreset, available: boolean): void {
+  private pressEnd(room: Room, preset: BlindPreset, available: boolean): void {
     const key = `${room.name}|${preset.id}`;
     if (!available) {
       this.showUnavailable(key);
@@ -1071,8 +1230,13 @@ export class HaKlimaDashboard extends LitElement {
     }, HINT_MS);
   }
 
-  private async applyPreset(room: RoomConfig, preset: BlindPreset): Promise<void> {
-    if (!this.hass || !room.cover) {
+  /** Tolerance (±, %) within which the blind is in a preset (`covers.tolerance`). */
+  private tolerance(): number {
+    return this._config?.covers.tolerance ?? 5;
+  }
+
+  private async applyPreset(room: Room, preset: BlindPreset): Promise<void> {
+    if (!this.hass || !room.cover || !this._config) {
       return;
     }
     const state = this.entityState(room.cover)?.toLowerCase();
@@ -1083,7 +1247,9 @@ export class HaKlimaDashboard extends LitElement {
     // The icon starts pulsing at once; the script may run until the blind has arrived.
     this.startMoving(room, room.cover, preset);
     try {
-      await this.hass.callService(COVER_SCRIPT.domain, COVER_SCRIPT.service, {
+      // covers.script is validated as script.<name> (config.ts).
+      const [domain, service] = this._config.covers.script.split(".");
+      await this.hass.callService(domain, service, {
         entity: room.cover,
         pos: preset.position,
         tilt: preset.tilt,
@@ -1106,13 +1272,14 @@ export class HaKlimaDashboard extends LitElement {
    * Preset sent: its icon pulses until the blind has arrived at its position and tilt, or
    * nothing has changed for MOVE_STALL_MS. A blind that is already there needs no pulsing.
    */
-  private startMoving(room: RoomConfig, entityId: EntityId, preset: BlindPreset): void {
+  private startMoving(room: Room, entityId: EntityId, preset: BlindPreset): void {
     const entity = this.getState(entityId);
     const reached =
       blindMatchesPreset(
         numberAttribute(entity?.attributes.current_position),
         numberAttribute(entity?.attributes.current_tilt_position),
         preset,
+        this.tolerance(),
       ) && !this.isMoving(entityId);
     if (reached) {
       this.endMoving(room.name);
@@ -1127,7 +1294,7 @@ export class HaKlimaDashboard extends LitElement {
   private trackMovingPresets(): void {
     for (const room of this._config?.rooms ?? []) {
       const presetId = this._moving[room.name];
-      const preset = BLIND_PRESETS.find((item) => item.id === presetId);
+      const preset = room.presets.find((item) => item.id === presetId);
       const watch = this._movingWatch.get(room.name);
       if (!preset || !watch || !room.cover) {
         continue;
@@ -1141,6 +1308,7 @@ export class HaKlimaDashboard extends LitElement {
           numberAttribute(entity?.attributes.current_position),
           numberAttribute(entity?.attributes.current_tilt_position),
           preset,
+          this.tolerance(),
         ) &&
           !this.isMoving(room.cover))
       ) {
@@ -1161,7 +1329,9 @@ export class HaKlimaDashboard extends LitElement {
       return;
     }
     window.clearTimeout(watch.timer);
-    watch.timer = window.setTimeout(() => this.endMoving(roomName), MOVE_STALL_MS);
+    // A sent preset pulses until the blind arrives; it stops when the blind's state, position and
+    // tilt have not changed for `covers.stall_seconds` (the movement was stopped somewhere else).
+    watch.timer = window.setTimeout(() => this.endMoving(roomName), (this._config?.covers.stall_seconds ?? 5) * 1000);
   }
 
   private endMoving(roomName: string): void {
@@ -1206,14 +1376,17 @@ export class HaKlimaDashboard extends LitElement {
     }
     if (sheet.kind === "history") {
       return this.renderSheetFrame(
-        "Historie místnosti – 24 h",
+        `Historie místnosti – ${this._config?.history.hours ?? 24} h`,
         sheet.room.name,
         this.renderHistoryBody(sheet.room),
         "history-sheet",
       );
     }
     if (sheet.kind === "air") {
-      return this.renderSheetFrame("Kvalita vzduchu", sheet.room.name, this.renderAirBody(sheet.room, this.thresholds(), Date.now()));
+      return this.renderSheetFrame("Kvalita vzduchu", sheet.room.name, this.renderAirBody(sheet.room, Date.now()));
+    }
+    if (sheet.kind === "windows") {
+      return this.renderSheetFrame("Okna", sheet.room.name, this.renderWindowsBody(sheet.room, Date.now()));
     }
     return this.renderSheetFrame(sheet.room.name, undefined, this.renderHvacBody(sheet.room, sheet.kind, isSummer));
   }
@@ -1269,7 +1442,7 @@ export class HaKlimaDashboard extends LitElement {
   }
 
   /** Topení / Klimatizace controls, with a segmented control to switch between the two. */
-  private renderHvacBody(room: RoomConfig, kind: "heating" | "climate", isSummer: boolean): TemplateResult {
+  private renderHvacBody(room: Room, kind: "heating" | "climate", isSummer: boolean): TemplateResult {
     const isHeating = kind === "heating";
     const entityId = isHeating ? room.heating?.climate : room.air_conditioner;
     const entity = this.getState(entityId);
@@ -1372,7 +1545,8 @@ export class HaKlimaDashboard extends LitElement {
   }
 
   /** „Historie místnosti – 24 h“ with a readout that follows the finger (or the arrow keys). */
-  private renderHistoryBody(room: RoomConfig): TemplateResult {
+  private renderHistoryBody(room: Room): TemplateResult {
+    const hours = this._config?.history.hours ?? 24;
     let body: TemplateResult;
     const model = this._historyModel;
     if (this._historyStatus === "loading") {
@@ -1380,13 +1554,13 @@ export class HaKlimaDashboard extends LitElement {
     } else if (this._historyStatus === "error" || !model) {
       body = html`<p class="sheet-message error" role="alert">Historii se nepodařilo načíst.</p>`;
     } else if (!hasChartData(model)) {
-      body = html`<p class="sheet-message">Za posledních 24 hodin nejsou k dispozici data.</p>`;
+      body = html`<p class="sheet-message">Za ${lastHours(hours)} nejsou k dispozici data.</p>`;
     } else {
       body = html`<div
         class="chart-wrap"
         tabindex="0"
         role="group"
-        aria-label="Graf za 24 hodin. Šipkami vlevo a vpravo procházíte čas, klávesou End se vrátíte na teď."
+        aria-label=${`Graf za ${this.historyPeriod()}. Šipkami vlevo a vpravo procházíte čas, klávesou End se vrátíte na teď.`}
         @pointerdown=${this.chartPointer}
         @pointermove=${this.chartPointer}
         @pointerup=${this.chartPointerEnd}
@@ -1669,7 +1843,7 @@ export class HaKlimaDashboard extends LitElement {
     }
   };
 
-  private openSheet(kind: SheetKind, room: RoomConfig, event: Event): void {
+  private openSheet(kind: SheetKind, room: Room, event: Event): void {
     this._opener = event.currentTarget instanceof HTMLElement ? event.currentTarget : undefined;
     this._sheetError = undefined;
     this._dragY = 0;
@@ -1704,7 +1878,7 @@ export class HaKlimaDashboard extends LitElement {
     this._opener = undefined;
   }
 
-  private async loadRoomHistory(room: RoomConfig): Promise<void> {
+  private async loadRoomHistory(room: Room): Promise<void> {
     const request = ++this._historyRequest;
     this._historyStatus = "loading";
     this._historyModel = undefined;
@@ -1721,14 +1895,15 @@ export class HaKlimaDashboard extends LitElement {
       room.heating?.target,
       room.air_conditioner,
     ].filter((entityId): entityId is EntityId => Boolean(entityId));
+    const settings = this._config!.history;
     const endMs = Date.now();
-    const startMs = endMs - 24 * HOUR_MS;
+    const startMs = endMs - settings.hours * HOUR_MS;
     try {
       const history = await fetchHistory(this.hass, ids, startMs, endMs);
       if (request !== this._historyRequest) {
         return;
       }
-      this._historyModel = buildRoomChart(history, room, { startMs, endMs });
+      this._historyModel = buildRoomChart(history, room, { startMs, endMs }, settings);
       this._historyStatus = "ready";
     } catch (error) {
       console.error("Klima Dashboard: načtení historie místnosti selhalo", error);
@@ -1754,13 +1929,14 @@ export class HaKlimaDashboard extends LitElement {
       return;
     }
     this._trendsLoading = true;
+    const { minutes, samples } = this._config.trends;
     const endMs = Date.now();
-    const startMs = endMs - TREND_WINDOW_MS;
+    const startMs = endMs - minutes * 60_000;
     try {
       const history = await fetchHistory(this.hass, ids, startMs, endMs);
       const next: Record<EntityId, Array<number | undefined>> = {};
       for (const entityId of ids) {
-        next[entityId] = sampleNumeric(history[entityId], startMs, endMs, TREND_SAMPLES);
+        next[entityId] = sampleNumeric(history[entityId], startMs, endMs, samples);
       }
       this._trends = next;
     } catch (error) {

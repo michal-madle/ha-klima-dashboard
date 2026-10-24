@@ -1,4 +1,4 @@
-import type { ClimateMode, HassEntity } from "./types";
+import type { ClimateMode, DashboardThresholds, HassEntity } from "./types";
 import {
   CLIMATE_COLORS,
   CLIMATE_LABELS,
@@ -47,12 +47,16 @@ function targetText(target: number | undefined): string {
   return target === undefined ? "" : `· ${formatHalf(target)}${NBSP}°C`;
 }
 
-/** Topení: climate entity, overlay (Schedule / Manual / Off), target and intensity sensors. */
+/**
+ * Topení: climate entity, overlay (Schedule / Manual / Off), target and intensity sensors; the
+ * intensity is shown as 0–3 waves by the room's `heating_waves_2` / `heating_waves_3`.
+ */
 export function heatingView(
   climate: HassEntity | undefined,
   overlayEntity: HassEntity | undefined,
   targetEntity: HassEntity | undefined,
   intensityEntity: HassEntity | undefined,
+  bands: Pick<DashboardThresholds, "heating_waves_2" | "heating_waves_3">,
 ): HeatingView {
   const climateState = climate?.state.toLowerCase();
   const overlay = overlayEntity?.state.toLowerCase();
@@ -67,7 +71,7 @@ export function heatingView(
   if (overlayUnknown || climateState === undefined || isUnavailable(climateState)) {
     return { label: "––", color: COLORS.label, active: false, extra: "", unknown: true, waves: 0 };
   }
-  const waves = heatingWaveCount(numericState(intensityEntity));
+  const waves = heatingWaveCount(numericState(intensityEntity), bands);
   if (overlay === "schedule") {
     return { label: "Plán", color: COLORS.plan, active: true, extra: targetText(target), unknown: false, overlay: "schedule", waves };
   }
