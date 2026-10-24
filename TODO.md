@@ -56,6 +56,7 @@ Všechno dosud ověřeno jen v Chromiu s náhradními daty a náhradní ikonou C
 Číslování zůstává; potvrzené body jsou pryč.
 3. Kroky osy trendů CO₂ 100 ppm a PM2.5 5 µg/m³ (teplotu 1 °C určil uživatel). Ponecháno, netestováno.
 7. Barvy CO₂ (šalvějová zelená `#8FBF9F`) a PM2.5 (levandulová `#A59DCF`) jsem po vašem „méně agresivní“ zvolil sám; sytost do 40 %, kontrast aspoň 6 : 1, liší se od sebe, od oranžové a červené varování. Ověřit na displeji, zda se zelená u CO₂ nečte jako „v pořádku“, když je číslo oranžové.
+12. Osa teploty v historii místnosti (24. 10. večer, na vaši připomínku): rozsah jen z naměřené teploty, 5% rezerva, nejméně 1,5 °C, popisky po 0,5 °C (rozsah do 3 °C), jinak 1, 2 nebo 5 °C. Cíl topení mimo osu se ořízne; cíl 5 °C (Vypnuto) se nekreslí nikdy, ani na přechodu. Rozhodl jsem sám: minimum 1,5 °C a popisky po 0,5°. Ověřit na displeji, zda plochý graf (změna do 0,3 °C) nepůsobí prázdně, nebo zda minimum zvětšit.
 
 <a id="p1-11"></a>
 ### P1.11 Stín: tolerance ±5 % na skutečné žaluzii · Ověření
@@ -164,4 +165,4 @@ Zastaralá data stojí 1 dotaz na každé měření každých 5 minut a na každ
 
 ## Jak se testuje
 
-`npm test` (viz README, oddíl Testy) spustí v Chromiu 61 testů nad sestavenou kartou a zkušební stránkou `tests/harness.html`: konfigurace z `examples/`, scénáře Zima / Léto / poplach / nedostupné / zastaralé / chyba REST / pohyb žaluzie / dlouhé názvy, šířky 320–768 px, jeden a dva sloupce včetně telefonu na šířku (852 × 393), velikost dotykových cílů měřená hit-testem, tolerance předvoleb, doba otevření okna, `title: ""`, konflikty, přístupnost (axe-core), klávesnice, dotyk, předvolby, historie, den změny času a překreslování. Co se v prohlížeči ověřit nedá, je v [P1.9](#p1-9), [P1.11](#p1-11) a [P1.12](#p1-12).
+`npm test` (viz README, oddíl Testy) spustí v Chromiu 64 testů nad sestavenou kartou a zkušební stránkou `tests/harness.html`: konfigurace z `examples/`, scénáře Zima / Léto / poplach / nedostupné / zastaralé / chyba REST / pohyb žaluzie / dlouhé názvy, šířky 320–768 px, jeden a dva sloupce včetně telefonu na šířku (852 × 393), velikost dotykových cílů měřená hit-testem, tolerance předvoleb, doba otevření okna, `title: ""`, konflikty, přístupnost (axe-core), klávesnice, dotyk, předvolby, historie (osa teploty, Vypnuto před cílem), den změny času a překreslování. Co se v prohlížeči ověřit nedá, je v [P1.9](#p1-9), [P1.11](#p1-11) a [P1.12](#p1-12).

@@ -169,6 +169,10 @@ Formát každého bodu: **Navrženo** → **Opuštěno, protože** → **Nahraze
 51. **Dva sloupce od šířky karty 680 px**
     - Opuštěno, protože: kartě v Sections s `column_span: 2` zbývá asi 670 px (uživatel 24. 10.: na šířku pořád jedna karta).
     - Nahrazeno: 620 px; zobrazení Masonry dává jediné kartě sloupec nejvýš 500 px, proto README doporučuje Panel, Sections s `column_span: 2` nebo dvě karty vedle sebe.
+52. **Osa teploty v historii místnosti podle teploty i cíle topení, po celých stupních, aspoň 3 °C**
+    - Opuštěno, protože: uživatel (24. 10.) – cíl topení 5 °C při vypnutém Topení natáhl osu na 4–22° a teplota byla jen čárka nahoře.
+    - Příčina: entita cíle a entity režimu topení se zapisují v mírně jiných okamžicích, takže při každém přepnutí na Vypnuto vznikl krátký úsek „Plán“ s cílem 5 °C; Vypnuto má mít přednost (spec, Topení).
+    - Nahrazeno: osa jen podle naměřené teploty (s 5% rezervou, nejméně 1,5 °C, popisky po 0,5 / 1 / 2 / 5 °C podle rozsahu), cíl mimo rozsah se ořízne, cíl 5 °C se nekreslí nikdy.
 
 ## Zamítnuté návrhy
 
@@ -221,4 +225,4 @@ Formát každého bodu: **Navrženo** → **Opuštěno, protože** → **Nahraze
 13. **v13 – tlumené předvolby a pulzování (24. 10.):** ikony tmavě šedé, aktivní tlumeně šampaňská na podsvíceném čtverečku, cílová předvolba pulzuje do dojezdu žaluzie (konec při 5 s beze změny).
 14. **v14 – dva sloupce na šířku (24. 10.):** telefon na výšku jeden sloupec přes celou šířku displeje, na šířku (od šířky karty 680 px, od v16 620 px) dvě karty vedle sebe; úzký režim podle šířky místnosti místo okna (kontejnerový dotaz), ilustrace se v úzké místnosti zmenšuje.
 15. **v15 – kolo z 24. 10. odpoledne:** předvolby žaluzií jen barvou ikony (bez podbarvení), tlumenější CO₂ a PM2.5, trend CO₂ a PM2.5 navazuje na hodnotu, hodnota určující stav má barvu stavu, konflikty (okno + topí / chladí se, chladí se i když je chladno), dotykové cíle 44 × 44 px, popup „Kvalita vzduchu“; přepínač Přehled | Detail nahoře byl ještě téhož dne zamítnut (v16).
-16. **v16 – kolo z 24. 10. večer (aktuální návrh):** přepínač Přehled | Detail odstraněn, karta má vždy plný detail; u otevřeného okna slabý údaj o době otevření („Otevřeno · N min“, aktualizace po 30 s); tolerance předvoleb žaluzií ±5 %; trend CO₂ a PM2.5 začíná 78 px od levého okraje; hodnoty CO₂ a PM2.5 stejnou tloušťkou písma (500) jako ostatní; dva sloupce od šířky karty 620 px; `title: ""` vynechá nadpis (a celou hlavičku, když nemá co ukázat); červená hodnota v popupu Kvalita vzduchu světlejší `#FF6961` kvůli kontrastu.
+16. **v16 – kolo z 24. 10. večer (aktuální návrh):** přepínač Přehled | Detail odstraněn, karta má vždy plný detail; u otevřeného okna slabý údaj o době otevření („Otevřeno · N min“, aktualizace po 30 s); tolerance předvoleb žaluzií ±5 %; trend CO₂ a PM2.5 začíná 78 px od levého okraje; hodnoty CO₂ a PM2.5 stejnou tloušťkou písma (500) jako ostatní; dva sloupce od šířky karty 620 px; `title: ""` vynechá nadpis (a celou hlavičku, když nemá co ukázat); červená hodnota v popupu Kvalita vzduchu světlejší `#FF6961` kvůli kontrastu; osa teploty v historii místnosti jen podle naměřené teploty (křivka na celou výšku, cíl topení mimo rozsah oříznut, cíl 5 °C při Vypnuto se nekreslí).

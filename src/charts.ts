@@ -50,6 +50,10 @@ const NIGHT_FROM_HOUR = 22;
 const NIGHT_TO_HOUR = 6;
 const INTENSITY_OPACITY = [0, 0.24, 0.44, 0.68];
 const CLIP_ID = "history-under-temperature";
+const PLOT_CLIP_ID = "history-plot";
+/** Target (°C) Tado reports while the heating is off; never drawn or read as a target. */
+const HEATING_OFF_TARGET = 5;
+const TICK_FORMAT = new Intl.NumberFormat("cs-CZ", { maximumFractionDigits: 1 });
 
 const HEATING_COLORS: Record<string, string> = {
   schedule: COLORS.plan,
@@ -99,6 +103,47 @@ function finite(state: string | undefined): number | undefined {
   return Number.isFinite(value) ? value : undefined;
 }
 
+/** Smallest temperature range of the axis (°C), so sensor noise is not drawn as a swing. */
+const MIN_TEMPERATURE_SPAN = 1.5;
+/** Share of the span added above and below the curve so the line stays inside the plot. */
+const AXIS_MARGIN = 0.05;
+
+/**
+ * Temperature axis that stretches the values over the whole plot height: the range is
+ * min–max of `values` plus a small margin, at least `MIN_TEMPERATURE_SPAN` (centred). Labels sit on
+ * multiples of `step` (0,5 / 1 / 2 / 5 °C by range) that fall inside the range.
+ */
+export function temperatureAxis(values: number[]): { min: number; max: number; step: number } {
+  const finiteValues = values.filter((value) => Number.isFinite(value));
+  let low = 19;
+  let high = 23;
+  if (finiteValues.length > 0) {
+    low = Math.min(...finiteValues);
+    high = Math.max(...finiteValues);
+    if (high - low < MIN_TEMPERATURE_SPAN) {
+      const middle = (low + high) / 2;
+      low = middle - MIN_TEMPERATURE_SPAN / 2;
+      high = middle + MIN_TEMPERATURE_SPAN / 2;
+    }
+    const margin = (high - low) * AXIS_MARGIN;
+    low -= margin;
+    high += margin;
+  }
+  const span = high - low;
+  const step = span <= 3 ? 0.5 : span <= 6 ? 1 : span <= 12 ? 2 : 5;
+  return { min: low, max: high, step };
+}
+
+/** Axis labels: multiples of the step inside the range. */
+export function temperatureTicks(min: number, max: number, step: number): number[] {
+  const ticks: number[] = [];
+  const epsilon = step / 1000;
+  for (let value = Math.ceil(min / step - epsilon) * step; value <= max + epsilon; value += step) {
+    ticks.push(Math.round(value * 100) / 100);
+  }
+  return ticks;
+}
+
 export function buildRoomChart(history: HistoryMap, room: RoomConfig, range: ChartRange): RoomChartModel {
   const series = (entityId: string | undefined) => (entityId ? history[entityId] : undefined);
   const { startMs, endMs } = range;
@@ -125,7 +170,13 @@ export function buildRoomChart(history: HistoryMap, room: RoomConfig, range: Cha
     ([o, c, value]) => {
       const mode = heatingMode(o, c);
       const number = finite(value);
-      return mode === "schedule" || mode === "manual" ? (number === undefined ? undefined : String(number)) : undefined;
+      // Vypnuto wins over any target (CURRENT_SPEC.md, Topení). Tado reports 5 °C while off, and the
+      // target entity changes a moment before or after the mode entities do, which would leave a
+      // sliver of "Plán · 5 °C" at every switch; 5 °C is therefore never a target.
+      if (number === undefined || number <= HEATING_OFF_TARGET) {
+        return undefined;
+      }
+      return mode === "schedule" || mode === "manual" ? String(number) : undefined;
     },
   );
   const climate = buildSegments([series(room.air_conditioner)], startMs, endMs, ([state]) => {
@@ -133,20 +184,13 @@ export function buildRoomChart(history: HistoryMap, room: RoomConfig, range: Cha
     return mode === "unknown" ? undefined : mode;
   });
 
-  // Temperature axis in whole degrees, at least 3 °C, covering the curve and the target.
-  const values = [...temperature.map((point) => point.v), ...target.map((segment) => Number(segment.value))];
-  let tempMin = 19;
-  let tempMax = 23;
-  if (values.length > 0) {
-    tempMin = Math.floor(Math.min(...values) - 0.2);
-    tempMax = Math.ceil(Math.max(...values) + 0.2);
-    if (tempMax - tempMin < 3) {
-      const grow = 3 - (tempMax - tempMin);
-      tempMin -= Math.floor(grow / 2);
-      tempMax = tempMin + 3;
-    }
-  }
-  const tempStep = tempMax - tempMin <= 6 ? 1 : 2;
+  // The axis follows the measured temperature, so the curve fills the plot; the target is only
+  // drawn where it falls inside (e.g. Tado's 5 °C with the heating off must not squash the curve).
+  // Only without any temperature sample do the target values decide.
+  const measured = temperature.map((point) => point.v);
+  const { min: tempMin, max: tempMax, step: tempStep } = temperatureAxis(
+    measured.length > 0 ? measured : target.map((segment) => Number(segment.value)),
+  );
 
   const humidityValues = humidity.map((point) => point.v);
   return {
@@ -315,10 +359,7 @@ export function renderRoomChart(model: RoomChartModel, width: number, scrubTime:
     targetPath += ` L${x(segment.end).toFixed(1)} ${y}`;
   });
 
-  const grid: number[] = [];
-  for (let value = model.tempMin; value <= model.tempMax; value += model.tempStep) {
-    grid.push(value);
-  }
+  const grid = temperatureTicks(model.tempMin, model.tempMax, model.tempStep);
   const strip = (segments: Segment[], y: number, color: (value: string) => string) =>
     segments.map((segment) => {
       const left = x(segment.start);
@@ -343,6 +384,9 @@ export function renderRoomChart(model: RoomChartModel, width: number, scrubTime:
     >
       <defs>
         <clipPath id=${CLIP_ID}><path d=${temperatureArea}></path></clipPath>
+        <clipPath id=${PLOT_CLIP_ID}>
+          <rect x=${PAD_LEFT} y=${PLOT_TOP} width=${plotWidth(width)} height=${PLOT_HEIGHT}></rect>
+        </clipPath>
       </defs>
       <rect x=${PAD_LEFT} y=${PLOT_TOP} width=${plotWidth(width)} height=${PLOT_HEIGHT} rx="8" fill="rgb(255 255 255 / 5%)"></rect>
       ${nights.map(
@@ -352,7 +396,7 @@ export function renderRoomChart(model: RoomChartModel, width: number, scrubTime:
       ${grid.map(
         (value) => svg`<line x1=${PAD_LEFT} x2=${right} y1=${yTemp(value).toFixed(1)} y2=${yTemp(value).toFixed(1)}
             stroke="rgb(255 255 255 / 8%)" stroke-width="1"></line>
-          <text x=${right + 6} y=${(yTemp(value) + 4).toFixed(1)} fill=${COLORS.label} font-size=${FONT}>${value}°</text>`,
+          <text x=${right + 6} y=${(yTemp(value) + 4).toFixed(1)} fill=${COLORS.label} font-size=${FONT}>${TICK_FORMAT.format(value)}°</text>`,
       )}
       ${temperatureArea ? svg`<path d=${temperatureArea} fill="rgb(255 255 255 / 7%)"></path>` : nothing}
       <g clip-path=${`url(#${CLIP_ID})`}>
@@ -368,7 +412,7 @@ export function renderRoomChart(model: RoomChartModel, width: number, scrubTime:
         : nothing}
       ${targetPath
         ? svg`<path d=${targetPath} fill="none" stroke=${COLORS.plan} stroke-width="1.4"
-            stroke-dasharray="3 3" opacity="0.6"></path>`
+            stroke-dasharray="3 3" opacity="0.6" clip-path=${`url(#${PLOT_CLIP_ID})`}></path>`
         : nothing}
       ${temperatureLine
         ? svg`<path d=${temperatureLine} fill="none" stroke=${COLORS.white} stroke-width="2"

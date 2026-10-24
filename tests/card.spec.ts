@@ -801,6 +801,122 @@ test.describe("historie místnosti (Historie a grafy)", () => {
     await expect(page.locator(".sheet")).toHaveCount(0);
   });
 
+  test("osa teploty se řídí naměřenou teplotou: křivka vyplní výšku grafu, cíl mimo rozsah ji nesmáčkne", async ({ page }) => {
+    await open(page, "full");
+    // 24 h of 20,2–22,0 °C; the heating target is 18 °C for a while, far below the curve.
+    await page.evaluate(() => {
+      // @ts-expect-error test hook
+      const test = window.__test;
+      const now = Date.now() / 1000;
+      const hours = (ago: number) => now - ago * 3600;
+      const temperature = test.config.rooms[0].temperature;
+      const target = test.config.rooms[0].heating.target;
+      test.historyFor = (id: string) => {
+        if (id === temperature) {
+          return [20.2, 20.9, 21.4, 21.9, 22.0, 21.6, 21.9].map((value, i) => ({ s: String(value), lu: hours(24 - i * 4) }));
+        }
+        if (id === target) {
+          return [21, 18, 21].map((value, i) => ({ s: String(value), lu: hours(24 - i * 8) }));
+        }
+        return undefined;
+      };
+    });
+    await page.locator(".room .temperature").first().click();
+    await expect(page.locator("svg.chart")).toBeVisible();
+    const chart = await page.evaluate(() => {
+      const svg = document.querySelector("ha-klima-dashboard")!.shadowRoot!.querySelector("svg.chart")!;
+      const ys = (path: Element) => [...(path.getAttribute("d") ?? "").matchAll(/[ML]([\d.]+) ([\d.]+)/g)].map((m) => Number(m[2]));
+      const curve = [...svg.querySelectorAll("path")].find((path) => path.getAttribute("stroke-width") === "2")!;
+      const target = [...svg.querySelectorAll("path")].find((path) => path.getAttribute("stroke-dasharray") === "3 3")!;
+      const labels = [...svg.querySelectorAll("text")].map((text) => text.textContent ?? "").filter((text) => text.endsWith("°"));
+      const plot = svg.querySelector("clipPath#history-plot rect")!;
+      return {
+        curveTop: Math.min(...ys(curve)),
+        curveBottom: Math.max(...ys(curve)),
+        top: Number(plot.getAttribute("y")),
+        height: Number(plot.getAttribute("height")),
+        labels,
+        targetClipped: target.getAttribute("clip-path"),
+        targetBottom: Math.max(...ys(target)),
+      };
+    });
+    // The curve covers at least 85 % of the plot height (it was a thin line at the top before).
+    expect((chart.curveBottom - chart.curveTop) / chart.height).toBeGreaterThan(0.85);
+    expect(chart.curveTop).toBeGreaterThanOrEqual(chart.top);
+    expect(chart.curveBottom).toBeLessThanOrEqual(chart.top + chart.height);
+    // Labels lie within the measured range, in cs-CZ with half degrees: 20,5° … 22°, nothing like 4°.
+    expect(chart.labels).toEqual(["20,5°", "21°", "21,5°", "22°"]);
+    // The 18 °C target is below the axis: the line is clipped to the plot instead of stretching it.
+    expect(chart.targetClipped).toBe("url(#history-plot)");
+    expect(chart.targetBottom).toBeGreaterThan(chart.top + chart.height);
+  });
+
+  test("Vypnuto má přednost před cílem: 5 °C při vypnutém topení se v grafu nekreslí ani na přechodu", async ({ page }) => {
+    await open(page, "full");
+    // Off from 17 h to 14 h ago. The target entity flips 3 s before / after the mode entity,
+    // so for 3 s the mode is still Plán while the target is already 5 °C (and the other way round).
+    await page.evaluate(() => {
+      // @ts-expect-error test hook
+      const test = window.__test;
+      const now = Date.now() / 1000;
+      const hours = (ago: number) => now - ago * 3600;
+      const heating = test.config.rooms[0].heating;
+      const temperature = test.config.rooms[0].temperature;
+      test.historyFor = (id: string) => {
+        if (id === temperature) {
+          return [20.2, 20.9, 21.4, 21.9, 22.0, 21.6, 21.9].map((value, i) => ({ s: String(value), lu: hours(24 - i * 4) }));
+        }
+        if (id === heating.climate) {
+          return [{ s: "auto", lu: hours(24) }, { s: "off", lu: hours(17) }, { s: "auto", lu: hours(14) }];
+        }
+        if (id === heating.overlay) return [{ s: "Schedule", lu: hours(24) }];
+        if (id === heating.target) {
+          return [
+            { s: "21", lu: hours(24) },
+            { s: "5", lu: hours(17) - 3 },
+            { s: "21", lu: hours(14) + 3 },
+          ];
+        }
+        return undefined;
+      };
+    });
+    await page.locator(".room .temperature").first().click();
+    await expect(page.locator("svg.chart")).toBeVisible();
+    const target = await page.evaluate(() => {
+      const svg = document.querySelector("ha-klima-dashboard")!.shadowRoot!.querySelector("svg.chart")!;
+      const path = [...svg.querySelectorAll("path")].find((p) => p.getAttribute("stroke-dasharray") === "3 3")!;
+      const d = path.getAttribute("d") ?? "";
+      const ys = [...d.matchAll(/[ML]([\d.]+) ([\d.]+)/g)].map((m) => Number(m[2]));
+      return { ys, moves: (d.match(/M/g) ?? []).length };
+    });
+    // One level only (21 °C, two pieces around the off period), no step down to 5 °C.
+    expect(new Set(target.ys.map((y) => Math.round(y))).size).toBe(1);
+    expect(target.moves).toBe(2);
+  });
+
+  test("osa teploty: ploché měření se nenatahuje na šum, aspoň 1,5 °C", async ({ page }) => {
+    await open(page, "full");
+    await page.evaluate(() => {
+      // @ts-expect-error test hook
+      const test = window.__test;
+      const now = Date.now() / 1000;
+      const temperature = test.config.rooms[0].temperature;
+      test.historyFor = (id: string) =>
+        id === temperature
+          ? [21.0, 21.1, 21.0, 21.1, 21.0].map((value, i) => ({ s: String(value), lu: now - (24 - i * 6) * 3600 }))
+          : undefined;
+    });
+    await page.locator(".room .temperature").first().click();
+    await expect(page.locator("svg.chart")).toBeVisible();
+    const share = await page.evaluate(() => {
+      const svg = document.querySelector("ha-klima-dashboard")!.shadowRoot!.querySelector("svg.chart")!;
+      const curve = [...svg.querySelectorAll("path")].find((path) => path.getAttribute("stroke-width") === "2")!;
+      const ys = [...(curve.getAttribute("d") ?? "").matchAll(/[ML]([\d.]+) ([\d.]+)/g)].map((m) => Number(m[2]));
+      return (Math.max(...ys) - Math.min(...ys)) / 150;
+    });
+    expect(share).toBeLessThan(0.15);
+  });
+
   test("den změny času 25. 10.: noc 22–6 h je 9 h, popisky v celých hodinách", async ({ page }) => {
     const measure = async (when: string) => {
       await page.clock.setFixedTime(new Date(when));

@@ -149,6 +149,8 @@ const hass = {
   callWS: async (message) =>
     Object.fromEntries(
       message.entity_ids.map((id) => {
+        const override = test.historyFor?.(id);
+        if (override) return [id, override];
         const value = Number(states[id]?.state);
         return [id, Number.isFinite(value) ? series(value) : [{ s: states[id]?.state ?? "unknown", lu: (now - 20 * HOUR) / 1000 }]];
       }),
