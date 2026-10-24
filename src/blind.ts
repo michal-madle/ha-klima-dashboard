@@ -4,20 +4,26 @@ import { COLORS } from "./utils";
 
 /** Width of the blind panel (--col in styles.ts). */
 export const BLIND_WIDTH = 60;
-/** Height of the info rows from CO₂ to the window row: 5 × --row-h (26 px, see styles.ts). */
-export const BLIND_HEIGHT = 130;
+/** Height of the info rows from CO₂ to the window row: 5 × --row-h (26 px) + --group-gap (12 px). */
+export const BLIND_HEIGHT = 142;
 
 const SLAT_COUNT = 18;
 const RAIL_HEIGHT = 3;
 const MIN_GAP = 0.8;
 const MIN_SLAT = 1;
 const WINDOW_OPACITY = 0.28;
+/**
+ * The lowered blind is champagne, dimmed so a closed blind does not glare on a dark screen,
+ * yet still clearly lighter than the sky-tinted window part (CURRENT_SPEC.md, Žaluzie).
+ */
+const BLIND_OPACITY = 0.5;
+const RAIL_OPACITY = 0.7;
 
 /**
  * Miniature of a real blind seen from inside (see CURRENT_SPEC.md, Žaluzie).
  * Constant slat count; tilt only changes slat thickness (0 % nearly solid,
  * 100 % thin lines). Position splits the column: the lowered upper part is
- * the blind itself (champagne, fully opaque); the raised lower part is the
+ * the blind itself (dimmed champagne); the raised lower part is the
  * window behind it, keeps the slat structure and is tinted like the sky.
  * Position 100 % highlights only the top rail, 0 % everything.
  * An unknown position or tilt is a dashed silhouette, never a zero.
@@ -56,7 +62,7 @@ export function renderBlindShape(
       height=${slatHeight.toFixed(2)}
       rx=${Math.min(1.5, slatHeight / 2).toFixed(2)}
       fill=${lowered ? COLORS.blind : COLORS.sky}
-      opacity=${lowered ? 1 : WINDOW_OPACITY}
+      opacity=${lowered ? BLIND_OPACITY : WINDOW_OPACITY}
     ></rect>`;
   });
 
@@ -67,5 +73,6 @@ export function renderBlindShape(
       height=${RAIL_HEIGHT}
       rx="1.5"
       fill=${COLORS.blind}
+      opacity=${RAIL_OPACITY}
     ></rect>${slats}`;
 }

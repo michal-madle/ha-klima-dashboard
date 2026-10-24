@@ -3,10 +3,12 @@ import { property, state } from "lit/decorators.js";
 import type { PropertyValues, TemplateResult } from "lit";
 import { BLIND_HEIGHT, BLIND_WIDTH, renderBlindShape } from "./blind";
 import { DEFAULT_THRESHOLDS, HOUSE_MODE_ENTITY, normalizeConfig } from "./config";
+import { hasChartData, renderRoomChart } from "./charts";
 import { renderHeatingOptionIcon, renderParticlesIcon, renderPresetIcon } from "./icons";
 import type { HeatingOptionId } from "./icons";
 import { SCENE_TONES, renderScene, resolveScene } from "./scenes";
 import {
+  HOUR_MS,
   TREND_SAMPLES,
   TREND_WINDOW_MS,
   fetchHistory,
@@ -14,6 +16,7 @@ import {
   sampleNumeric,
   sharedAxis,
 } from "./history";
+import type { HistoryMap } from "./history";
 import { styles } from "./styles";
 import type {
   BlindPreset,
@@ -66,6 +69,8 @@ interface SystemRowAction {
 
 type TrendAxes = Partial<Record<TrendKind, TrendAxis>>;
 
+type HistoryStatus = "loading" | "ready" | "error";
+
 /** Grid slot of an air-quality row (see `.slot-*` in styles.ts). */
 type InfoSlot = "co2" | "pm25";
 
@@ -97,6 +102,16 @@ export class HaKlimaDashboard extends LitElement {
 
   @state()
   private _sheetError?: string;
+
+  /** 24 h room history shown in the "history" popup. */
+  @state()
+  private _historyStatus: HistoryStatus = "loading";
+
+  @state()
+  private _historyData: HistoryMap = {};
+
+  private _historyRange = { startMs: 0, endMs: 0 };
+  private _historyRequest = 0;
 
   /** Key of the blind preset that was just sent (brief confirmation flash). */
   @state()
@@ -340,8 +355,8 @@ export class HaKlimaDashboard extends LitElement {
             ?disabled=${!room.temperature}
             aria-label=${`${room.name}: teplota ${
               temperature.value === undefined ? "neznámá" : `${formatOne(temperature.value)} °C`
-            }, detail a historie`}
-            @click=${() => this.showMoreInfo(room.temperature)}
+            }, historie místnosti za 24 hodin`}
+            @click=${(event: Event) => this.openSheet("history", room, event)}
           >
             ${temperature.value === undefined
               ? html`<span class="missing">––</span>`
@@ -459,7 +474,7 @@ export class HaKlimaDashboard extends LitElement {
 
   /**
    * Temperature micro trend: in the trend column next to the Topení and Klimatizace rows and
-   * as tall as both of them (CURRENT_SPEC.md, Room Card). Opens the temperature detail.
+   * as tall as both of them (CURRENT_SPEC.md, Room Card). Opens the 24 h room history.
    */
   private renderTemperatureTrend(
     room: RoomConfig,
@@ -477,8 +492,8 @@ export class HaKlimaDashboard extends LitElement {
       <button
         type="button"
         class="plain-button trend-button slot-temperature-trend"
-        aria-label=${`${room.name}: trend teploty za 2 hodiny, detail a historie`}
-        @click=${() => this.showMoreInfo(room.temperature)}
+        aria-label=${`${room.name}: trend teploty za 2 hodiny, historie místnosti za 24 hodin`}
+        @click=${(event: Event) => this.openSheet("history", room, event)}
       >
         ${spark}
       </button>
@@ -953,6 +968,9 @@ export class HaKlimaDashboard extends LitElement {
     if (!sheet) {
       return nothing;
     }
+    if (sheet.kind === "history") {
+      return this.renderHistorySheet(sheet.room);
+    }
     const isHeating = sheet.kind === "heating";
     const entityId = isHeating ? sheet.room.heating?.climate : sheet.room.air_conditioner;
     const entity = this.getState(entityId);
@@ -1027,6 +1045,94 @@ export class HaKlimaDashboard extends LitElement {
         </div>
       </div>
     `;
+  }
+
+  /** „Historie místnosti – 24 h“ in the same popup frame as the Topení / Klimatizace controls. */
+  private renderHistorySheet(room: RoomConfig): TemplateResult {
+    let body: TemplateResult;
+    if (this._historyStatus === "loading") {
+      body = html`<p class="sheet-message">Načítám historii…</p>`;
+    } else if (this._historyStatus === "error") {
+      body = html`<p class="sheet-message error" role="alert">Historii se nepodařilo načíst.</p>`;
+    } else if (!hasChartData(this._historyData, [room.temperature, room.humidity])) {
+      body = html`<p class="sheet-message">Za posledních 24 hodin nejsou k dispozici data.</p>`;
+    } else {
+      body = renderRoomChart(this._historyData, room, this._historyRange);
+    }
+    const detail = room.temperature ?? room.humidity;
+
+    return html`
+      <div class="backdrop" @click=${() => this.closeSheet()} @keydown=${this.handleSheetKeydown}>
+        <div
+          class="sheet history-sheet"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="sheet-title"
+          @click=${(event: Event) => event.stopPropagation()}
+        >
+          <div class="sheet-head">
+            <div>
+              <h2 id="sheet-title">Historie místnosti – 24 h</h2>
+              <div class="sheet-sub">${room.name}</div>
+            </div>
+            <button
+              type="button"
+              class="plain-button close"
+              aria-label="Zavřít"
+              @click=${() => this.closeSheet()}
+            >
+              ✕
+            </button>
+          </div>
+          ${body}
+          <button
+            type="button"
+            class="plain-button sheet-link"
+            ?disabled=${!detail}
+            @click=${() => {
+              this.closeSheet(false);
+              this.showMoreInfo(detail);
+            }}
+          >
+            Detail teploty
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  private async loadRoomHistory(room: RoomConfig): Promise<void> {
+    const request = ++this._historyRequest;
+    this._historyStatus = "loading";
+    this._historyData = {};
+    if (!this.hass) {
+      this._historyStatus = "error";
+      return;
+    }
+    const ids = [
+      room.temperature,
+      room.humidity,
+      room.heating?.overlay,
+      room.heating?.climate,
+      room.heating?.intensity,
+      room.air_conditioner,
+    ].filter((entityId): entityId is EntityId => Boolean(entityId));
+    const endMs = Date.now();
+    const startMs = endMs - 24 * HOUR_MS;
+    try {
+      const history = await fetchHistory(this.hass, ids, startMs, endMs);
+      if (request !== this._historyRequest) {
+        return;
+      }
+      this._historyData = history;
+      this._historyRange = { startMs, endMs };
+      this._historyStatus = "ready";
+    } catch (error) {
+      console.error("Klima Dashboard: načtení historie místnosti selhalo", error);
+      if (request === this._historyRequest) {
+        this._historyStatus = "error";
+      }
+    }
   }
 
   private renderOption(option: SheetOption): TemplateResult {
@@ -1189,9 +1295,13 @@ export class HaKlimaDashboard extends LitElement {
     this._opener = event.currentTarget instanceof HTMLElement ? event.currentTarget : undefined;
     this._sheetError = undefined;
     this._sheet = { kind, room };
+    if (kind === "history") {
+      void this.loadRoomHistory(room);
+    }
   }
 
   private closeSheet(restoreFocus = true): void {
+    this._historyRequest += 1;
     this._sheet = undefined;
     this._sheetError = undefined;
     if (restoreFocus) {

@@ -7,6 +7,13 @@ export interface HistoryPoint {
 
 export type HistoryMap = Record<EntityId, HistoryPoint[]>;
 
+/** One interval of a state layer in the 24 h room history. */
+export interface Segment {
+  start: number;
+  end: number;
+  value: string;
+}
+
 type RawTime = number | string | null | undefined;
 
 interface RawHistoryState {
@@ -18,6 +25,7 @@ interface RawHistoryState {
   last_changed?: RawTime;
 }
 
+export const HOUR_MS = 3_600_000;
 export const TREND_WINDOW_MS = 120 * 60_000;
 export const TREND_SAMPLES = 12;
 
@@ -113,6 +121,61 @@ export function sampleNumeric(
   return Array.from({ length: count }, (_, index) =>
     toNumber(stateAt(numeric, startMs + (index + 1) * step)),
   );
+}
+
+export function numericSeries(
+  points: HistoryPoint[] | undefined,
+  startMs: number,
+  endMs: number,
+): Array<{ t: number; v: number }> {
+  const series: Array<{ t: number; v: number }> = [];
+  for (const point of points ?? []) {
+    const value = toNumber(point.state);
+    if (value !== undefined && point.time <= endMs) {
+      series.push({ t: Math.max(point.time, startMs), v: value });
+    }
+  }
+  const last = series[series.length - 1];
+  if (last && last.t < endMs) {
+    series.push({ t: endMs, v: last.v });
+  }
+  return series;
+}
+
+/**
+ * Combines several state series into one list of segments, evaluating `combine`
+ * for every interval between two change times. Intervals where `combine`
+ * returns undefined (no data) are left out.
+ */
+export function buildSegments(
+  series: Array<HistoryPoint[] | undefined>,
+  startMs: number,
+  endMs: number,
+  combine: (states: Array<string | undefined>) => string | undefined,
+): Segment[] {
+  const breaks = new Set<number>([startMs, endMs]);
+  for (const points of series) {
+    for (const point of points ?? []) {
+      if (point.time > startMs && point.time < endMs) {
+        breaks.add(point.time);
+      }
+    }
+  }
+  const times = [...breaks].sort((left, right) => left - right);
+  const segments: Segment[] = [];
+  for (let index = 0; index < times.length - 1; index += 1) {
+    const value = combine(series.map((points) => stateAt(points, times[index])));
+    if (value === undefined) {
+      continue;
+    }
+    const previous = segments[segments.length - 1];
+    if (previous && previous.value === value && previous.end === times[index]) {
+      previous.end = times[index + 1];
+    } else {
+      segments.push({ start: times[index], end: times[index + 1], value });
+    }
+  }
+  return segments;
 }
 
 /**

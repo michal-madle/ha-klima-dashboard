@@ -53,15 +53,20 @@ export const styles = css`
     .room {
       /*
        * One size for every info row (CURRENT_SPEC.md, Vizuální pravidla): row height, icon,
-       * values, labels and units. --col is the blind panel width.
+       * values, labels and units. --col is the blind panel width, --cover-gap the gap in
+       * front of the presets and in front of the blind panel. --group-gap separates the air
+       * rows (CO₂, PM2.5) from the Topení / Klimatizace / window rows.
        */
       --row-h: 26px;
       --row-font: 15px;
       --icon: 22px;
       --info-gap: 6px;
       --icon-gap: 7px;
+      --group-gap: 12px;
       --col: 60px;
       --preset-col: 36px;
+      --preset-size: 34px;
+      --cover-gap: 8px;
       position: relative;
       overflow: hidden;
       display: block;
@@ -81,31 +86,40 @@ export const styles = css`
       position: relative;
     }
 
-    /* Decorative illustration in the free top-right corner, faded out towards the content. */
+    /*
+     * Decorative illustration: a soft rectangle over the free top-right part of the card
+     * header, fading out only along its left and bottom edge (CURRENT_SPEC.md, Room Card).
+     */
     .scene {
       position: absolute;
       top: 0;
       right: 0;
-      width: 64%;
-      height: 150px;
+      width: 58%;
+      height: 132px;
       color: var(--scene-tone);
-      background: radial-gradient(
-        ellipse 85% 100% at 100% 0%,
-        color-mix(in srgb, currentColor 16%, transparent),
-        transparent 70%
+      background: linear-gradient(
+        to left,
+        color-mix(in srgb, currentColor 13%, transparent),
+        color-mix(in srgb, currentColor 5%, transparent)
       );
+      -webkit-mask-image:
+        linear-gradient(to right, transparent, #000 30%),
+        linear-gradient(to top, transparent, #000 15%);
+      -webkit-mask-composite: source-in;
+      mask-image:
+        linear-gradient(to right, transparent, #000 30%),
+        linear-gradient(to top, transparent, #000 15%);
+      mask-composite: intersect;
       pointer-events: none;
     }
 
     .scene svg {
       position: absolute;
-      top: 8px;
-      right: 8px;
-      width: 135px;
-      height: 101px;
-      opacity: 0.6;
-      -webkit-mask-image: radial-gradient(ellipse 125% 130% at 100% 0%, #000 38%, transparent 92%);
-      mask-image: radial-gradient(ellipse 125% 130% at 100% 0%, #000 38%, transparent 92%);
+      top: 12px;
+      right: 14px;
+      width: 150px;
+      height: 112px;
+      opacity: 0.62;
     }
 
     .plain-button {
@@ -200,7 +214,7 @@ export const styles = css`
       display: grid;
       grid-template-columns: minmax(0, 1fr) var(--preset-col) var(--col);
       align-items: stretch;
-      column-gap: 8px;
+      column-gap: var(--cover-gap);
     }
 
     /*
@@ -210,7 +224,7 @@ export const styles = css`
     .info {
       display: grid;
       grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-      grid-template-rows: repeat(5, var(--row-h));
+      grid-template-rows: var(--row-h) var(--row-h) var(--group-gap) repeat(3, var(--row-h));
       column-gap: var(--info-gap);
       min-width: 0;
       font-size: var(--row-font);
@@ -227,24 +241,25 @@ export const styles = css`
       grid-row: 2;
     }
 
+    /* Row 3 is the gap between the air rows and the Topení / Klimatizace / window rows. */
     .slot-hvac1 {
-      grid-column: 1;
-      grid-row: 3;
-    }
-
-    .slot-hvac2 {
       grid-column: 1;
       grid-row: 4;
     }
 
+    .slot-hvac2 {
+      grid-column: 1;
+      grid-row: 5;
+    }
+
     .slot-temperature-trend {
       grid-column: 2;
-      grid-row: 3 / span 2;
+      grid-row: 4 / span 2;
     }
 
     .slot-window {
       grid-column: 1;
-      grid-row: 5;
+      grid-row: 6;
     }
 
     /* CO₂ / PM2.5: the same two columns inside the row, so the trend lines up with the others. */
@@ -327,7 +342,11 @@ export const styles = css`
       font-weight: 400;
     }
 
-    /* Micro trend: stretches over its cell; the dot is HTML so it stays round. */
+    /*
+     * Micro trend: stretches over its cell; the dot is HTML so it stays round. The right
+     * padding keeps the end of the trend (edge of the dot) 1.5 × the preset–panel gap away
+     * from the preset buttons: (gap / 2) + dot radius.
+     */
     .trend-button {
       display: block;
       width: 100%;
@@ -336,15 +355,17 @@ export const styles = css`
     }
 
     .spark {
+      --preset-gap: calc(var(--cover-gap) + (var(--preset-col) - var(--preset-size)) / 2);
       display: block;
       box-sizing: border-box;
       width: 100%;
       height: 100%;
-      padding: 5px 3px;
+      padding: 5px calc(var(--preset-gap) / 2 + 2.5px) 5px 3px;
     }
 
     .trend-button .spark {
-      padding: 7px 3px;
+      padding-top: 7px;
+      padding-bottom: 7px;
     }
 
     .spark-plot {
@@ -387,9 +408,9 @@ export const styles = css`
       display: flex;
       align-items: center;
       justify-content: center;
-      width: 34px;
-      height: 34px;
-      flex: 0 0 34px;
+      width: var(--preset-size);
+      height: var(--preset-size);
+      flex: 0 0 var(--preset-size);
       border: 2.5px solid rgb(255 255 255 / 15%);
       border-radius: 50%;
       background: #2c2c2e;
@@ -641,6 +662,41 @@ export const styles = css`
       text-align: center;
     }
 
+    /* „Historie místnosti – 24 h“ */
+    .chart {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px 12px;
+      margin-top: 6px;
+      color: #9a9aa0;
+      font-size: 11px;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .legend-swatch {
+      box-sizing: border-box;
+      width: 12px;
+      height: 8px;
+      border-radius: 2px;
+    }
+
+    .legend-swatch.dashed {
+      height: 0;
+      border-top: 2px dashed;
+      border-radius: 0;
+    }
+
     @media (prefers-reduced-motion: reduce) {
       .sheet,
       .preset.sent {
@@ -656,10 +712,7 @@ export const styles = css`
       .room {
         --col: 52px;
         --preset-col: 34px;
-      }
-
-      .lower {
-        column-gap: 6px;
+        --cover-gap: 6px;
       }
     }
 `;

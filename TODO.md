@@ -19,18 +19,18 @@ Formát: co → proč → kdy je hotovo. Priorita: **P1** rozhodnout brzy (dotý
   Jednoduché klepnutí nic neudělá a nic neřekne – působí to jako nefunkční tlačítko. Návrh: po jednoduchém klepnutí krátká bublina „Podržte nebo klepněte dvakrát“ (1,5 s) a haptika `selection`; po odeslání haptika `success`, po chybě `failure`. Home Assistant frontend k tomu má událost `haptic`, kterou aplikace Companion převede na Taptic Engine.
   Hotovo, když první klepnutí vždy dá zpětnou vazbu a odeslání je cítit.
 
-- [ ] **„Bez dat“ s konkrétním důvodem.**
-  Na kartě Ložnice jsou všechny čtyři hodnoty vidět, a přesto svítí „Bez dat“ – chybí jen režim domu (`input_select.house_mode` neexistuje nebo nemá hodnotu Zima/Léto). Uživatel nemá šanci pochopit proč. Návrh: „Bez dat · režim domu“, „Bez dat · CO₂“ apod. (jen první chybějící položka).
-  Hotovo, když z textu stavu je zřejmé, co doplnit.
-
 ## P2 – denní používání
 
-- [ ] **Kompaktní přehled domu.** Pět karet má dohromady asi 1 500 px, tedy skoro dvě obrazovky iPhonu. Cíl „rychlý přehled“ by splnil kompaktní režim: místnost bez odchylky se sbalí na jeden řádek („Ložnice · 22,9 °C · 52 % · Příjemné“), místnost s odchylkou zůstane rozbalená; klepnutí na název přepíná. Hotovo, když je celý dům v běžném stavu vidět bez posouvání.
+- [ ] **Kompaktní přehled domu.** Pět karet má dohromady asi 1 550 px, tedy skoro dvě obrazovky iPhonu. Cíl „rychlý přehled“ by splnil kompaktní režim: místnost bez odchylky se sbalí na jeden řádek („Ložnice · 22,9 °C · 52 % · Příjemné“), místnost s odchylkou zůstane rozbalená; klepnutí na název přepíná. Hotovo, když je celý dům v běžném stavu vidět bez posouvání.
 - [ ] **Souhrn v hlavičce Domov** (jako stavové štítky v aplikaci Domácnost): jen když je něco jinak než obvykle, např. „1 okno otevřené · topí 3 místnosti · Ručně: Pracovna“. Navazuje na nerozhodnutá „upozornění“ (AUDIT 4.6).
 - [ ] **Zastaralá data.** Senzor, který se dlouho neozval (baterie, Thread), dnes vypadá jako čerstvá hodnota. Návrh: po N minutách bez aktualizace (`last_updated`; N rozhodne uživatel, např. 30) hodnotu ztlumit a v `aria-label` doplnit „naposledy před 45 min“. Neznámé ≠ alarm, takže bez červené.
 - [ ] **Načítání mikrotrendů.** Po otevření je pravý sloupec 1–2 s prázdný a karta vypadá rozbitě. Návrh: do načtení jemná tečkovaná základní linka (skeleton); „historie není“ a „načítá se“ odlišit.
 - [ ] **Mikrotrendy pro VoiceOver.** Směr trendu je dnes jen tvar čáry. Doplnit do `aria-label` slovně „stoupá / klesá / stabilní“ (práh = polovina kroku osy, tj. 0,5 °C, 50 ppm, 2,5 µg/m³ za 2 h).
 - [ ] **Pohyb žaluzie.** Při stavu `opening` / `closing` plynule animovat hranu polohy (200–300 ms, `ease-out`) a jemně pulzovat horní kolejnici; při „omezit pohyb“ bez animace. Uživatel vidí, že příkaz běží.
+- [ ] **Historie místnosti jako v aplikaci pro topení.** Intenzitu vytápění kreslit přímo jako oranžovou výplň pod křivkou teploty (sytost 0–3 vlny) místo samostatného pruhu a přidat schodovitou přerušovanou čáru cílové teploty Topení (z historie entity cíle). Na první pohled je vidět, kdy se topilo, jak silně a zda místnost cíle dosáhla. Hotovo, když je vztah „topí → teplota roste k cíli“ čitelný bez legendy.
+- [ ] **Čitelnost grafu historie.** Popisky os a vrstev mají 9 px a legenda 11 px; HIG počítá s minimem 11 pt. Zvětšit popisky na 11 px, legendu na 13 px a graf roztáhnout na celou šířku panelu (dnes je kreslený na šířku 360 a zmenšuje se).
+- [ ] **Prohlížení historie prstem.** V popupu (ne na kartě) přejetím po grafu ukázat svislou čáru s časem, teplotou, vlhkostí a stavem Topení / Klimatizace v tom okamžiku – jako v aplikacích Akcie a Zdraví.
+- [ ] **Historie z popupu Topení / Klimatizace.** Do popupu ovládání přidat druhý odkaz „Historie místnosti – 24 h“, aby historie vytápění byla jedno klepnutí od řádku Topení, nejen od teploty.
 - [ ] **Popup jako iOS list (sheet).** Úchyt nahoře, zavření tažením dolů, výška podle obsahu. Dnes jen ✕, klepnutí mimo a Escape.
 - [ ] **Rozměry podle šířky karty, ne obrazovky.** Úzký režim dnes řídí `@media (max-width: 380px)` podle okna; karta v zobrazení Sekce nebo na tabletu může být úzká i na velkém displeji. Návrh: `container-type: inline-size` na seznamu místností a `@container` místo `@media`.
 
@@ -41,4 +41,5 @@ Formát: co → proč → kdy je hotovo. Priorita: **P1** rozhodnout brzy (dotý
 - [ ] **Větší písmo.** Velikosti jsou v px, takže nastavení velikosti textu v iOS se nepropíše. Rozhodnout, zda karta má sledovat zvětšení (rozložení by se muselo umět zalomit).
 - [ ] **Paleta venku a na OLED.** Šedé texty mají vůči pozadí karty kontrast asi 6,1 : 1 (`#9A9AA0`) a 5,2 : 1 (`#8E8E93`), což stačí; plochy pod mikrotrendy (8 %) a okno za žaluzií (28 %) ale na slunci zmizí. Ověřit na zařízení venku a v nočním režimu; paletu pak zapsat jako finální (spec, Barvy).
 - [ ] **Okno otevřené a topí se.** Když je okno otevřené a Topení má aspoň jednu vlnu, jemná oranžová tečka u okna (ne stav místnosti, ne alarm). Vyžaduje rozhodnutí, protože předpověď okna z Topení se záměrně ignoruje.
+- [ ] **Utlumení spuštěné žaluzie ověřit na iPhonu.** Šampaňská je teď na 50 % (kolejnice 70 %). Na OLED v noci může stačit 40 %, na slunci může být potřeba 60 %. Zvážit, zda tlumení řídit podle denní doby nebo jasu – jinak ponechat jednu hodnotu.
 - [ ] **Ilustrace při odchylce.** U karty se stavem varování nebo kritickým ilustraci ztlumit (např. na 40 %), aby nesoupeřila se stavem; případně jeden globální přepínač „bez ilustrací“.

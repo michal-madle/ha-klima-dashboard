@@ -41,6 +41,8 @@ export const COLORS = {
   peach: "#FFB36B",
   /** Humidity value: deliberately uncoloured. */
   neutral: "#C7C7CC",
+  /** Dashed humidity curve in the 24 h room history. */
+  humidityLine: "#64D2FF",
   label: "#9A9AA0",
   off: "#8E8E93",
   white: "#FFFFFF",
@@ -121,14 +123,29 @@ export function getRoomStatus(
   modeKnown: boolean,
   thresholds: DashboardThresholds,
 ): RoomStatus {
+  // "Bez dat" names the first missing required value, so the user knows what to fix
+  // (CURRENT_SPEC.md, Chybějící data).
+  const missing = (
+    [
+      ["teplota", temperature !== undefined],
+      ["vlhkost", humidity !== undefined],
+      ["CO₂", co2 !== undefined],
+      ["PM2.5", pm25 !== undefined],
+      ["režim domu", modeKnown],
+    ] as Array<[string, boolean]>
+  ).find(([, present]) => !present);
   if (
+    missing ||
     temperature === undefined ||
     humidity === undefined ||
     co2 === undefined ||
-    pm25 === undefined ||
-    !modeKnown
+    pm25 === undefined
   ) {
-    return { label: "Bez dat", color: COLORS.label, kind: "unknown" };
+    return {
+      label: missing ? `Bez dat · ${missing[0]}` : "Bez dat",
+      color: COLORS.label,
+      kind: "unknown",
+    };
   }
   if (pm25 >= thresholds.pm25_critical) {
     return { label: "Znečištěný vzduch", color: COLORS.alert, kind: "critical" };

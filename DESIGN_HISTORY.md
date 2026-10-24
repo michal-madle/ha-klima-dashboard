@@ -81,6 +81,21 @@ Formát každého bodu: **Navrženo** → **Opuštěno, protože** → **Nahraze
 21. **Ilustrace místnosti jen s klíčem `scene`**
     - Opuštěno, protože: uživatel klíč v konfiguraci neměl a ilustraci neviděl.
     - Nahrazeno: výchozí ilustrace podle názvu místnosti, `scene` ji přepíše, `scene: none` vypne.
+22. **Standardní detail entity místo vlastní 24h historie místnosti (v7, 24. 10. ráno)**
+    - Opuštěno, protože: uživatel (24. 10.) postrádá vlastní historii teploty a hlavně vytápění; standardní detail neukazuje vrstvy Topení a Klimatizace ani intenzitu vytápění.
+    - Nahrazeno: popup „Historie místnosti – 24 h“ je zpět (teplota a její mikrotrend). Společný graf CO₂/PM2.5 se nevrací.
+23. **Spuštěná žaluzie 100 % neprůhledná**
+    - Opuštěno, protože: zatažená žaluzie na tmavém displeji příliš svítila.
+    - Nahrazeno: šampaňská na 50 %, kolejnice na 70 %; okno za žaluzií zůstává 28 % oblohy.
+24. **Ilustrace v kruhovém přechodu, zeslabená k levému dolnímu rohu**
+    - Opuštěno, protože: kresba mizela příliš rychle a vlevo od ní zůstávalo volné místo.
+    - Nahrazeno: měkký obdélník přes volnou pravou část hlavičky, zeslabený jen u levého a spodního okraje.
+25. **Mikrotrendy až k tlačítkům předvoleb, CO₂/PM2.5 hned nad Topením**
+    - Opuštěno, protože: trend působil nalepený na předvolby a kvalita vzduchu splývala s HVAC řádky.
+    - Nahrazeno: konec trendu 1,5× mezery předvolby–panel od předvoleb; mezera 12 px mezi kvalitou vzduchu a skupinou Topení / Klimatizace / okno.
+26. **„Bez dat“ bez důvodu**
+    - Opuštěno, protože: uživatel nevěděl, proč karta s viditelnými hodnotami hlásí „Bez dat“ (chyběl režim domu).
+    - Nahrazeno: „Bez dat · první chybějící údaj“.
 
 ## Zamítnuté návrhy
 
@@ -122,4 +137,5 @@ Formát každého bodu: **Navrženo** → **Opuštěno, protože** → **Nahraze
 6. **v6 – revize prototypu:** jeden sloupec – miniatura žaluzie od řádku CO₂ po okno (stálý počet lamel, naklopení = tloušťka, poloha = neprůhlednost), mikrotrendy teploty a CO₂, jednotná velikost písma informačních řádků, Klimatizace OFF = šedá ikona klimatizace, klikací 24h historie a graf CO₂/PM2.5.
    - Původní repozitářový kód v `src/` a první prototyp karty tento návrh nereflektují (stav uživatel potvrdil).
 7. **v7 – ovládání a Shelly presety (24. 10.):** vlastní 24h grafy nahrazeny standardním detailem entity; přibyl popup ovládání Topení (Vypnuto / Plán / Ručně / Boost) a Klimatizace (režimy, předvolby); presety žaluzií jsou tři kulaté Shelly tlačítka spouštěná dvojitým klepnutím nebo dlouhým stiskem (Ráno zrušeno); mikrotrendy přesunuty k hodnotám; vlhkost a CO₂/PM2.5 bez dat bez barvy; volitelná ilustrace místnosti.
-8. **v8 – sloupec trendů (aktuální návrh, 24. 10.):** informační řádky rozdělené na dva stejně široké sloupce (hodnoty | mikrotrendy), trend teploty u řádků Topení a Klimatizace, společná osa trendů pro celý dům, jednotná velikost ikon, hodnot a jednotek, výchozí ilustrace podle názvu místnosti.
+8. **v8 – sloupec trendů (24. 10.):** informační řádky rozdělené na dva stejně široké sloupce (hodnoty | mikrotrendy), trend teploty u řádků Topení a Klimatizace, společná osa trendů pro celý dům, jednotná velikost ikon, hodnot a jednotek, výchozí ilustrace podle názvu místnosti.
+9. **v9 – historie zpět (aktuální návrh, 24. 10.):** popup „Historie místnosti – 24 h“ znovu otevírá teplota a její trend; kvalita vzduchu oddělená mezerou od HVAC řádků; trendy končí 1,5× mezery před předvolbami; utlumená spuštěná žaluzie; obdélníková ilustrace; „Bez dat“ s důvodem.

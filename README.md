@@ -86,7 +86,9 @@ Každá místnost má volitelné klíče `temperature`, `humidity`, `carbon_diox
 
 ## Ovládání karty
 
-- Klepnutí na teplotu, vlhkost, CO₂, PM2.5 nebo okno otevře standardní detail entity Home Assistantu s grafem historie. Totéž dělá klepnutí na mikrotrend u dané hodnoty. Klepnutí na panel žaluzie otevře standardní ovládání krytu.
+- Klepnutí na teplotu nebo její mikrotrend otevře popup **Historie místnosti – 24 h**: křivka teploty, přerušovaná vlhkost a pod nimi časové vrstvy intenzity vytápění, Topení (Plán / Ručně / Vypnuto) a Klimatizace. Odkaz „Detail teploty“ otevře standardní detail entity.
+- Klepnutí na vlhkost, CO₂, PM2.5 (i jejich mikrotrendy) nebo okno otevře standardní detail entity Home Assistantu s grafem historie. Klepnutí na panel žaluzie otevře standardní ovládání krytu.
+- Text „Bez dat“ pod názvem místnosti uvádí první chybějící údaj, např. „Bez dat · režim domu“ (entita `input_select.house_mode` chybí nebo nemá hodnotu Zima/Léto).
 - Klepnutí na řádek **Topení** otevře popup: Vypnuto, Plán, Ručně a Boost. Klepnutí na řádek **Klimatizace** otevře popup s režimy a předvolbami (např. WindFree). Nabídka vychází z atributů `hvac_modes` a `preset_modes` příslušné `climate` entity a volá `climate.set_hvac_mode` / `climate.set_preset_mode`. Boost je aktivní jen tehdy, když entita předvolbu `boost` nabízí. Odkaz „Detail a historie“ v popupu otevře standardní detail entity.
 - Tři kulatá tlačítka v jednom sloupci vlevo od panelu žaluzie (shora Tma 0/0, Stín 0/100, Den 100/100; poloha/naklopení) mají jen ikonu. Odešlou se **dvojitým klepnutím nebo dlouhým stiskem** (jednoduché klepnutí nic neudělá); volají službu `script.zaluzie_posun` s poli `entity`, `pos` a `tilt`. Skript musí v Home Assistantu existovat. Název tlačítka se ukáže jako nápověda při najetí myší a čtečka obrazovky ho přečte.
 - Mikrotrendy teploty, CO₂ a PM2.5 (posledních 120 minut) se obnovují každých 5 minut. Jsou v pravém sloupci informačních řádků, stejně širokém jako sloupec s hodnotami; trend teploty je vedle řádků Topení a Klimatizace. Každá veličina má v celém domě společnou osu (teplota zaokrouhlená na 1 °C, CO₂ na 100 ppm, PM2.5 na 5 µg/m³), takže trendy místností jdou porovnat.
@@ -95,7 +97,7 @@ Každá místnost má volitelné klíče `temperature`, `humidity`, `carbon_diox
 
 ## Rozsah prototypu
 
-Implementováno je rozložení karty podle [CURRENT_SPEC.md](./CURRENT_SPEC.md), panel žaluzie s presety, mikrotrendy, popup ovládání Topení a Klimatizace a detail entit s historií. Zatím neřešeno: hlášení „upozornění“ na Domov, slovní hodnocení venkovního vzduchu (dobrý / zhoršený / špatný; chybí hranice PM2.5, viz [AUDIT.md](./AUDIT.md), bod 4.5) a konečné vizuální doladění palety. Entitám, které nejsou v mapě potvrzené, nepřiřazujte odhadnutá ID.
+Implementováno je rozložení karty podle [CURRENT_SPEC.md](./CURRENT_SPEC.md), panel žaluzie s presety, mikrotrendy, popup ovládání Topení a Klimatizace, popup Historie místnosti – 24 h a detail entit s historií. Zatím neřešeno: hlášení „upozornění“ na Domov, slovní hodnocení venkovního vzduchu (dobrý / zhoršený / špatný; chybí hranice PM2.5, viz [AUDIT.md](./AUDIT.md), bod 4.5) a konečné vizuální doladění palety. Entitám, které nejsou v mapě potvrzené, nepřiřazujte odhadnutá ID.
 
 ## Sestavení
 

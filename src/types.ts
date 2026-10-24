@@ -114,8 +114,11 @@ export interface BlindPreset {
   tone: string;
 }
 
-/** Control popup opened from the Topení or Klimatizace row. */
-export type SheetKind = "heating" | "climate";
+/**
+ * Popup of a room: controls of Topení or Klimatizace (opened from their rows), or the
+ * 24 h room history (opened from the temperature).
+ */
+export type SheetKind = "heating" | "climate" | "history";
 
 export interface SheetState {
   kind: SheetKind;
