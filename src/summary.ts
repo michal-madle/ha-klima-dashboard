@@ -1,10 +1,11 @@
+import type { I18n } from "./i18n";
 import type { EntityId, HassEntity, Room } from "./types";
 import { climateView, heatingView } from "./systems";
-import { COLORS, plural } from "./utils";
+import { COLORS } from "./utils";
 
 export type SummaryKind = "windows" | "manual" | "heating" | "climate" | "conflict-window" | "conflict-cooling";
 
-/** One status chip in the Domov header (CURRENT_SPEC.md, Dashboard Domov). */
+/** One status chip in the Domov header (CURRENT_SPEC.md, Dashboard Domov), in the card language. */
 export interface SummaryChip {
   kind: SummaryKind;
   text: string;
@@ -13,15 +14,9 @@ export interface SummaryChip {
   spoken: string;
 }
 
-const ROOM_FORMS = ["místnost", "místnosti", "místností"] as const;
-
-function rooms(count: number): string {
-  return `${count} ${plural(count, ...ROOM_FORMS)}`;
-}
-
 /** Up to two room names, otherwise a count ("Ložnice, Pracovna" / "3 místnosti"). */
-function namesOrCount(names: string[]): string {
-  return names.length <= 2 ? names.join(", ") : rooms(names.length);
+function namesOrCount(names: string[], i18n: I18n): string {
+  return names.length <= 2 ? names.join(", ") : i18n.t.summaryChips.rooms(names.length);
 }
 
 /** What contradicts what in a room (CURRENT_SPEC.md, Konflikty): never a room status, never an alarm. */
@@ -36,13 +31,14 @@ export function openWindows(
 }
 
 /** Topení of a room as shown on the card (the room's own wave bands). */
-export function roomHeating(room: Room, get: (entityId: EntityId | undefined) => HassEntity | undefined) {
+export function roomHeating(room: Room, get: (entityId: EntityId | undefined) => HassEntity | undefined, i18n: I18n) {
   return heatingView(
     get(room.heating?.climate),
     get(room.heating?.overlay),
     get(room.heating?.target),
     get(room.heating?.intensity),
     room.thresholds,
+    i18n,
   );
 }
 
@@ -56,10 +52,11 @@ export function roomConflicts(
   room: Room,
   get: (entityId: EntityId | undefined) => HassEntity | undefined,
   cold: boolean,
+  i18n: I18n,
 ): RoomConflict[] {
   const open = openWindows(room, get).length > 0;
-  const heat = roomHeating(room, get);
-  const mode = room.air_conditioner ? climateView(get(room.air_conditioner)).mode : "unknown";
+  const heat = roomHeating(room, get, i18n);
+  const mode = room.air_conditioner ? climateView(get(room.air_conditioner), i18n).mode : "unknown";
   const heating = (!heat.unknown && heat.waves > 0) || mode === "heat";
   const cooling = mode === "cool" || mode === "wind_free";
 
@@ -84,8 +81,10 @@ export function roomConflicts(
 export function houseSummary(
   roomList: Room[],
   get: (entityId: EntityId | undefined) => HassEntity | undefined,
-  coldRooms: ReadonlySet<string> = new Set(),
+  coldRooms: ReadonlySet<string>,
+  i18n: I18n,
 ): SummaryChip[] {
+  const texts = i18n.t.summaryChips;
   const conflicts: Record<RoomConflict, string[]> = { "window-heating": [], "window-cooling": [], "cooling-cold": [] };
   /** Rooms with an open window and how many of their windows are open. */
   const open: Array<[string, number]> = [];
@@ -94,38 +93,38 @@ export function houseSummary(
   const climate: string[] = [];
 
   for (const room of roomList) {
-    for (const conflict of roomConflicts(room, get, coldRooms.has(room.name))) {
+    for (const conflict of roomConflicts(room, get, coldRooms.has(room.name), i18n)) {
       conflicts[conflict].push(room.name);
     }
     const openCount = openWindows(room, get).length;
     if (openCount > 0) {
       open.push([room.name, openCount]);
     }
-    const heat = roomHeating(room, get);
+    const heat = roomHeating(room, get, i18n);
     if (heat.overlay === "manual") {
       manual.push(room.name);
     }
     if (heat.waves > 0) {
       heating.push(room.name);
     }
-    if (room.air_conditioner && climateView(get(room.air_conditioner)).active) {
+    if (room.air_conditioner && climateView(get(room.air_conditioner), i18n).active) {
       climate.push(room.name);
     }
   }
 
   const chips: SummaryChip[] = [];
-  const conflictChips: Array<[RoomConflict, SummaryKind, string, string]> = [
-    ["window-heating", "conflict-window", "Okno otevřené · topí se", "Okno je otevřené a topí se"],
-    ["window-cooling", "conflict-window", "Okno otevřené · chladí se", "Okno je otevřené a chladí se"],
-    ["cooling-cold", "conflict-cooling", "Chladí se, i když je chladno", "Chladí se, i když je chladno"],
+  const conflictChips: Array<[RoomConflict, SummaryKind]> = [
+    ["window-heating", "conflict-window"],
+    ["window-cooling", "conflict-window"],
+    ["cooling-cold", "conflict-cooling"],
   ];
-  for (const [conflict, kind, text, spoken] of conflictChips) {
+  for (const [conflict, kind] of conflictChips) {
     if (conflicts[conflict].length > 0) {
       chips.push({
         kind,
-        text: `${text}: ${namesOrCount(conflicts[conflict])}`,
+        text: `${texts.conflict[conflict]}: ${namesOrCount(conflicts[conflict], i18n)}`,
         color: COLORS.warning,
-        spoken: `Konflikt: ${spoken}: ${conflicts[conflict].join(", ")}`,
+        spoken: `${texts.conflictSpoken[conflict]}: ${conflicts[conflict].join(", ")}`,
       });
     }
   }
@@ -134,33 +133,33 @@ export function houseSummary(
   if (openTotal > 0) {
     chips.push({
       kind: "windows",
-      text: `${openTotal} ${plural(openTotal, "okno otevřené", "okna otevřená", "oken otevřených")}`,
+      text: texts.windowsOpen(openTotal),
       color: COLORS.sky,
-      spoken: `Otevřená okna: ${open.map(([name, count]) => (count > 1 ? `${name} (${count})` : name)).join(", ")}`,
+      spoken: `${texts.windowsSpoken}: ${open.map(([name, count]) => (count > 1 ? `${name} (${count})` : name)).join(", ")}`,
     });
   }
   if (manual.length > 0) {
     chips.push({
       kind: "manual",
-      text: `Ručně: ${namesOrCount(manual)}`,
+      text: `${texts.manual}: ${namesOrCount(manual, i18n)}`,
       color: COLORS.warning,
-      spoken: `Topení ručně: ${manual.join(", ")}`,
+      spoken: `${texts.manualSpoken}: ${manual.join(", ")}`,
     });
   }
   if (heating.length > 0) {
     chips.push({
       kind: "heating",
-      text: `Topí ${rooms(heating.length)}`,
+      text: texts.heating(texts.rooms(heating.length)),
       color: COLORS.warning,
-      spoken: `Topí se: ${heating.join(", ")}`,
+      spoken: `${texts.heatingSpoken}: ${heating.join(", ")}`,
     });
   }
   if (climate.length > 0) {
     chips.push({
       kind: "climate",
-      text: `Klimatizace: ${namesOrCount(climate)}`,
+      text: `${texts.climate}: ${namesOrCount(climate, i18n)}`,
       color: COLORS.cool,
-      spoken: `Klimatizace zapnutá: ${climate.join(", ")}`,
+      spoken: `${texts.climateSpoken}: ${climate.join(", ")}`,
     });
   }
   return chips;

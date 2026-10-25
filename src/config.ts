@@ -1,4 +1,4 @@
-import { BLIND_ICONS, ROOM_SCENES, SCENE_NONE } from "./types";
+import { BLIND_ICONS, LANGUAGES, ROOM_SCENES, SCENE_NONE } from "./types";
 import type {
   BlindIcon,
   BlindPreset,
@@ -6,6 +6,7 @@ import type {
   DashboardConfig,
   DashboardThresholds,
   HistorySettings,
+  LanguageSetting,
   PresetInput,
   Room,
   RoomConfig,
@@ -16,6 +17,7 @@ import type {
   TrendSettings,
   WindowConfig,
 } from "./types";
+import { ICON_POSITIONS } from "./utils";
 
 /*
  * Card configuration (CURRENT_SPEC.md, Konfigurace): every key is optional and falls back to
@@ -65,17 +67,15 @@ export const DEFAULT_COVERS: CoverSettings = {
 
 /**
  * Position / tilt: 0 = closed (down / vertical slats), 100 = open (up / horizontal slats).
- * The order is the order of the buttons from top to bottom: raised first, closed last.
+ * The order is the order of the buttons from top to bottom: raised first, closed last. Without
+ * a name and a description the card names them in its language (Den, Stín, Tma; i18n.ts).
  */
-export const DEFAULT_PRESETS: PresetInput[] = [
-  { name: "Den", icon: "open", position: 100, tilt: 100, description: "vytaženo nahoru" },
-  { name: "Stín", icon: "shade", position: 0, tilt: 100, description: "spuštěno, lamely otevřené" },
-  { name: "Tma", icon: "dark", position: 0, tilt: 0, description: "úplné zatemnění" },
-];
+export const DEFAULT_PRESETS: PresetInput[] = BLIND_ICONS.map((icon) => ({ icon, ...ICON_POSITIONS[icon] }));
 
 export const DEFAULT_HOUSE_MODES = { winter: "Zima", summer: "Léto" };
 
 const THEMES: readonly ThemeSetting[] = ["auto", "dark", "light"];
+const LANGUAGE_SETTINGS: readonly LanguageSetting[] = ["auto", ...LANGUAGES];
 const MAX_PRESETS = 3;
 
 /** Default illustration by room name (lower case, without diacritics). */
@@ -228,13 +228,11 @@ function presets(input: unknown, where: string): BlindPreset[] {
   return input.map((item: unknown, index) => {
     const at = `${where}[${index + 1}]`;
     if (!isRecord(item)) {
-      fail(`${at} must have name, position and tilt.`);
+      fail(`${at} must have a position and a tilt.`);
     }
     checkKeys(item, PRESET_KEYS, at);
+    // Without a name (and a description) the card names the preset after its icon, in its language.
     const label = text(item.name, `${at}.name`);
-    if (!label) {
-      fail(`${at}.name is required.`);
-    }
     const value = (key: "position" | "tilt"): number => {
       const number = item[key];
       if (typeof number !== "number" || !Number.isFinite(number) || number < 0 || number > 100) {
@@ -245,14 +243,13 @@ function presets(input: unknown, where: string): BlindPreset[] {
     const position = value("position");
     const tilt = value("tilt");
     let icon = presetIcon(position, tilt);
-    if (item.icon !== undefined) {
+    if (item.icon != null) {
       if (!BLIND_ICONS.includes(item.icon as BlindIcon)) {
         fail(`${at}.icon must be one of ${BLIND_ICONS.join(", ")}.`);
       }
       icon = item.icon as BlindIcon;
     }
-    const description =
-      text(item.description, `${at}.description`) ?? `poloha ${Math.round(position)} %, naklopení ${Math.round(tilt)} %`;
+    const description = text(item.description, `${at}.description`);
     return { id: `p${index}`, icon, label, description, position, tilt };
   });
 }
@@ -274,13 +271,14 @@ function windows(room: RoomConfig, where: string): WindowConfig[] {
       if (!entity) {
         fail(`${at}.entity is required.`);
       }
-      return { entity, name: text(item.name, `${at}.name`) ?? `Okno ${index + 1}` };
+      // Without a name the "Okna" popup numbers the window in the card language ("Okno 1").
+      return { entity, name: text(item.name, `${at}.name`) };
     }
     const entity = entityId(item, at);
     if (!entity) {
       fail(`${at} must be an entity ID.`);
     }
-    return { entity, name: `Okno ${index + 1}` };
+    return { entity };
   });
   const seen = new Set<string>();
   for (const window of result) {
@@ -416,6 +414,10 @@ export function normalizeConfig(config: DashboardConfig): Settings {
   if (!THEMES.includes(theme)) {
     fail(`theme must be one of ${THEMES.join(", ")}.`);
   }
+  const language = config.language ?? "auto";
+  if (!LANGUAGE_SETTINGS.includes(language)) {
+    fail(`language must be one of ${LANGUAGE_SETTINGS.join(", ")}.`);
+  }
   const houseModeEntity = entityId(config.house_mode_entity, "house_mode_entity") ?? HOUSE_MODE_ENTITY;
   const modesInput = section(config.house_modes, "house_modes");
   checkKeys(modesInput, ["winter", "summer"], "house_modes");
@@ -479,8 +481,10 @@ export function normalizeConfig(config: DashboardConfig): Settings {
   }
 
   return {
-    title: config.title ?? "Domov",
+    // Without a title the heading is "Domov" in the card language (i18n.ts).
+    title: config.title ?? undefined,
     theme,
+    language,
     houseModeEntity,
     houseModes,
     outside: outside as Settings["outside"],

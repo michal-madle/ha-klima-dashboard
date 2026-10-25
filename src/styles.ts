@@ -164,23 +164,27 @@ export const styles = css`
       list-style: none;
     }
 
+    /* One line, 30 px high; a chip wider than the card (long room names, a longer language) wraps
+       its text instead of making the page scroll sideways. */
     .chip {
+      box-sizing: border-box;
       display: inline-flex;
       align-items: center;
       gap: 6px;
+      max-width: 100%;
       min-height: 30px;
-      padding: 0 12px 0 9px;
+      padding: 6px 12px 6px 9px;
       border-radius: 15px;
       background: color-mix(in srgb, var(--chip-color) var(--kd-chip-tint), var(--kd-card-bg));
       color: var(--chip-color);
       font-size: 14px;
       font-weight: 500;
-      line-height: 30px;
-      white-space: nowrap;
+      line-height: 18px;
     }
 
     .chip-icon {
       display: flex;
+      flex: none;
       width: 18px;
       height: 18px;
     }

@@ -4,14 +4,17 @@
 # Jsou tu VŠECHNA nastavení. Hodnoty jsou výchozí, stačí přepsat číslo nebo text.
 # Klíč bez hodnoty (např. "link:") nebo smazaný klíč = výchozí hodnota.
 # Nejdřív je společné nastavení pro celý dům, pod ním místnosti.
+# Karta mluví česky, švédsky nebo anglicky (language). Texty odsud (nadpis, názvy
+# místností, oken a předvoleb) se nepřekládají; prázdné = výchozí v jazyce karty.
 # =============================================================================
 type: custom:ha-klima-dashboard
 
 # -----------------------------------------------------------------------------
 # 1. SPOLEČNÉ NASTAVENÍ PRO CELÝ DŮM (platí pro všechny místnosti)
 # -----------------------------------------------------------------------------
-title: Domov prototyp           # nadpis karty; "" ho vynechá
+title: Domov prototyp           # nadpis karty; "" ho vynechá; bez hodnoty „Domov“ v jazyce karty
 theme: auto                     # barvy: auto (podle Home Assistantu / Vzhledu iPhonu), dark, light
+language: auto                  # jazyk: auto (podle Home Assistantu: čeština, švédština, jinak angličtina), cs, sv, en
 
 # Režim domu: Zima / Léto (pořadí Topení a Klimatizace, komfortní pásmo).
 house_mode_entity: input_select.house_mode
@@ -64,21 +67,21 @@ covers:
   tolerance: 5                  # ± % pro shodu žaluzie s předvolbou
   stall_seconds: 5              # pulzování předvolby skončí po tolika sekundách beze změny
   presets:                      # 1–3 tlačítka shora dolů; icon: open (Den) | shade (Stín) | dark (Tma)
-    - name: Den
+    - name:                     # prázdné = podle ikony v jazyce karty: Den / Day / Dag
       icon: open
       position: 100             # poloha: 0 = dole, 100 = nahoře
       tilt: 100                 # naklopení: 0 = lamely zavřené, 100 = otevřené
-      description: vytaženo nahoru
-    - name: Stín
+      description:              # pro čtečku obrazovky; prázdné = „vytaženo nahoru“ v jazyce karty
+    - name:                     # Stín / Shade / Skugga
       icon: shade
       position: 0
       tilt: 100
-      description: spuštěno, lamely otevřené
-    - name: Tma
+      description:              # „spuštěno, lamely otevřené“
+    - name:                     # Tma / Dark / Mörker
       icon: dark
       position: 0
       tilt: 0
-      description: úplné zatemnění
+      description:              # „úplné zatemnění“
 
 # -----------------------------------------------------------------------------
 # 2. MÍSTNOSTI (v tomto pořadí na kartě)
@@ -88,6 +91,7 @@ covers:
 #   carbon_dioxide / pm25: entita čidla; false = místnost čidlo nemá (řádek zmizí,
 #          stav místnosti ho nepotřebuje); prázdné = čidlo zatím chybí („Bez dat“)
 #   window: seznam oken (jedno i více); name se ukáže v popupu Okna
+#          (bez name „Okno 1“, „Okno 2“ v jazyce karty)
 #   cover_presets: prázdné = společné covers.presets; vlastní seznam jako tam
 #   thresholds: prázdné = společné prahy; jen odchylky, např. winter_min: 19
 # -----------------------------------------------------------------------------

@@ -23,6 +23,9 @@ export interface HomeAssistant {
    * to "Auto" in the user profile it follows the system (iPhone appearance).
    */
   themes?: { darkMode?: boolean };
+  /** Language of the frontend (user profile), e.g. "cs", "sv", "en-GB"; `locale.language` is the current one. */
+  language?: string;
+  locale?: { language?: string };
 }
 
 // ------------------------------------------------------------ configuration (YAML)
@@ -33,9 +36,9 @@ export interface WindowInput {
   name?: string;
 }
 
-/** One blind preset in the YAML (CURRENT_SPEC.md, Žaluzie). */
+/** One blind preset in the YAML (CURRENT_SPEC.md, Žaluzie); without a name it is named after its icon. */
 export interface PresetInput {
-  name: string;
+  name?: string;
   position: number;
   tilt: number;
   icon?: string;
@@ -138,10 +141,16 @@ export interface CoverSettings {
 export type ThemeSetting = "auto" | "dark" | "light";
 export type Theme = "dark" | "light";
 
+/** Languages of the card (CURRENT_SPEC.md, Jazyky); `auto` follows Home Assistant. */
+export const LANGUAGES = ["cs", "en", "sv"] as const;
+export type Language = (typeof LANGUAGES)[number];
+export type LanguageSetting = "auto" | Language;
+
 export interface DashboardConfig {
   type: string;
   title?: string;
   theme?: ThemeSetting;
+  language?: LanguageSetting;
   house_mode_entity?: EntityId;
   house_modes?: { winter?: string; summer?: string };
   outside?: OutsideConfig;
@@ -163,8 +172,8 @@ export type RoomImage = { kind: "scene"; scene: RoomScene } | { kind: "url"; url
 
 export interface WindowConfig {
   entity: EntityId;
-  /** Name in the "Okna" popup ("Okno 1" when not configured). */
-  name: string;
+  /** Name in the "Okna" popup; without it "Okno 1", "Window 1", … in the card language. */
+  name?: string;
 }
 
 /** A room after `normalizeConfig`: every setting resolved (CURRENT_SPEC.md, Konfigurace). */
@@ -190,8 +199,10 @@ export interface Room {
 
 /** The card configuration after `normalizeConfig`. */
 export interface Settings {
-  title: string;
+  /** Undefined: the default title in the card language ("Domov", "Home", "Hem"). */
+  title?: string;
   theme: ThemeSetting;
+  language: LanguageSetting;
   houseModeEntity: EntityId;
   houseModes: { winter: string; summer: string };
   outside?: OutsideConfig;
@@ -221,7 +232,20 @@ export interface Reading {
   ageMinutes?: number;
 }
 
+/** Room statuses in their order of precedence (CURRENT_SPEC.md, Stavový systém). */
+export type RoomStatusId =
+  | "noData"
+  | "polluted"
+  | "veryStuffy"
+  | "stuffy"
+  | "humid"
+  | "dry"
+  | "warm"
+  | "cold"
+  | "comfortable";
+
 export interface RoomStatus {
+  id: RoomStatusId;
   label: string;
   color: string;
   kind: "normal" | "warning" | "critical" | "unknown";
@@ -247,9 +271,13 @@ export interface BlindPreset {
   /** Unique within the room ("p0", "p1", …). */
   id: string;
   icon: BlindIcon;
-  /** Accessible name; the button itself shows only an icon. */
-  label: string;
-  description: string;
+  /**
+   * Accessible name from the YAML; the button itself shows only an icon. Without it the
+   * preset is named after its icon in the card language (Den / Day / Dag, …).
+   */
+  label?: string;
+  /** Description for screen readers from the YAML; see `presetDescription` for the default. */
+  description?: string;
   position: number;
   tilt: number;
 }

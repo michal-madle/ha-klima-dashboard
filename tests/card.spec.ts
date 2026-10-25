@@ -1,6 +1,9 @@
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { parse } from "yaml";
+import { cs } from "../src/translations/cs";
+import { en } from "../src/translations/en";
+import { sv } from "../src/translations/sv";
 import { expect, test } from "./fixtures";
 import type { CDPSession, Page } from "./fixtures";
 
@@ -16,9 +19,21 @@ const CO2 = "sensor.loznice_teplomer_loznice_carbon_dioxide";
 
 // ------------------------------------------------------------------ helpers
 
-async function open(page: Page, scenario = "full", width = 393, height = 852, theme: "dark" | "light" = "dark"): Promise<void> {
+/**
+ * Opens a scenario of the harness. `language` is the language of Home Assistant: Czech by
+ * default, "" for a frontend that reports none.
+ */
+async function open(
+  page: Page,
+  scenario = "full",
+  width = 393,
+  height = 852,
+  theme: "dark" | "light" = "dark",
+  language = "cs",
+): Promise<void> {
   await page.setViewportSize({ width, height });
-  await page.goto(`/tests/harness.html?s=${scenario}${theme === "light" ? "&theme=light" : ""}`);
+  const query = `s=${scenario}${theme === "light" ? "&theme=light" : ""}${language === "cs" ? "" : `&lang=${language}`}`;
+  await page.goto(`/tests/harness.html?${query}`);
   await page.locator(".room").first().waitFor();
   // Wait for the first micro-trend history (the dotted placeholder disappears).
   await expect(page.locator(".spark.loading")).toHaveCount(0);
@@ -334,7 +349,7 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
   test("příklad YAML obsahuje úplně všechna nastavení", async () => {
     // Every key of the configuration contract as a path; "[]" is an item of a list.
     const all = [
-      "type", "title", "theme", "house_mode_entity", "house_modes.winter", "house_modes.summer",
+      "type", "title", "theme", "language", "house_mode_entity", "house_modes.winter", "house_modes.summer",
       ...["temperature", "minimum", "maximum", "rain_probability", "pm25"].map((key) => `outside.${key}`),
       ...["humidity_min", "humidity_max", "co2_warning", "co2_critical", "pm25_warning", "pm25_critical", "winter_min",
         "winter_max", "summer_min", "summer_max", "stale_minutes", "heating_waves_2", "heating_waves_3"].map((key) => `thresholds.${key}`),
@@ -375,7 +390,7 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
       };
       // The same card without the listed defaults and without the pictures chosen by name.
       const bare = structuredClone(config);
-      for (const key of ["theme", "house_modes", "thresholds", "trends", "history", "covers"]) delete bare[key];
+      for (const key of ["theme", "language", "house_modes", "thresholds", "trends", "history", "covers"]) delete bare[key];
       for (const room of bare.rooms) delete room.image;
       return [normalized(config), normalized(bare)];
     }, example());
@@ -409,6 +424,7 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
       [{ trends: { minutes: 5 } }, {}, /trends\.minutes must be a whole number from 10 to 1440/],
       [{ history: { hours: 0 } }, {}, /history\.hours must be a whole number from 1 to 168/],
       [{ theme: "blue" }, {}, /theme must be one of auto, dark, light/],
+      [{ language: "de" }, {}, /language must be one of auto, cs, en, sv/],
       [{ house_modes: { winter: "Léto", summer: "leto" } }, {}, /must differ/],
       [{ covers: { presets: [...preset({}), ...preset({}), ...preset({}), ...preset({})] } }, {}, /covers\.presets must be a list of 1 to 3 presets/],
       [{ covers: { script: "zaluzie_posun" } }, {}, /covers\.script must be a script entity/],
@@ -429,13 +445,15 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
       expect(await configError(top, room), JSON.stringify([top, room])).toMatch(message);
     }
     // Accepted: the older `scene`, one window as a text, `false` for a missing sensor, empty title,
-    // and a key without a value (null in YAML), which is the default as in the example.
+    // a preset without a name (named after its icon in the card language), and a key without a
+    // value (null in YAML), which is the default as in the example.
     const accepted: Array<[Record<string, unknown>, Record<string, unknown>]> = [
       [{}, { scene: "office" }],
+      [{ language: "sv" }, { cover_presets: [{ position: 10, tilt: 0, icon: null }] }],
       [{}, { window: "binary_sensor.loznice_okno_loznice" }],
       [{}, { carbon_dioxide: false, pm25: false }],
       [{ title: "", theme: "light", trends: { minutes: 60 } }, { image: "/local/obrazky/loznice.jpg", link: "https://example.com" }],
-      [{ title: null, theme: null, trends: { minutes: null }, covers: { presets: null, script: null }, outside: { pm25: null } },
+      [{ title: null, theme: null, language: null, trends: { minutes: null }, covers: { presets: null, script: null }, outside: { pm25: null } },
         { link: null, cover_presets: null, thresholds: null, heating: null, image: null, scene: "office", carbon_dioxide: null }],
     ];
     for (const [top, room] of accepted) {
@@ -1281,6 +1299,352 @@ test.describe("kvalita vzduchu, okno a hlavička (Room Card, Vizuální pravidla
     await reconfigure(page, { title: undefined });
     await expect(page.locator("h1")).toHaveText("Domov");
   });
+});
+
+// ---------------------------------------------------------------- languages
+
+/**
+ * Arguments the dictionary functions are called with: every plural form, both flags, every state
+ * and system they choose by. Texts are digits, so an echoed argument adds no word.
+ */
+const SAMPLES: unknown[][] = [
+  [1, 1, 1, 1],
+  [2, 2, 2, 2],
+  [5, 5, 5, 5],
+  ["1", undefined, undefined, undefined],
+  ["1", "2", "3", true],
+  ["open", "2", "heating", false],
+  ["closed", "2", "climate", true],
+  ["unknown", undefined, undefined, false],
+];
+/** Words that only echo a sample argument, also glued to a unit ("°Cheating"). */
+const ECHO = /undefined|true|false|open|closed|unknown|heating|climate/;
+
+/** Every word a dictionary can produce: its texts, and its functions called with the samples. */
+function dictionaryWords(dictionary: object): Set<string> {
+  const words = new Set<string>();
+  const walk = (value: unknown): void => {
+    if (typeof value === "string") {
+      for (const word of value.toLowerCase().match(/\p{L}+/gu) ?? []) {
+        if (word.length > 1 && !ECHO.test(word)) words.add(word);
+      }
+    } else if (typeof value === "function") {
+      for (const args of SAMPLES) walk((value as (...args: unknown[]) => unknown)(...args));
+    } else if (value && typeof value === "object") {
+      Object.values(value).forEach(walk);
+    }
+  };
+  walk(dictionary);
+  return words;
+}
+
+/** Words that are the same in Czech and in English or Swedish (checked by hand). */
+const SHARED_WORDS = new Set(["auto", "boost", "co", "data", "den", "end", "konflikt", "minut", "pm", "windfree"]);
+
+/** Czech words: none of them may appear on a Swedish or English card. */
+const CZECH_ONLY = [...dictionaryWords(cs)].filter((word) => !SHARED_WORDS.has(word));
+
+/** Czech words and letters in a text of the card (the Swedish å, ä and ö are not among them). */
+function czech(text: string): string[] {
+  const words = new Set(text.toLowerCase().match(/\p{L}+/gu) ?? []);
+  return [...CZECH_ONLY.filter((word) => words.has(word)), ...new Set(text.match(/[ěščřžůúýáíéťďň]/giu) ?? [])];
+}
+
+/** Everything the card shows or says: its text, aria-label, title and alt, an open popup included. */
+const cardText = (page: Page) =>
+  page.evaluate(() => {
+    const root = document.querySelector("ha-klima-dashboard")!.shadowRoot!;
+    const parts: string[] = [];
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT);
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      if (node instanceof Text) {
+        if (node.parentElement?.tagName !== "STYLE") parts.push(node.data);
+      } else {
+        for (const name of ["aria-label", "title", "alt"]) {
+          const value = (node as Element).getAttribute(name);
+          if (value) parts.push(value);
+        }
+      }
+    }
+    return parts.join(" | ");
+  });
+
+/**
+ * The scenario with neutral names (R1 …, windows and presets without names, no title) and the
+ * outdoor conditions on, so every text on the card comes from the card itself.
+ */
+async function neutralCard(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    // @ts-expect-error test hook
+    const { card, config } = window.__test;
+    const rooms = config.rooms.map((room: Record<string, unknown>, index: number) => ({
+      ...room,
+      name: `R${index + 1}`,
+      window: [room.window].flat().map((window) => (typeof window === "string" ? window : (window as { entity: string }).entity)),
+      cover_presets: (room.cover_presets as Array<Record<string, unknown>> | undefined)?.map(
+        ({ name: _name, description: _description, ...preset }) => preset,
+      ),
+    }));
+    const sensor = (slug: string, kind: string) => `sensor.${slug}_teplomer_${slug}_${kind}`;
+    card.setConfig({
+      ...config,
+      title: undefined,
+      rooms,
+      outside: {
+        temperature: sensor("loznice", "temperature"),
+        minimum: sensor("pracovna", "temperature"),
+        maximum: sensor("obyvak", "temperature"),
+        rain_probability: sensor("loznice", "humidity"),
+        pm25: sensor("pracovna", "pm2_5"),
+      },
+    });
+  });
+  await expect(page.locator(".spark.loading")).toHaveCount(0);
+}
+
+test.describe("jazyky (CURRENT_SPEC.md, Jazyky)", () => {
+  test("slovníky: angličtina a švédština nemají žádné české slovo ani prázdný text", async () => {
+    const empty = (value: unknown, path: string): string[] =>
+      typeof value === "string"
+        ? value.trim() || path.endsWith("percentSpace") ? [] : [path]
+        : value && typeof value === "object"
+          ? Object.entries(value).flatMap(([key, item]) => empty(item, `${path}.${key}`))
+          : [];
+    for (const [name, dictionary] of [["en", en], ["sv", sv]] as const) {
+      const words = dictionaryWords(dictionary);
+      expect(CZECH_ONLY.filter((word) => words.has(word)), name).toEqual([]);
+      expect(empty(dictionary, name), name).toEqual([]);
+    }
+  });
+
+  test("jazyk podle Home Assistantu: čeština, švédština, jinak angličtina; language v YAML ho vynutí; přepne se bez obnovení", async ({ page }) => {
+    const look = async () => [
+      await page.locator("ha-klima-dashboard").getAttribute("lang"),
+      await page.locator("h1").textContent(),
+      tidy(await statuses(page))[0],
+    ];
+    // A frontend that reports no language: English.
+    await open(page, "full", 393, 852, "dark", "");
+    expect(await look()).toEqual(["en", "Home", "Comfortable"]);
+    // The user switches the language in the profile: the card follows without a reload.
+    for (const [tag, expected] of [
+      ["sv", ["sv", "Hem", "Behagligt"]],
+      ["de", ["en", "Home", "Comfortable"]],
+      ["en-GB", ["en", "Home", "Comfortable"]],
+      ["cs", ["cs", "Domov", "Příjemné"]],
+    ] as const) {
+      await page.evaluate((language) => {
+        // @ts-expect-error test hook
+        window.__test.setLanguage(language);
+      }, tag);
+      await expect.poll(look, tag).toEqual(expected);
+    }
+    // `language` in the YAML wins over Home Assistant (now Czech); `auto` follows it again.
+    await reconfigure(page, { language: "sv" });
+    await expect.poll(look).toEqual(["sv", "Hem", "Behagligt"]);
+    await reconfigure(page, { language: "auto" });
+    await expect.poll(look).toEqual(["cs", "Domov", "Příjemné"]);
+  });
+
+  const EXPECTED = {
+    sv: {
+      title: "Hem",
+      status: "Behagligt",
+      temperature: "21,3 °C",
+      humidity: "52 %",
+      outside: ["21 °C · 20–23 °C · ☂ 52 %", "Utomhusluft: bra"],
+      heating: "Schema · 21 °C",
+      window: "Öppet · 3 min",
+      presets: ["Dag", "Skugga", "Mörker"],
+      hvac: "R1: Värme Schema 21 °C, Luftkonditionering Av. Öppnar styrningen av värmen.",
+      windowDescription: "R2: fönstret öppet i 3 minuter. Öppnar detaljer och historik.",
+      systems: ["Värme", "Luftkonditionering"],
+      air: "Luftkvalitet",
+      history: "Rumshistorik – 24 h",
+      now: "Nu",
+      night: "Natt 22–6 h",
+      windows: ["Fönster 1", "Fönster 2"],
+      openCount: "2 öppna",
+      bothOpen: /^R1: fönstren Fönster 1, Fönster 2 öppna, längst i mindre än en minut; konflikt: öppet fönster under uppvärmning\. Öppnar fönsteröversikten\.$/,
+    },
+    en: {
+      title: "Home",
+      status: "Comfortable",
+      temperature: "21.3 °C",
+      humidity: "52%",
+      outside: ["21 °C · 20–23 °C · ☂ 52%", "Outdoor air: good"],
+      heating: "Schedule · 21 °C",
+      window: "Open · 3 min",
+      presets: ["Day", "Shade", "Dark"],
+      hvac: "R1: Heating Schedule 21 °C, Air conditioning Off. Opens the heating controls.",
+      windowDescription: "R2: window open for 3 minutes. Opens details and history.",
+      systems: ["Heating", "Air conditioning"],
+      air: "Air quality",
+      history: "Room history – 24 h",
+      now: "Now",
+      night: "Night 22–6 h",
+      windows: ["Window 1", "Window 2"],
+      openCount: "2 open",
+      bothOpen: /^R1: windows Window 1, Window 2 open, the longest for less than a minute; conflict: window open while heating\. Opens the window overview\.$/,
+    },
+  };
+
+  for (const language of ["sv", "en"] as const) {
+    test(`${language}: karta a všechny popupy přeložené, čísla podle jazyka, žádný český text`, async ({ page }) => {
+      const expected = EXPECTED[language];
+      /** No Czech word or letter in what the card shows and says right now. */
+      const noCzech = async (where: string) => expect(czech(await cardText(page)), `${language}, ${where}`).toEqual([]);
+      const load = async (scenario: string) => {
+        await open(page, scenario, 393, 852, "dark", language);
+        await neutralCard(page);
+      };
+
+      // The card: title, header, statuses, values in the number format of the language, rows, presets.
+      await load("full");
+      const first = rooms(page).first();
+      await expect(page.locator("h1")).toHaveText(expected.title);
+      expect(tidy(await page.locator(".outside > div").allInnerTexts())).toEqual(expected.outside);
+      expect(tidy(await statuses(page))).toEqual(Array(5).fill(expected.status));
+      await expect(first.locator(".temperature")).toHaveText(expected.temperature);
+      await expect(first.locator(".humidity")).toHaveText(expected.humidity);
+      await expect(first.locator(".hvac .system-row").first()).toHaveText(expected.heating);
+      await expect(first.locator(".hvac")).toHaveAccessibleDescription(expected.hvac);
+      await expect(rooms(page).nth(1).locator(".slot-window")).toHaveText(expected.window);
+      await expect(rooms(page).nth(1).locator(".slot-window")).toHaveAccessibleDescription(expected.windowDescription);
+      expect(await first.locator(".preset").evaluateAll((items) => items.map((item) => item.getAttribute("title")))).toEqual(
+        expected.presets,
+      );
+      await noCzech("karta");
+
+      // Popups: Topení and Klimatizace, air quality, room history (also yesterday, no data, an error).
+      await openPopup(page, ".hvac");
+      expect(tidy(await page.locator(".segment").allInnerTexts())).toEqual(expected.systems);
+      await noCzech("Topení");
+      await page.locator(".segment").nth(1).click();
+      await noCzech("Klimatizace");
+      await closePopup(page);
+      await openPopup(page, ".air-block");
+      await expect(page.locator("#sheet-title")).toHaveText(expected.air);
+      await noCzech("Kvalita vzduchu");
+      await closePopup(page);
+      await openPopup(page, ".temperature");
+      await expect(page.locator("#sheet-title")).toHaveText(expected.history);
+      await expect(page.locator(".readout-time")).toHaveText(expected.now);
+      await expect(page.locator(".legend").first()).toContainText(expected.night);
+      await page.locator(".chart-wrap").focus();
+      await page.keyboard.press("Home");
+      await expect(page.locator(".readout-time")).not.toHaveText(expected.now);
+      await noCzech("Historie místnosti");
+      await closePopup(page);
+      for (const history of ["empty", "error"]) {
+        await page.evaluate((kind) => {
+          // @ts-expect-error test hook
+          window.__test.historyFor = () => {
+            if (kind === "error") throw new Error("history failed");
+            return [];
+          };
+        }, history);
+        await openPopup(page, ".temperature");
+        await expect(page.locator(".sheet-message")).toBeVisible();
+        await noCzech(`historie: ${history}`);
+        await closePopup(page);
+      }
+      // The hint after a single tap on a preset, and the notice after a failed blind script.
+      await first.locator(".preset").first().click();
+      await expect(page.locator(".preset-hint")).toBeVisible();
+      await noCzech("nápověda předvolby");
+      await page.evaluate(() => {
+        // @ts-expect-error test hook
+        window.__test.failNext = true;
+      });
+      await first.locator(".preset").first().focus();
+      await page.keyboard.press("Enter");
+      await expect(page.locator(".notice")).toBeVisible();
+      await noCzech("hláška");
+
+      // The other scenarios: alarm values and conflicts, summer, stale and unavailable data.
+      await load("alarm");
+      await noCzech("poplach");
+      await openPopup(page, ".air-block");
+      await noCzech("poplach: Kvalita vzduchu");
+      await closePopup(page);
+      await load("summer");
+      await noCzech("léto");
+      await openPopup(page, ".hvac");
+      await noCzech("léto: Klimatizace");
+      await closePopup(page);
+      await load("stale");
+      await expect(page.locator(".temperature.stale")).toHaveCount(1);
+      await noCzech("zastaralá data");
+      await load("unavailable");
+      await noCzech("nedostupné");
+      await openPopup(page, ".hvac");
+      await noCzech("nedostupné: Topení");
+      await closePopup(page);
+      await rooms(page).first().locator(".preset").first().click({ force: true });
+      await expect(page.locator(".preset-hint")).toBeVisible();
+      await noCzech("nedostupná žaluzie");
+      // Two windows without names and presets without names (config).
+      await load("config");
+      await noCzech("konfigurace");
+      await openPopup(page, ".slot-window");
+      expect(tidy(await page.locator(".window-option .option-text > span:first-child").allInnerTexts())).toEqual(expected.windows);
+      await noCzech("Okna");
+      await closePopup(page);
+      // Both windows open: the count on the row, the names and the longest time in its description.
+      await setStates(page, { "binary_sensor.loznice_okno_loznice": "on", "binary_sensor.loznice_okno_balkon": "on" });
+      const windowRow = rooms(page).first().locator(".slot-window");
+      await expect(windowRow.locator(".row-label")).toHaveText(expected.openCount);
+      await expect(windowRow).toHaveAccessibleDescription(expected.bothOpen);
+      await noCzech("dvě otevřená okna");
+    });
+  }
+
+  for (const [language, theme] of [["sv", "dark"], ["en", "light"]] as const) {
+    test(`${language}: delší texty se vejdou na všech šířkách, axe bez porušení (${theme})`, async ({ page }) => {
+      const sizes = [
+        ["full", 320, 852], ["full", 393, 852], ["full", 852, 393], ["summer", 320, 852], ["summer", 393, 852],
+        ["alarm", 320, 852], ["longnames", 320, 852], ["config", 320, 852],
+      ] as const;
+      for (const [scenario, width, height] of sizes) {
+        await open(page, scenario, width, height, theme, language);
+        const at = `${language} ${scenario} ${width} × ${height}`;
+        const layout = await measureLayout(page);
+        expect(layout.scrollWidth, at).toBeLessThanOrEqual(width);
+        expect(layout.rooms.flatMap((room) => room.overlaps.map((what) => `${room.name}: ${what}`)), at).toEqual([]);
+        expect(layout.rooms.flatMap((room) => room.airRows).filter((row) => !row.sameLine || row.cut), at).toEqual([]);
+        expect((await windowRows(page)).filter((row) => row.cut || row.dotHidden), at).toEqual([]);
+        // A summary chip wider than the card wraps its text instead of sticking out.
+        const outside = await page.locator(".summary .chip").evaluateAll((chips) =>
+          chips
+            .filter((chip) => {
+              const card = chip.closest(".dashboard")!.getBoundingClientRect();
+              const box = chip.getBoundingClientRect();
+              return box.left < card.left - 0.5 || box.right > card.right + 0.5;
+            })
+            .map((chip) => chip.textContent?.trim()),
+        );
+        expect(outside, at).toEqual([]);
+      }
+      // Popups on the narrowest phone: the switch, the options, the readout and the legend fit.
+      await open(page, "full", 320, 852, theme, language);
+      expect(await axeViolations(page), language).toEqual([]);
+      for (const trigger of [".hvac", ".temperature"]) {
+        await openPopup(page, trigger);
+        await expect(page.locator(trigger === ".hvac" ? ".hvac-panel" : ".readout")).toBeVisible();
+        const cut = await page.evaluate(() => {
+          const sheet = document.querySelector("ha-klima-dashboard")!.shadowRoot!.querySelector(".sheet")!;
+          const right = sheet.getBoundingClientRect().right;
+          return [...sheet.querySelectorAll<HTMLElement>("h2, .segment, .option, .readout-system, .legend-item, .sheet-link")]
+            .filter((element) => element.scrollWidth > element.clientWidth + 0.5 || element.getBoundingClientRect().right > right + 0.5)
+            .map((element) => element.textContent?.trim());
+        });
+        expect(cut, `${language} ${trigger}`).toEqual([]);
+        expect(await axeViolations(page), `${language} ${trigger}`).toEqual([]);
+        await closePopup(page);
+      }
+    });
+  }
 });
 
 // -------------------------------------------------------------- performance

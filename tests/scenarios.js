@@ -1,6 +1,7 @@
 // Test scenarios for the Klima Dashboard card: a configuration and a fake `hass` object.
 // Open /tests/harness.html?s=<scenario>. The "real" scenario is the configuration of
-// examples/domov_prototyp_loznice.yaml itself, read and parsed here.
+// examples/domov_prototyp_loznice.yaml itself, read and parsed here. &lang=sv (en-GB, de, …)
+// is the language of Home Assistant, Czech without it; &lang= alone is a frontend without one.
 import "/ha-klima-dashboard.js";
 import { parse } from "/node_modules/yaml/browser/index.js";
 
@@ -183,9 +184,14 @@ if (light) {
   document.body.style.setProperty("--secondary-text-color", "#727272");
 }
 
+// Like Home Assistant: the language of the user profile, also set on <html lang>.
+const language = params.has("lang") ? params.get("lang") : "cs";
+document.documentElement.lang = language;
+
 const hass = {
   states,
   themes: { darkMode: !light },
+  ...(language ? { language, locale: { language } } : {}),
   callService: async (...args) => {
     if (test.failNext) {
       test.failNext = false;
@@ -235,6 +241,12 @@ test.setDarkMode = (dark) => {
 test.dropThemes = () => {
   const { themes: _themes, ...rest } = current;
   current = rest;
+  card.hass = current;
+};
+/** Home Assistant switching its language (user profile) without reloading the page. */
+test.setLanguage = (tag) => {
+  document.documentElement.lang = tag;
+  current = { ...current, language: tag, locale: { ...current.locale, language: tag } };
   card.hass = current;
 };
 /** A blind reporting its state, position and tilt. */

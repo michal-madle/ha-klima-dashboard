@@ -1,4 +1,6 @@
+import type { Texts } from "./i18n";
 import type {
+  BlindIcon,
   BlindPreset,
   ClimateMode,
   DashboardThresholds,
@@ -10,6 +12,16 @@ import type {
   TrendKind,
   TrendSettings,
 } from "./types";
+
+/**
+ * Position and tilt each preset icon stands for: the default presets Den (raised), Stín
+ * (lowered, slats open) and Tma (closed) (CURRENT_SPEC.md, Žaluzie).
+ */
+export const ICON_POSITIONS: Record<BlindIcon, { position: number; tilt: number }> = {
+  open: { position: 100, tilt: 100 },
+  shade: { position: 0, tilt: 100 },
+  dark: { position: 0, tilt: 0 },
+};
 
 /** True when the blind's position and tilt (both known) are those of the preset, within ± tolerance %. */
 export function blindMatchesPreset(
@@ -81,17 +93,6 @@ export const CLIMATE_COLORS: Record<ClimateMode, string> = {
   unknown: COLORS.off,
 };
 
-export const CLIMATE_LABELS: Record<ClimateMode, string> = {
-  off: "Vypnuto",
-  cool: "Chlazení",
-  wind_free: "WindFree",
-  dry: "Sušení",
-  fan: "Větrání",
-  heat: "Topení",
-  auto: "Auto",
-  unknown: "––",
-};
-
 const PRESET_NAMES: Record<string, string> = {
   sleep: "Sleep",
   boost: "Boost",
@@ -136,32 +137,33 @@ export interface RoomReadings {
 }
 
 /**
- * Room status (CURRENT_SPEC.md, Stavový systém). A stale reading counts as missing, so old
- * data never colour the room and never give "Příjemné".
+ * Room status (CURRENT_SPEC.md, Stavový systém) with its text in the card language. A stale
+ * reading counts as missing, so old data never colour the room and never give "Příjemné".
  */
 export function getRoomStatus(
   readings: RoomReadings,
   isSummer: boolean,
   modeKnown: boolean,
   room: Pick<Room, "thresholds" | "hasCo2" | "hasPm25">,
+  t: Texts,
 ): RoomStatus {
   const { thresholds } = room;
   // "Bez dat" names the first missing or stale required value, so the user knows what to fix
   // (CURRENT_SPEC.md, Chybějící data). CO₂ and PM2.5 are required only in a room that has them.
   const required: Array<[string, Reading | undefined]> = [
-    ["teplota", readings.temperature],
-    ["vlhkost", readings.humidity],
-    ...(room.hasCo2 ? [["CO₂", readings.co2] as [string, Reading]] : []),
-    ...(room.hasPm25 ? [["PM2.5", readings.pm25] as [string, Reading]] : []),
-    ["režim domu", modeKnown ? { value: 1 } : undefined],
+    [t.required.temperature, readings.temperature],
+    [t.required.humidity, readings.humidity],
+    ...(room.hasCo2 ? [[t.required.co2, readings.co2] as [string, Reading]] : []),
+    ...(room.hasPm25 ? [[t.required.pm25, readings.pm25] as [string, Reading]] : []),
+    [t.required.houseMode, modeKnown ? { value: 1 } : undefined],
   ];
   for (const [name, reading] of required) {
     if (reading?.value === undefined) {
-      return { label: `Bez dat · ${name}`, color: COLORS.label, kind: "unknown" };
+      return { id: "noData", label: t.noData(name), color: COLORS.label, kind: "unknown" };
     }
     if (reading.stale) {
-      const age = reading.ageMinutes === undefined ? "" : ` (před ${formatAge(reading.ageMinutes)})`;
-      return { label: `Bez dat · ${name}${age}`, color: COLORS.label, kind: "unknown" };
+      const age = reading.ageMinutes === undefined ? undefined : formatAge(reading.ageMinutes);
+      return { id: "noData", label: t.noData(name, age), color: COLORS.label, kind: "unknown" };
     }
   }
   const temperature = readings.temperature.value as number;
@@ -169,30 +171,30 @@ export function getRoomStatus(
   const co2 = room.hasCo2 ? (readings.co2.value as number) : Number.NEGATIVE_INFINITY;
   const pm25 = room.hasPm25 ? (readings.pm25.value as number) : Number.NEGATIVE_INFINITY;
   if (pm25 >= thresholds.pm25_critical) {
-    return { label: "Znečištěný vzduch", color: COLORS.alert, kind: "critical", cause: "pm25" };
+    return { id: "polluted", label: t.status.polluted, color: COLORS.alert, kind: "critical", cause: "pm25" };
   }
   if (co2 >= thresholds.co2_critical) {
-    return { label: "Silně vydýchaný vzduch", color: COLORS.alert, kind: "critical", cause: "co2" };
+    return { id: "veryStuffy", label: t.status.veryStuffy, color: COLORS.alert, kind: "critical", cause: "co2" };
   }
   if (co2 >= thresholds.co2_warning) {
-    return { label: "Vydýchaný vzduch", color: COLORS.warning, kind: "warning", cause: "co2" };
+    return { id: "stuffy", label: t.status.stuffy, color: COLORS.warning, kind: "warning", cause: "co2" };
   }
   if (humidity > thresholds.humidity_max) {
-    return { label: "Vlhko", color: COLORS.warning, kind: "warning", cause: "humidity" };
+    return { id: "humid", label: t.status.humid, color: COLORS.warning, kind: "warning", cause: "humidity" };
   }
   if (humidity < thresholds.humidity_min) {
-    return { label: "Sucho", color: COLORS.warning, kind: "warning", cause: "humidity" };
+    return { id: "dry", label: t.status.dry, color: COLORS.warning, kind: "warning", cause: "humidity" };
   }
 
   const minimum = isSummer ? thresholds.summer_min : thresholds.winter_min;
   const maximum = isSummer ? thresholds.summer_max : thresholds.winter_max;
   if (temperature > maximum) {
-    return { label: "Teplo", color: COLORS.warning, kind: "warning", cause: "temperature" };
+    return { id: "warm", label: t.status.warm, color: COLORS.warning, kind: "warning", cause: "temperature" };
   }
   if (temperature < minimum) {
-    return { label: "Chladno", color: COLORS.cold, kind: "warning", cause: "temperature" };
+    return { id: "cold", label: t.status.cold, color: COLORS.cold, kind: "warning", cause: "temperature" };
   }
-  return { label: "Příjemné", color: COLORS.label, kind: "normal" };
+  return { id: "comfortable", label: t.status.comfortable, color: COLORS.label, kind: "normal" };
 }
 
 /** Attribute that should be a list of strings (hvac_modes, preset_modes); anything else is empty. */
@@ -212,19 +214,6 @@ export function numberAttribute(value: unknown): number | undefined {
   }
   const number = typeof value === "number" ? value : Number.parseFloat(String(value));
   return Number.isFinite(number) && number >= 0 && number <= 100 ? number : undefined;
-}
-
-export function formatOne(value: number): string {
-  return new Intl.NumberFormat("cs-CZ", {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-  }).format(value);
-}
-
-export function formatHalf(value: number): string {
-  return new Intl.NumberFormat("cs-CZ", { maximumFractionDigits: 1 }).format(
-    Math.round(value * 2) / 2,
-  );
 }
 
 /**
@@ -306,7 +295,7 @@ export function sameAttributes(
   );
 }
 
-/** "45 min", "2 h", "3 d". */
+/** "45 min", "2 h", "3 d" (unit symbols, the same in every language). */
 export function formatAge(minutes: number): string {
   if (minutes < 60) {
     return `${Math.max(1, Math.round(minutes))} min`;
@@ -324,19 +313,19 @@ export function formatAge(minutes: number): string {
 export function trendDirection(
   samples: Array<number | undefined> | undefined,
   step: number,
-): "stoupá" | "klesá" | "stabilní" | undefined {
+): "rising" | "falling" | "stable" | undefined {
   const defined = (samples ?? []).filter((value): value is number => value !== undefined);
   if (defined.length < 2) {
     return undefined;
   }
   const change = defined[defined.length - 1] - defined[0];
   if (change >= step / 2) {
-    return "stoupá";
+    return "rising";
   }
   if (change <= -step / 2) {
-    return "klesá";
+    return "falling";
   }
-  return "stabilní";
+  return "stable";
 }
 
 /**
@@ -359,53 +348,55 @@ export function formatDuration(minutes: number): string {
   return hours === 0 ? `${days} d` : `${days} d ${hours} h`;
 }
 
-/** The same duration in words for screen readers: "1 hodina 5 minut", "2 dny 3 hodiny". */
-export function spokenDuration(minutes: number): string {
+/**
+ * The same duration in words for screen readers, in the card language: "1 hodina 5 minut",
+ * "2 dny 3 hodiny" (the same two units at most as `formatDuration`).
+ */
+export function spokenDuration(minutes: number, t: Texts): string {
   const total = Math.max(0, Math.floor(minutes));
   if (total < 1) {
-    return "méně než minutu";
+    return t.duration.lessThanMinute;
   }
-  const unit = (count: number, one: string, few: string, many: string) => `${count} ${plural(count, one, few, many)}`;
   if (total < 60) {
-    return unit(total, "minuta", "minuty", "minut");
+    return t.duration.minute(total);
   }
   if (total < 24 * 60) {
     const [hours, rest] = [Math.floor(total / 60), total % 60];
-    const text = unit(hours, "hodina", "hodiny", "hodin");
-    return rest === 0 ? text : `${text} ${unit(rest, "minuta", "minuty", "minut")}`;
+    const text = t.duration.hour(hours);
+    return rest === 0 ? text : `${text} ${t.duration.minute(rest)}`;
   }
   const [days, hours] = [Math.floor(total / (24 * 60)), Math.floor((total % (24 * 60)) / 60)];
-  const text = unit(days, "den", "dny", "dní");
-  return hours === 0 ? text : `${text} ${unit(hours, "hodina", "hodiny", "hodin")}`;
-}
-
-/** Czech plural: 1 okno, 2–4 okna, 5+ oken. */
-export function plural(count: number, one: string, few: string, many: string): string {
-  if (count === 1) {
-    return one;
-  }
-  return count >= 2 && count <= 4 ? few : many;
+  const text = t.duration.day(days);
+  return hours === 0 ? text : `${text} ${t.duration.hour(hours)}`;
 }
 
 /**
- * A period after "za" for screen readers (accusative): "2 hodiny", "24 hodin", "1 hodinu",
- * "90 minut". Whole hours are said in hours, anything else in minutes.
+ * A period for screen readers in the card language ("2 hodiny" after "za", "the last 2 hours",
+ * "de senaste 2 timmarna"): whole hours are said in hours, anything else in minutes.
  */
-export function spokenPeriod(minutes: number): string {
+export function spokenPeriod(minutes: number, t: Texts): string {
   const total = Math.max(1, Math.round(minutes));
-  if (total % 60 === 0) {
-    const hours = total / 60;
-    return `${hours} ${plural(hours, "hodinu", "hodiny", "hodin")}`;
-  }
-  return `${total} ${plural(total, "minutu", "minuty", "minut")}`;
+  return total % 60 === 0 ? t.period.hour(total / 60) : t.period.minute(total);
 }
 
-/** "poslední hodinu", "poslední 3 hodiny", "posledních 24 hodin" (after "za"). */
-export function lastHours(hours: number): string {
-  if (hours === 1) {
-    return "poslední hodinu";
+/** Name of a blind preset: from the YAML, otherwise after its icon in the card language (Den / Day / Dag). */
+export function presetName(preset: BlindPreset, t: Texts): string {
+  return preset.label ?? t.cover.presetName[preset.icon];
+}
+
+/**
+ * Description of a blind preset for screen readers: from the YAML; a preset without its own name
+ * at the position of its icon says what the icon means ("vytaženo nahoru"), any other its
+ * position and tilt.
+ */
+export function presetDescription(preset: BlindPreset, t: Texts): string {
+  if (preset.description !== undefined) {
+    return preset.description;
   }
-  return hours >= 2 && hours <= 4 ? `poslední ${hours} hodiny` : `posledních ${hours} hodin`;
+  const own = ICON_POSITIONS[preset.icon];
+  return preset.label === undefined && own.position === preset.position && own.tilt === preset.tilt
+    ? t.cover.presetDescription[preset.icon]
+    : t.cover.position(Math.round(preset.position), Math.round(preset.tilt));
 }
 
 /** The four ALPSTUGA measurements of a room, the only entities checked for stale data. */
