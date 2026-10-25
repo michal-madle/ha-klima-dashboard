@@ -66,6 +66,9 @@ export async function buildConfig(name) {
     ];
     rooms[1].carbon_dioxide = false;
     rooms[1].pm25 = false;
+    // Obývák has no blind either: with no CO₂ and PM2.5 the three empty rows are left out.
+    rooms[4].carbon_dioxide = false;
+    rooms[4].pm25 = false;
     rooms[2].image = `data:image/svg+xml,${encodeURIComponent(
       '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 30"><rect width="40" height="30" fill="#5b8"/><circle cx="28" cy="10" r="5" fill="#fd5"/></svg>',
     )}`;
@@ -146,9 +149,11 @@ if (scenario === "cover-unavailable") {
   states["cover.loznice_zaluzie_loznice"] = state("unavailable");
 }
 if (scenario === "stale") {
+  // Maxík measures 0 µg/m³ (clean air) and has not reported for hours: that is no stale value.
+  states["sensor.maxik_teplomer_maxik_pm2_5"].state = "0";
   // In Home Assistant last_updated is never newer than last_reported.
   for (const id of Object.keys(states)) {
-    if (/pracovna_teplomer|loznice_teplomer_loznice_pm2_5/.test(id)) {
+    if (/pracovna_teplomer|loznice_teplomer_loznice_pm2_5|maxik_teplomer_maxik_pm2_5/.test(id)) {
       states[id].last_updated = iso(3 * HOUR);
       states[id].last_changed = iso(3 * HOUR);
     }
@@ -211,7 +216,7 @@ const hass = {
   callApi: async (_method, path) => {
     if (scenario === "rest-error") throw new Error("403");
     const id = path.replace("states/", "");
-    const ago = scenario === "stale" && /pracovna|loznice_teplomer_loznice_pm2_5/.test(id) ? 3 * HOUR : 60_000;
+    const ago = scenario === "stale" && /pracovna|loznice_teplomer_loznice_pm2_5|maxik_teplomer_maxik_pm2_5/.test(id) ? 3 * HOUR : 60_000;
     return { last_reported: iso(ago), last_updated: iso(Math.max(ago, 3 * 60_000)) };
   },
 };
@@ -247,6 +252,11 @@ test.dropThemes = () => {
 test.setLanguage = (tag) => {
   document.documentElement.lang = tag;
   current = { ...current, language: tag, locale: { ...current.locale, language: tag } };
+  card.hass = current;
+};
+/** The user changing the formats of numbers, time or dates in the profile of Home Assistant. */
+test.setLocale = (changes) => {
+  current = { ...current, locale: { ...current.locale, ...changes } };
   card.hass = current;
 };
 /** A blind reporting its state, position and tilt. */

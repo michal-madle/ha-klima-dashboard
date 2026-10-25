@@ -8,6 +8,7 @@ import type { RoomChartModel } from "./charts";
 import {
   renderClimateIcon,
   renderHeatingOptionIcon,
+  renderClockIcon,
   renderHeatingWaves,
   renderParticlesIcon,
   renderPresetIcon,
@@ -65,7 +66,6 @@ import {
 
 const TREND_REFRESH_MS = 5 * 60_000;
 const CLOCK_TICK_MS = 30_000;
-const NOTICE_MS = 8_000;
 const NBSP = " ";
 
 /** Blind presets are sent only by a long press or a double tap, never by a single tap. */
@@ -73,7 +73,11 @@ const LONG_PRESS_MS = 550;
 const DOUBLE_TAP_MS = 400;
 const FLASH_MS = 700;
 /** How long the "hold or double tap" hint stays after a single tap on a preset. */
+/** A phone on its side or any short window: the history popup is full width (styles.ts). */
+const LANDSCAPE_QUERY = "(orientation: landscape) and (max-height: 600px)";
 const HINT_MS = 1_600;
+/** A failed preset stays visible longer: the person has to read it. */
+const ERROR_HINT_MS = 5_000;
 
 /** Pull-down distance or speed that closes a popup (iOS sheet). */
 const SHEET_CLOSE_DISTANCE = 100;
@@ -134,6 +138,8 @@ export class HaKlimaDashboard extends LitElement {
   /** Time under the finger in the history chart; undefined = now. */
   @state()
   private _scrubTime?: number;
+  /** Where the finger touched the popup (clientY), to tell the direction of a drag. */
+  private _touchY?: number;
 
   /** Pull-down offset of the open popup in px. */
   @state()
@@ -155,7 +161,8 @@ export class HaKlimaDashboard extends LitElement {
 
   /** Blind preset that shows a hint bubble ("hold or double tap" / "unavailable"). */
   @state()
-  private _hint?: { key: string; text: string };
+  /** Hint bubble at a preset button; `spoken` (screen readers) and `error` only for a failed script. */
+  private _hint?: { key: string; text: string; spoken?: string; error?: boolean };
 
   /** Segment to focus after switching Topení / Klimatizace with the arrow keys. */
   private _focusSegment?: "heating" | "climate";
@@ -171,7 +178,6 @@ export class HaKlimaDashboard extends LitElement {
   private _reported: Record<EntityId, number> = {};
 
   @state()
-  private _notice?: string;
 
   private _historyRequest = 0;
   private _scrubbing = false;
@@ -183,7 +189,6 @@ export class HaKlimaDashboard extends LitElement {
 
   @state()
   private _clock = 0;
-  private _noticeTimer?: number;
   private _trendsLoading = false;
   private _trendsStarted = false;
   private _opener?: HTMLElement;
@@ -224,7 +229,7 @@ export class HaKlimaDashboard extends LitElement {
     this._colorScheme?.removeEventListener("change", this.handleColorScheme);
     this._colorScheme = undefined;
     window.removeEventListener("resize", this.handleResize);
-    for (const timer of [this._noticeTimer, this._pressTimer, this._flashTimer, this._hintTimer, this._hintHideTimer]) {
+    for (const timer of [this._pressTimer, this._flashTimer, this._hintTimer, this._hintHideTimer]) {
       window.clearTimeout(timer);
     }
     for (const roomName of [...this._movingWatch.keys()]) {
@@ -234,7 +239,6 @@ export class HaKlimaDashboard extends LitElement {
     window.clearInterval(this._clockTimer);
     this._trendTimer = undefined;
     this._clockTimer = undefined;
-    this._noticeTimer = undefined;
     this._pressTimer = undefined;
     this._flashTimer = undefined;
     this._hintTimer = undefined;
@@ -248,6 +252,9 @@ export class HaKlimaDashboard extends LitElement {
       return (
         previous?.themes?.darkMode !== this.hass?.themes?.darkMode ||
         hassLanguage(previous) !== hassLanguage(this.hass) ||
+        (["number_format", "time_format", "date_format"] as const).some(
+          (key) => previous?.locale?.[key] !== this.hass?.locale?.[key],
+        ) ||
         this.hasRelevantEntityChanged(previous)
       );
     }
@@ -366,8 +373,7 @@ export class HaKlimaDashboard extends LitElement {
                 ${outside} ${this.renderSummary(chips)}
               </header>`
             : nothing}
-          ${this._notice ? html`<div class="notice" role="alert">${this._notice}</div>` : nothing}
-          <div class="rooms">
+          <div class="rooms n${Math.min(this._config.rooms.length, 4)}">
             ${this._config.rooms.map((room, index) =>
               this.renderRoom(room, index, isSummer, modeKnown, axes, now),
             )}
@@ -388,7 +394,7 @@ export class HaKlimaDashboard extends LitElement {
           temperature: this.reading(room.temperature, stale, now),
           humidity: this.reading(room.humidity, stale, now),
           co2: this.reading(room.carbon_dioxide, stale, now),
-          pm25: this.reading(room.pm25, stale, now),
+          pm25: this.pm25Reading(room, now),
         },
         isSummer,
         modeKnown,
@@ -483,7 +489,7 @@ export class HaKlimaDashboard extends LitElement {
             ? renderWindowIcon(chip.color, false)
             : chip.kind === "climate" || chip.kind === "conflict-cooling"
               ? renderClimateIcon("cool", chip.color, false)
-              : renderHeatingWaves(3, false);
+              : renderHeatingWaves(chip.waves ?? 3, false);
         return html`<li class="chip" style=${`--chip-color: ${chip.color}`} title=${chip.spoken} aria-label=${chip.spoken}>
           <span class="chip-icon" aria-hidden="true">${icon}</span>${chip.text}
         </li>`;
@@ -505,7 +511,7 @@ export class HaKlimaDashboard extends LitElement {
     const temperature = this.reading(room.temperature, stale, now);
     const humidity = this.reading(room.humidity, stale, now);
     const co2 = this.reading(room.carbon_dioxide, stale, now);
-    const pm25 = this.reading(room.pm25, stale, now);
+    const pm25 = this.pm25Reading(room, now);
     const { t } = this._i18n;
     const status = getRoomStatus({ temperature, humidity, co2, pm25 }, isSummer, modeKnown, room, t);
     const image = room.image;
@@ -517,7 +523,7 @@ export class HaKlimaDashboard extends LitElement {
 
     return html`
       <div class="room-cell"><article
-        class="room"
+        class="room ${!room.cover && !room.hasCo2 && !room.hasPm25 ? "compact" : ""}"
         aria-label=${room.name}
         style=${image?.kind === "scene" ? `--scene-tone: ${sceneTone(image.scene)}` : nothing}
       >
@@ -551,7 +557,7 @@ export class HaKlimaDashboard extends LitElement {
           >
             ${temperature.value === undefined
               ? html`<span class="missing">––</span>`
-              : html`${this._i18n.one(temperature.value)}<span class="temperature-unit">${NBSP}°C</span>`}
+              : html`${this._i18n.one(temperature.value)}<span class="temperature-unit">${NBSP}°C</span>${this.staleMark(temperature)}`}
           </button>
           <button
             type="button"
@@ -568,7 +574,7 @@ export class HaKlimaDashboard extends LitElement {
           >
             ${humidity.value === undefined
               ? html`<span class="missing">––</span>`
-              : this._i18n.percent(Math.round(humidity.value))}
+              : html`${this._i18n.percent(Math.round(humidity.value))}${this.staleMark(humidity)}`}
           </button>
         </div>
         <div class="lower">
@@ -692,7 +698,7 @@ export class HaKlimaDashboard extends LitElement {
         reading.value === undefined ? undefined : trendDirection(this._trends[entityId], trendStep(trends, slot));
       return t.airSensor(
         label,
-        reading.value === undefined ? undefined : `${Math.round(reading.value)} ${unit}`,
+        reading.value === undefined ? undefined : `${this._i18n.whole(reading.value)} ${unit}`,
         direction ? t.trendOver(t.trend[direction], this.trendPeriod()) : undefined,
         this.staleSpoken(reading),
       );
@@ -741,7 +747,7 @@ export class HaKlimaDashboard extends LitElement {
     return html`
       <div class="options list-options" role="group" aria-label=${this._i18n.t.air}>
         ${rows.map(({ slot, label, unit, entityId, warning, critical }) => {
-          const reading = this.reading(entityId, stale, now);
+          const reading = this.reading(entityId, stale, now, slot === "pm25");
           const hasValue = reading.value !== undefined;
           const accent = hasValue && !reading.stale ? COLORS[slot] : COLORS.off;
           return html`<button
@@ -762,7 +768,7 @@ export class HaKlimaDashboard extends LitElement {
             </span>
             <span class="list-value" style=${`color: ${this.popupColor(this.airColor(reading, warning, critical))}`}>
               ${hasValue
-                ? `${Math.round(reading.value as number)} ${unit}`
+                ? `${this._i18n.whole(reading.value as number)} ${unit}`
                 : html`<span aria-hidden="true">––</span><span class="sr-only">${this._i18n.t.unknownValue}</span>`}
             </span>
             ${reading.stale ? html`<span class="sr-only">${this.staleSpoken(reading)}</span>` : nothing}
@@ -787,7 +793,7 @@ export class HaKlimaDashboard extends LitElement {
     axis: TrendAxis | undefined,
   ): TemplateResult {
     const hasValue = reading.value !== undefined;
-    const value = Math.round(reading.value ?? 0);
+    const value = this._i18n.whole(reading.value ?? 0);
     const color = this.airColor(reading, warningThreshold, criticalThreshold);
     const accent = COLORS[slot];
 
@@ -800,7 +806,7 @@ export class HaKlimaDashboard extends LitElement {
           <span class="row-text">
             ${hasValue
               ? html`<span class="row-label" style=${`color: ${color}`}>${value}</span>
-                  <span class="row-unit">${unit}</span>`
+                  <span class="row-unit">${unit}</span>${this.staleMark(reading)}`
               : html`<span class="row-label" style=${`color: ${COLORS.label}`}>––</span>`}
           </span>
         </span>
@@ -1153,6 +1159,7 @@ export class HaKlimaDashboard extends LitElement {
     const key = `${room.name}|${preset.id}`;
     const { t } = this._i18n;
     const name = presetName(preset, t);
+    const failed = this._hint?.key === key && this._hint.error === true;
 
     // No visible label: the name is in title / aria-label. A single tap only shows a hint;
     // the preset is sent by a double tap or a long press, or by the keyboard (detail 0).
@@ -1162,12 +1169,14 @@ export class HaKlimaDashboard extends LitElement {
         type="button"
         class="plain-button preset ${this._flash === key ? "sent" : ""} ${available ? "" : "unavailable"} ${
           pending ? "pending" : ""
-        }"
+        } ${failed ? "failed" : ""}"
         title=${name}
         aria-pressed=${active ? "true" : "false"}
         aria-busy=${pending ? "true" : nothing}
         aria-disabled=${available ? "false" : "true"}
-        aria-label=${t.cover.preset(room.name, name, presetDescription(preset, t), available)}
+        aria-label=${failed && this._hint?.spoken
+          ? `${t.cover.preset(room.name, name, presetDescription(preset, t), available)} ${this._hint.text} ${this._hint.spoken}`
+          : t.cover.preset(room.name, name, presetDescription(preset, t), available)}
         @pointerdown=${(event: PointerEvent) => this.pressStart(event, room, preset, available)}
         @pointerup=${() => this.pressEnd(room, preset, available)}
         @pointercancel=${() => this.pressCancel()}
@@ -1184,9 +1193,13 @@ export class HaKlimaDashboard extends LitElement {
         }}
       >
         ${renderPresetIcon(preset.icon)}
-        ${this._hint?.key === key
-          ? html`<span class="preset-hint" role="status">${this._hint.text}</span>`
-          : nothing}
+        ${this._hint?.key !== key
+          ? nothing
+          : failed
+            ? html`<span class="preset-hint error" role="alert"
+                >${this._hint.text}<span class="sr-only"> ${this._hint.spoken}</span></span
+              >`
+            : html`<span class="preset-hint" role="status">${this._hint.text}</span>`}
       </button>
     `;
   }
@@ -1251,13 +1264,13 @@ export class HaKlimaDashboard extends LitElement {
     this.showHint(key, this._i18n.t.cover.unavailable, "warning");
   }
 
-  private showHint(key: string, text: string, haptic: HapticType): void {
-    this._hint = { key, text };
+  private showHint(key: string, text: string, haptic: HapticType, failure?: { spoken: string }): void {
+    this._hint = { key, text, ...(failure ? { spoken: failure.spoken, error: true } : {}) };
     this.haptic(haptic);
     window.clearTimeout(this._hintHideTimer);
     this._hintHideTimer = window.setTimeout(() => {
       this._hint = undefined;
-    }, HINT_MS);
+    }, failure ? ERROR_HINT_MS : HINT_MS);
   }
 
   /** Tolerance (±, %) within which the blind is in a preset (`covers.tolerance`). */
@@ -1293,8 +1306,9 @@ export class HaKlimaDashboard extends LitElement {
     } catch (error) {
       console.error("Klima Dashboard: the blind script failed", error);
       this.endMoving(room.name);
-      this.haptic("failure");
-      this.showNotice(this._i18n.t.cover.failed(room.name));
+      // The error appears at the button that was pressed, not far above the cards (TODO P2.18).
+      const { cover } = this._i18n.t;
+      this.showHint(`${room.name}|${preset.id}`, cover.failedHint, "failure", { spoken: cover.failed(room.name) });
     }
   }
 
@@ -1389,14 +1403,6 @@ export class HaKlimaDashboard extends LitElement {
     this.dispatchEvent(new CustomEvent("haptic", { detail: type, bubbles: true, composed: true }));
   }
 
-  private showNotice(message: string): void {
-    this._notice = message;
-    window.clearTimeout(this._noticeTimer);
-    this._noticeTimer = window.setTimeout(() => {
-      this._notice = undefined;
-    }, NOTICE_MS);
-  }
-
   // ----------------------------------------------------------------- sheet
 
   private renderSheet(isSummer: boolean): TemplateResult | typeof nothing {
@@ -1439,6 +1445,9 @@ export class HaKlimaDashboard extends LitElement {
         style=${`--backdrop-opacity: ${Math.max(0, 1 - this._dragY / 400).toFixed(2)}`}
         @click=${() => this.closeSheet()}
         @keydown=${this.handleSheetKeydown}
+        @touchstart=${this.sheetTouchStart}
+        @touchmove=${this.sheetTouchMove}
+        @wheel=${this.sheetWheel}
       >
         <div
           class="sheet ${extraClass} ${dragging ? "dragging" : ""}"
@@ -1623,7 +1632,9 @@ export class HaKlimaDashboard extends LitElement {
 
   /** The chart is drawn 1:1 in CSS pixels at the inner width of the popup. */
   private chartWidth(): number {
-    return Math.max(280, Math.min(460, window.innerWidth) - 32);
+    // On its side the popup is as wide as the phone (styles.ts, the same query), otherwise 460 px at most.
+    const landscape = window.matchMedia?.(LANDSCAPE_QUERY).matches === true;
+    return Math.max(280, Math.min(landscape ? 960 : 460, window.innerWidth) - 32);
   }
 
   private chartPointer = (event: PointerEvent): void => {
@@ -1675,6 +1686,41 @@ export class HaKlimaDashboard extends LitElement {
     }
     event.preventDefault();
   };
+
+  /**
+   * A finger drag or the wheel over a popup must not move the page under it (TODO P1.9.3, P1.9.9).
+   * Outside the popup, and inside it when it cannot scroll further in that direction, the move is
+   * cancelled; a popup that does scroll keeps its own scrolling (`overscroll-behavior` covers the rest).
+   */
+  private sheetTouchStart = (event: TouchEvent): void => {
+    this._touchY = event.touches[0]?.clientY;
+  };
+
+  private sheetTouchMove = (event: TouchEvent): void => {
+    if (event.cancelable && this.sheetCannotScroll(event, (event.touches[0]?.clientY ?? 0) - (this._touchY ?? 0))) {
+      event.preventDefault();
+    }
+  };
+
+  private sheetWheel = (event: WheelEvent): void => {
+    if (event.cancelable && !event.ctrlKey && this.sheetCannotScroll(event, -event.deltaY)) {
+      event.preventDefault();
+    }
+  };
+
+  /** `movement` > 0 pulls the content down (towards its top), < 0 up. */
+  private sheetCannotScroll(event: Event, movement: number): boolean {
+    const sheet = this.renderRoot.querySelector<HTMLElement>(".sheet");
+    if (!sheet || !event.composedPath().includes(sheet)) {
+      return true;
+    }
+    const scrolls = sheet.scrollHeight > sheet.clientHeight + 1;
+    return (
+      !scrolls ||
+      (movement > 0 && sheet.scrollTop <= 0) ||
+      (movement < 0 && sheet.scrollTop + sheet.clientHeight >= sheet.scrollHeight - 1)
+    );
+  }
 
   private dragStart = (event: PointerEvent): void => {
     if (event.button !== 0) {
@@ -2015,7 +2061,7 @@ export class HaKlimaDashboard extends LitElement {
    * A room measurement with its freshness (CURRENT_SPEC.md, Chybějící data): stale when the
    * sensor has not reported for longer than `stale_minutes`. Only known report times count.
    */
-  private reading(entityId: EntityId | undefined, staleMinutes: number, now: number): Reading {
+  private reading(entityId: EntityId | undefined, staleMinutes: number, now: number, zeroIsFresh = false): Reading {
     const value = this.numberState(entityId);
     if (value === undefined || !entityId) {
       return {};
@@ -2027,7 +2073,18 @@ export class HaKlimaDashboard extends LitElement {
     const updated = Date.parse(this.getState(entityId)?.last_updated ?? "");
     const lastSeen = Math.max(reported, Number.isFinite(updated) ? updated : 0);
     const ageMinutes = Math.max(0, (now - lastSeen) / 60_000);
-    return { value, ageMinutes, stale: ageMinutes > staleMinutes };
+    // A particle sensor that measures 0 µg/m³ (clean air) reports nothing new: silence is no fault.
+    return { value, ageMinutes, stale: !(zeroIsFresh && value === 0) && ageMinutes > staleMinutes };
+  }
+
+  /** PM2.5 of a room: a measured 0 µg/m³ is clean air and never stale (CURRENT_SPEC.md, Chybějící data). */
+  private pm25Reading(room: Room, now: number): Reading {
+    return this.reading(room.pm25, room.thresholds.stale_minutes, now, true);
+  }
+
+  /** Grey clock behind a stale value; the age is in the tooltip and for screen readers (CURRENT_SPEC.md, Chybějící data). */
+  private staleMark(reading: Reading): TemplateResult | typeof nothing {
+    return reading.stale ? html`<span class="stale-mark" aria-hidden="true">${renderClockIcon()}</span>` : nothing;
   }
 
   private staleTitle(reading: Reading): string | undefined {

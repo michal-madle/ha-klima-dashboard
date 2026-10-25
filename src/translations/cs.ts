@@ -14,8 +14,6 @@ export const cs = {
   title: "Domov",
   /** Card picker of Home Assistant. */
   cardDescription: "Přehled teploty, kvality vzduchu, vytápění a žaluzií v místnostech.",
-  /** Space between a number and "%" (as Home Assistant writes it in this language). */
-  percentSpace: " ",
 
   // Room status (Stavový systém, Chybějící data)
   status: {
@@ -122,6 +120,8 @@ export const cs = {
     presetDescription: { open: "vytaženo nahoru", shade: "spuštěno, lamely otevřené", dark: "úplné zatemnění" },
     hint: "Podržte nebo klepněte dvakrát",
     unavailable: "Žaluzie je nedostupná",
+    /** Short text of the bubble at the button; `failed` is the full sentence for screen readers. */
+    failedHint: "Nepodařilo se odeslat",
     failed: (room: string) => `${room}: skript žaluzií se nepodařilo spustit.`,
   },
 
@@ -149,11 +149,6 @@ export const cs = {
   chart: {
     now: "Teď",
     yesterday: "včera",
-    temperature: "Teplota",
-    target: "Cíl topení",
-    intensity: "Vytápění (sytost = výkon)",
-    humidity: (range: string) => `Vlhkost ${range}`,
-    night: (from: number, to: number) => `Noc ${from}–${to} h`,
   },
 
   // House summary chips (Dashboard Domov, Konflikty)

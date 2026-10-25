@@ -37,7 +37,6 @@ export const styles = css`
       --kd-card-border: rgb(255 255 255 / 7%);
       --kd-card-shadow: inset 0 1px 0 rgb(255 255 255 / 6%);
       --kd-chip-tint: 14%;
-      --kd-notice-tint: 16%;
       --kd-hint-bg: #3a3a3c;
       --kd-hint-text: #ffffff;
       --kd-hint-shadow: 0 4px 16px rgb(0 0 0 / 40%);
@@ -51,7 +50,6 @@ export const styles = css`
       --kd-fill: rgb(255 255 255 / 5%);
       --kd-fill-border: rgb(255 255 255 / 8%);
       --kd-night: rgb(0 0 0 / 30%);
-      --kd-night-swatch: rgb(0 0 0 / 55%);
       --kd-grid: rgb(255 255 255 / 8%);
       --kd-grid-soft: rgb(255 255 255 / 6%);
       --kd-area: rgb(255 255 255 / 7%);
@@ -92,7 +90,6 @@ export const styles = css`
       --kd-card-border: rgb(0 0 0 / 6%);
       --kd-card-shadow: 0 1px 3px rgb(0 0 0 / 6%);
       --kd-chip-tint: 10%;
-      --kd-notice-tint: 8%;
       --kd-hint-bg: #ffffff;
       --kd-hint-text: #1c1c1e;
       --kd-hint-shadow: 0 4px 16px rgb(0 0 0 / 16%), 0 0 0 1px rgb(0 0 0 / 6%);
@@ -106,7 +103,6 @@ export const styles = css`
       --kd-fill: rgb(0 0 0 / 4%);
       --kd-fill-border: rgb(0 0 0 / 8%);
       --kd-night: rgb(0 0 0 / 6%);
-      --kd-night-swatch: rgb(0 0 0 / 14%);
       --kd-grid: rgb(0 0 0 / 8%);
       --kd-grid-soft: rgb(0 0 0 / 6%);
       --kd-area: rgb(0 0 0 / 5%);
@@ -133,6 +129,9 @@ export const styles = css`
       display: grid;
       gap: 12px;
       container: dashboard / inline-size;
+      /* Panel view and wide screens: no wider than four rooms side by side (TODO P1.12). */
+      max-width: 2300px;
+      margin-inline: auto;
     }
 
     .dashboard-header {
@@ -194,23 +193,32 @@ export const styles = css`
       height: 18px;
     }
 
-    .notice {
-      padding: 8px 12px;
-      border-radius: 12px;
-      background: color-mix(in srgb, var(--kd-warning) var(--kd-notice-tint), transparent);
-      color: var(--kd-warning);
-      font-size: 13px;
-    }
-
     .rooms {
       display: grid;
       grid-template-columns: minmax(0, 1fr);
       gap: 12px;
     }
 
+    /*
+     * Columns by the width of the card (a room is 320–570 px wide): 2 from 620 px, 3 from 1000 px,
+     * 4 from 1400 px; never more columns than rooms (.n3, .n4 = three, four or more rooms).
+     */
     @container dashboard (min-width: 620px) {
       .rooms {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @container dashboard (min-width: 1000px) {
+      .rooms.n3,
+      .rooms.n4 {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+    }
+
+    @container dashboard (min-width: 1400px) {
+      .rooms.n4 {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
       }
     }
 
@@ -263,6 +271,16 @@ export const styles = css`
       color: var(--kd-text);
       font: inherit;
       text-align: left;
+    }
+
+    /* Rooms of one row are equally tall (a compact room next to a full one). */
+    .room-cell > .room {
+      height: 100%;
+    }
+
+    /* No blind and no CO₂ / PM2.5: the three empty rows above Topení are left out (64 px shorter). */
+    .room.compact .info {
+      grid-template-rows: 0 0 0 var(--row-h) var(--row-h) var(--window-h);
     }
 
     /* Above the picture; the screen-reader descriptions keep their own absolute position. */
@@ -449,6 +467,50 @@ export const styles = css`
 
     .missing {
       color: var(--kd-off);
+    }
+
+    /*
+     * Small grey clock at a stale value (TODO P2.21): the grey number alone could look like a fault.
+     * Beside CO₂ / PM2.5 it follows the unit; at temperature and humidity it sits above the end of
+     * the text, so the row never changes its width when a value turns stale (the picture keeps its room).
+     */
+    .stale-mark {
+      display: inline-flex;
+      flex: none;
+      align-self: center;
+      width: 14px;
+      height: 14px;
+      margin-left: 6px;
+      color: var(--kd-off);
+    }
+
+    .stale-mark svg {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .temperature,
+    .humidity {
+      position: relative;
+    }
+
+    .temperature .stale-mark {
+      position: absolute;
+      top: 3px;
+      right: 4px;
+      width: 16px;
+      height: 16px;
+      margin: 0;
+    }
+
+    .humidity .stale-mark {
+      position: absolute;
+      top: -5px;
+      right: -2px;
+      width: 11px;
+      height: 11px;
+      margin: 0;
     }
 
     /* Stale value: dimmed, never coloured (CURRENT_SPEC.md, Chybějící data). */
@@ -858,6 +920,31 @@ export const styles = css`
       pointer-events: none;
     }
 
+    /* Script failed: red ring around the button, a short shake, the reason in a red bubble (TODO P2.18). */
+    .preset.failed {
+      box-shadow: inset 0 0 0 1.5px var(--kd-alert);
+      color: var(--kd-alert);
+    }
+
+    .preset.failed svg {
+      animation: shake 360ms ease-in-out;
+    }
+
+    .preset-hint.error {
+      border: 1px solid var(--kd-alert);
+    }
+
+    @keyframes shake {
+      20%,
+      60% {
+        transform: translateX(-3px);
+      }
+      40%,
+      80% {
+        transform: translateX(3px);
+      }
+    }
+
     @keyframes hint-in {
       from {
         opacity: 0;
@@ -919,6 +1006,9 @@ export const styles = css`
       align-items: flex-end;
       justify-content: center;
       background: rgb(0 0 0 / calc(var(--kd-backdrop) * var(--backdrop-opacity, 1)));
+      /* A drag on the dimmed area must not move the dashboard below (TODO P1.9.3). */
+      overscroll-behavior: contain;
+      touch-action: none;
     }
 
     .sheet {
@@ -927,6 +1017,8 @@ export const styles = css`
       max-width: 460px;
       max-height: 90vh;
       overflow: auto;
+      /* The end of the popup's own scrolling does not carry on to the page below it. */
+      overscroll-behavior: contain;
       padding: 16px 16px max(16px, env(safe-area-inset-bottom));
       border: 1px solid var(--kd-sheet-border);
       border-bottom: 0;
@@ -976,6 +1068,17 @@ export const styles = css`
 
       .grabber {
         display: none;
+      }
+    }
+
+    /*
+     * Phone on its side (or any short window): the history popup takes the whole width, so the
+     * chart uses the full width of the phone (TODO P1.9.9). The same query is in chartWidth().
+     */
+    @media (orientation: landscape) and (max-height: 600px) {
+      .sheet.history-sheet {
+        max-width: min(960px, calc(100% - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)));
+        max-height: calc(100% - 16px);
       }
     }
 
@@ -1176,7 +1279,7 @@ export const styles = css`
       text-align: center;
     }
 
-    /* „Historie místnosti – 24 h“ (history.hours): readout, chart 1:1 in CSS pixels, legend. */
+    /* „Historie místnosti – 24 h“ (history.hours): readout and chart 1:1 in CSS pixels. */
     .chart-wrap {
       margin: 0 -2px;
       padding: 0 2px;
@@ -1249,43 +1352,10 @@ export const styles = css`
       font-family: inherit;
     }
 
-    .legend {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 4px 14px;
-      margin-top: 8px;
-      color: var(--kd-label);
-      font-size: 13px;
-      line-height: 18px;
-    }
-
-    .legend-item {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-
-    .legend-swatch {
-      box-sizing: border-box;
-      width: 14px;
-      height: 9px;
-      border-radius: 2px;
-    }
-
-    .legend-swatch.line,
-    .legend-swatch.dashed {
-      height: 0;
-      border-top: 2px solid;
-      border-radius: 0;
-    }
-
-    .legend-swatch.dashed {
-      border-top-style: dashed;
-    }
-
     @media (prefers-reduced-motion: reduce) {
       .sheet,
       .preset.sent svg,
+      .preset.failed svg,
       .preset:active,
       .preset.pending,
       .preset-hint,

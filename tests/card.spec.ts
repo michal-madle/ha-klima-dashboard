@@ -5,7 +5,7 @@ import { cs } from "../src/translations/cs";
 import { en } from "../src/translations/en";
 import { sv } from "../src/translations/sv";
 import { expect, test } from "./fixtures";
-import type { CDPSession, Page } from "./fixtures";
+import type { CDPSession, Locator, Page } from "./fixtures";
 
 // Browser tests of the Klima Dashboard card against tests/harness.html (fake hass data).
 // Every case names the spec section or TODO item it guards. `npm test` builds the card first;
@@ -588,14 +588,16 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
     // history: 12 h, night 23–7 h.
     await rooms(page).first().locator(".temperature").click();
     await expect(page.locator("#sheet-title")).toHaveText("Historie místnosti – 12 h");
-    await expect(page.locator(".legend").first()).toContainText("Noc 23–7 h");
+    await expect(page.locator(".chart .night")).toHaveCount(1);
     await expect(page.locator(".chart-wrap")).toHaveAccessibleName(/^Graf za 12 hodin\./);
-    // In the evening the last 12 h hold no night, and the legend does not list one.
+    // In the evening the last 12 h hold no night.
     await page.clock.setFixedTime(new Date("2026-10-24T21:00:00+02:00"));
     await open(page, "config");
     await rooms(page).first().locator(".temperature").click();
-    await expect(page.locator(".legend").first()).toContainText("Teplota");
-    await expect(page.locator(".legend").first()).not.toContainText("Noc");
+    await expect(page.locator(".chart .temperature-curve")).toHaveCount(1);
+    await expect(page.locator(".chart .night")).toHaveCount(0);
+    // The chart has no legend under it (TODO P1.9.3): the values are in the readout above.
+    await expect(page.locator(".legend")).toHaveCount(0);
   });
 });
 
@@ -603,12 +605,17 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
 
 test.describe("rozložení na všech šířkách (Room Card, Dashboard Domov)", () => {
   // [width, height]; the harness adds 16 px of body margin, so the card is `width − 16` px wide:
-  // one column up to 619 px of card width, two from 620 px.
+  // one column up to 619 px of card width, two from 620 px, three from 1000 px, four from 1400 px
+  // (the card is no wider than 2300 px).
   const phones = WIDTHS.map((width) => [width, 852] as const);
   const landscape = [852, 393] as const;
   const SIZES: Record<string, ReadonlyArray<readonly [number, number]>> = {
     real: [...phones, landscape],
-    full: [...phones, ...[600, 635, 636, 720, 734, 852, 1200, 1600].map((width) => [width, 852] as const), landscape],
+    full: [
+      ...phones,
+      ...[600, 635, 636, 720, 734, 852, 1015, 1016, 1200, 1415, 1416, 1600, 2000, 2560].map((width) => [width, 852] as const),
+      landscape,
+    ],
     summer: phones,
     alarm: [...phones, landscape],
     longnames: [...phones, ...[636, 734, 852].map((width) => [width, 852] as const), landscape],
@@ -622,22 +629,27 @@ test.describe("rozložení na všech šířkách (Room Card, Dashboard Domov)", 
         const layout = await measureLayout(page);
         const at = `${scenario} ${width} × ${height}`;
         expect(layout.scrollWidth, at).toBeLessThanOrEqual(width);
-        // One column below 620 px of card width, two from 620 px, never more.
+        // One column below 620 px of card width, two from 620 px, three from 1000 px, four from 1400 px.
         const columns = new Set(layout.cells.map((cell) => cell.left)).size;
-        expect(columns, `${at}, karta ${layout.dashboard} px`).toBe(width - 16 >= 620 ? 2 : 1);
-        if (columns === 2) {
-          // Equally wide rooms, rows from left to right and top to bottom, the fifth alone on the left.
+        const expected = layout.dashboard >= 1400 ? 4 : layout.dashboard >= 1000 ? 3 : layout.dashboard >= 620 ? 2 : 1;
+        expect(columns, `${at}, karta ${layout.dashboard} px`).toBe(expected);
+        expect(layout.dashboard, `${at}: nejvýš 2300 px`).toBeLessThanOrEqual(2300);
+        if (columns > 1) {
+          // Equally wide rooms (no wider than 570 px), rows from left to right and top to bottom, the last row starts on the left.
           const cells = layout.cells;
           expect(cells, at).toHaveLength(5);
           expect(new Set(cells.map((cell) => cell.width)).size, `${at}: šířky`).toBe(1);
-          for (const [left, right] of [[0, 1], [2, 3]]) {
-            expect(cells[left].top, `${at}: řádek ${left}/${right}`).toBe(cells[right].top);
-            expect(cells[left].left).toBeLessThan(cells[right].left);
-          }
-          expect(cells[2].top).toBeGreaterThan(cells[0].top);
-          expect(cells[4].top).toBeGreaterThan(cells[2].top);
-          expect(cells[4].left, "pátá místnost je ve sloupci vlevo").toBe(cells[0].left);
-          expect(cells[1].left + cells[1].width, "pravý okraj nepřesahuje kartu").toBeLessThanOrEqual(cells[0].left + layout.dashboard);
+          expect(cells[0].width, `${at}: šířka místnosti`).toBeLessThanOrEqual(570);
+          cells.forEach((cell, index) => {
+            const first = cells[index - (index % columns)];
+            expect(cell.top, `${at}: řádek místnosti ${index}`).toBe(first.top);
+            expect(cell.left, `${at}: sloupec místnosti ${index}`).toBe(cells[index % columns].left);
+            if (index >= columns) {
+              expect(cell.top).toBeGreaterThan(cells[index - columns].top);
+            }
+          });
+          const lastColumn = cells[columns - 1];
+          expect(lastColumn.left + lastColumn.width, "pravý okraj nepřesahuje kartu (zaokrouhlení na px)").toBeLessThanOrEqual(cells[0].left + layout.dashboard + 1);
         }
         // The narrow variables follow the width of the room, not of the display.
         const first = layout.rooms[0];
@@ -825,6 +837,27 @@ test.describe("scénáře: stav místnosti, souhrn, barvy a konflikty (Stavový 
     await expect(rooms(page).nth(1).locator(".temperature")).toHaveClass(/stale/);
     await expect(rooms(page).first().locator(".slot-pm25")).toHaveAttribute("title", "Naposledy před 3 h");
     await expect(page.locator(".conflict-dot")).toHaveCount(0);
+    // A small grey clock at every stale value (TODO P2.21): Ložnice only at PM2.5, Pracovna at all four.
+    await expect(rooms(page).first().locator(".stale-mark")).toHaveCount(1);
+    await expect(rooms(page).first().locator(".slot-pm25 .stale-mark")).toHaveCount(1);
+    const pracovna = rooms(page).nth(1);
+    for (const where of [".temperature", ".humidity", ".slot-co2", ".slot-pm25"]) {
+      await expect(pracovna.locator(`${where} .stale-mark`), where).toHaveCount(1);
+    }
+    await expect(pracovna.locator(".stale-mark").first()).toHaveAttribute("aria-hidden", "true");
+    // The clock takes no room: the number and the humidity stay where they are (the picture keeps its place).
+    const clockBox = await pracovna.locator(".temperature .stale-mark").boundingBox();
+    const valueBox = await pracovna.locator(".temperature").boundingBox();
+    expect(clockBox!.x + clockBox!.width, "hodiny uvnitř tlačítka teploty").toBeLessThanOrEqual(valueBox!.x + valueBox!.width + 0.5);
+    // Maxík measures 0 µg/m³ (clean air) and has not reported for 3 h: that is neither "Bez dat" nor stale.
+    expect(list[2]).toBe("Příjemné");
+    const maxik = rooms(page).nth(2);
+    await expect(maxik.locator(".slot-pm25 .row-label")).toHaveText("0");
+    await expect(maxik.locator(".stale-mark")).toHaveCount(0);
+    expect(await maxik.locator(".slot-pm25").evaluate((row) => row.hasAttribute("title"))).toBe(false);
+    expect(await maxik.locator(".slot-pm25 .row-label").evaluate((label) => getComputedStyle(label).color)).not.toBe(
+      await pracovna.locator(".slot-pm25 .row-label").evaluate((label) => getComputedStyle(label).color),
+    );
   });
 
   test("rest-error, unavailable, moving: bez REST nic zastaralého, nedostupné ikony zůstanou, kolejnice pulzuje", async ({ page }) => {
@@ -866,15 +899,15 @@ test.describe("přístupnost", () => {
           await closePopup(page);
         }
       }
-      // The error notice after a failed blind script.
+      // The error at the button after a failed blind script.
       await page.evaluate(() => {
         // @ts-expect-error test hook
         window.__test.failNext = true;
       });
       await rooms(page).first().locator(".preset").first().focus();
       await page.keyboard.press("Enter");
-      await expect(page.locator(".notice")).toBeVisible();
-      expect(await axeViolations(page), "hláška").toEqual([]);
+      await expect(page.locator(".preset-hint.error")).toBeVisible();
+      expect(await axeViolations(page), "chyba u tlačítka").toEqual([]);
     });
   }
 
@@ -1072,15 +1105,24 @@ test.describe("předvolby žaluzií (Žaluzie)", () => {
     await expect.poll(async () => (await hook<unknown[]>(page, "services")).length).toBe(1);
     await expect(room.locator(".preset.pending")).toHaveCount(0);
     await expect(room.locator(".preset").nth(2)).toHaveAttribute("aria-pressed", "true");
-    // A failing script: the pulse ends, failure haptic and a notice.
+    // A failing script: the pulse ends, failure haptic, the error at the pressed button (TODO P2.18).
     await page.evaluate(() => {
       // @ts-expect-error test hook
       window.__test.failNext = true;
     });
     await room.locator(".preset").nth(0).dblclick();
-    await expect(page.locator(".notice")).toContainText("skript žaluzií se nepodařilo spustit");
+    const failed = room.locator(".preset").nth(0);
+    await expect(failed).toHaveClass(/failed/);
+    await expect(failed.locator(".preset-hint.error")).toHaveText(/Nepodařilo se odeslat/);
+    await expect(failed.locator(".preset-hint.error")).toHaveAttribute("role", "alert");
+    await expect(failed.locator(".preset-hint.error .sr-only")).toHaveText("Ložnice: skript žaluzií se nepodařilo spustit.");
+    // Only that button is marked; nothing appears above the cards any more.
+    await expect(page.locator(".preset.failed")).toHaveCount(1);
+    await expect(page.locator(".notice")).toHaveCount(0);
     await expect(room.locator(".preset.pending")).toHaveCount(0);
     expect(await hook(page, "haptics")).toContain("failure");
+    // The red ring is a visible border of the button.
+    expect(await failed.evaluate((element) => getComputedStyle(element).boxShadow)).not.toBe("none");
   });
 
   test("myš: klepnutí ukáže nápovědu, dvojklik odešle skript", async ({ page }) => {
@@ -1462,7 +1504,6 @@ test.describe("jazyky (CURRENT_SPEC.md, Jazyky)", () => {
       air: "Luftkvalitet",
       history: "Rumshistorik – 24 h",
       now: "Nu",
-      night: "Natt 22–6 h",
       windows: ["Fönster 1", "Fönster 2"],
       openCount: "2 öppna",
       bothOpen: /^R1: fönstren Fönster 1, Fönster 2 öppna, längst i mindre än en minut; konflikt: öppet fönster under uppvärmning\. Öppnar fönsteröversikten\.$/,
@@ -1482,7 +1523,6 @@ test.describe("jazyky (CURRENT_SPEC.md, Jazyky)", () => {
       air: "Air quality",
       history: "Room history – 24 h",
       now: "Now",
-      night: "Night 22–6 h",
       windows: ["Window 1", "Window 2"],
       openCount: "2 open",
       bothOpen: /^R1: windows Window 1, Window 2 open, the longest for less than a minute; conflict: window open while heating\. Opens the window overview\.$/,
@@ -1530,7 +1570,7 @@ test.describe("jazyky (CURRENT_SPEC.md, Jazyky)", () => {
       await openPopup(page, ".temperature");
       await expect(page.locator("#sheet-title")).toHaveText(expected.history);
       await expect(page.locator(".readout-time")).toHaveText(expected.now);
-      await expect(page.locator(".legend").first()).toContainText(expected.night);
+      await expect(page.locator(".legend")).toHaveCount(0);
       await page.locator(".chart-wrap").focus();
       await page.keyboard.press("Home");
       await expect(page.locator(".readout-time")).not.toHaveText(expected.now);
@@ -1549,7 +1589,7 @@ test.describe("jazyky (CURRENT_SPEC.md, Jazyky)", () => {
         await noCzech(`historie: ${history}`);
         await closePopup(page);
       }
-      // The hint after a single tap on a preset, and the notice after a failed blind script.
+      // The hint after a single tap on a preset, and the error at the button after a failed blind script.
       await first.locator(".preset").first().click();
       await expect(page.locator(".preset-hint")).toBeVisible();
       await noCzech("nápověda předvolby");
@@ -1559,8 +1599,8 @@ test.describe("jazyky (CURRENT_SPEC.md, Jazyky)", () => {
       });
       await first.locator(".preset").first().focus();
       await page.keyboard.press("Enter");
-      await expect(page.locator(".notice")).toBeVisible();
-      await noCzech("hláška");
+      await expect(page.locator(".preset-hint.error")).toBeVisible();
+      await noCzech("chyba předvolby");
 
       // The other scenarios: alarm values and conflicts, summer, stale and unavailable data.
       await load("alarm");
@@ -1626,7 +1666,7 @@ test.describe("jazyky (CURRENT_SPEC.md, Jazyky)", () => {
         );
         expect(outside, at).toEqual([]);
       }
-      // Popups on the narrowest phone: the switch, the options, the readout and the legend fit.
+      // Popups on the narrowest phone: the switch, the options, the readout fit.
       await open(page, "full", 320, 852, theme, language);
       expect(await axeViolations(page), language).toEqual([]);
       for (const trigger of [".hvac", ".temperature"]) {
@@ -1635,7 +1675,7 @@ test.describe("jazyky (CURRENT_SPEC.md, Jazyky)", () => {
         const cut = await page.evaluate(() => {
           const sheet = document.querySelector("ha-klima-dashboard")!.shadowRoot!.querySelector(".sheet")!;
           const right = sheet.getBoundingClientRect().right;
-          return [...sheet.querySelectorAll<HTMLElement>("h2, .segment, .option, .readout-system, .legend-item, .sheet-link")]
+          return [...sheet.querySelectorAll<HTMLElement>("h2, .segment, .option, .readout-system, .sheet-link")]
             .filter((element) => element.scrollWidth > element.clientWidth + 0.5 || element.getBoundingClientRect().right > right + 0.5)
             .map((element) => element.textContent?.trim());
         });
@@ -1645,6 +1685,260 @@ test.describe("jazyky (CURRENT_SPEC.md, Jazyky)", () => {
       }
     });
   }
+});
+
+// ---------------------------------------------- summary, compact room, formats
+
+test.describe("souhrn a zkrácená místnost (Dashboard Domov, Room Card)", () => {
+  /** Lit waves of the heating icon in the "Topí" chip and in the first row of every room. */
+  const litWaves = (page: Page) =>
+    page.evaluate(() => {
+      const root = document.querySelector("ha-klima-dashboard")!.shadowRoot!;
+      const chip = [...root.querySelectorAll<HTMLElement>(".chip")].find((item) => /Topí/.test(item.textContent ?? ""));
+      if (!chip) return undefined;
+      const probe = document.createElement("span");
+      probe.style.color = chip.style.getPropertyValue("--chip-color");
+      // The colour is a variable of the card (var(--kd-warning)): resolve it inside the card.
+      root.querySelector(".dashboard")!.append(probe);
+      const warning = getComputedStyle(probe).color;
+      probe.remove();
+      const lit = (icon: Element | null) =>
+        [...(icon?.querySelectorAll("path") ?? [])].filter((path) => getComputedStyle(path).stroke === warning).length;
+      return {
+        chip: lit(chip.querySelector(".chip-icon svg")),
+        text: chip.textContent?.replace(/\s+/g, " ").trim(),
+        rooms: [...root.querySelectorAll(".room")].map((room) => lit(room.querySelector(".hvac .row-icon svg"))),
+      };
+    });
+
+  test("ikona souhrnu Topí ukazuje nejsilnější topení ze všech místností, text počet místností (TODO P2.16)", async ({ page }) => {
+    await open(page, "full");
+    // The harness heats Ložnice at 20 %, Maxík at 60 % and Obývák at 90 %: 1, 2 and 3 waves.
+    expect(await litWaves(page)).toEqual({ chip: 3, text: "Topí 3 místnosti", rooms: [1, 0, 2, 0, 3] });
+    const heating = (slug: string, value: number) => ({
+      [`sensor.${slug}_tado_ce_${slug}_heating`]: { state: String(value), attributes: {} },
+    });
+    const update = (changes: Record<string, unknown>) =>
+      page.evaluate((next) => {
+        // @ts-expect-error test hook
+        window.__test.update(next);
+      }, changes);
+    // The strongest room cools down to 2 waves: the chip follows, still three rooms heating.
+    await update(heating("obyvak", 40));
+    await expect.poll(() => litWaves(page).then((facts) => facts?.chip)).toBe(2);
+    expect((await litWaves(page))?.text).toBe("Topí 3 místnosti");
+    // Everywhere one wave: one wave in the chip.
+    await update({ ...heating("maxik", 10), ...heating("obyvak", 10) });
+    await expect.poll(() => litWaves(page).then((facts) => facts?.chip)).toBe(1);
+    // One room with two waves and another with one: two waves, two rooms.
+    await update({ ...heating("loznice", 0), ...heating("maxik", 50), ...heating("obyvak", 0) });
+    await expect.poll(() => litWaves(page)).toEqual({ chip: 2, text: "Topí 1 místnost", rooms: [0, 0, 2, 0, 0] });
+    await update({ ...heating("obyvak", 20) });
+    await expect.poll(() => litWaves(page)).toEqual({ chip: 2, text: "Topí 2 místnosti", rooms: [0, 0, 2, 0, 1] });
+  });
+
+  test("místnost bez žaluzie, CO₂ a PM2.5 je o 64 px kratší; v řádku s jinými je stejně vysoká (TODO P1.10.8)", async ({ page }) => {
+    const measure = () =>
+      rooms(page).evaluateAll((items) =>
+        items.map((item) => ({ compact: item.classList.contains("compact"), height: Math.round(item.getBoundingClientRect().height), top: Math.round(item.getBoundingClientRect().top) })),
+      );
+    // One column: Obývák (no blind, no CO₂, no PM2.5) is 64 px shorter; Pracovna has a blind and no air rows: not shortened.
+    await open(page, "config", 393, 852);
+    let heights = await measure();
+    expect(heights.map((room) => room.compact)).toEqual([false, false, false, false, true]);
+    expect(heights[3].height - heights[4].height).toBe(64);
+    expect(heights[1].height, "Pracovna s žaluzií zůstává stejně vysoká").toBe(heights[3].height);
+    await expect(rooms(page).nth(4).locator(".air-block")).toHaveCount(0);
+    // The Topení, Klimatizace and window rows move up by the three empty rows.
+    const rowTops = await rooms(page).evaluateAll((items) =>
+      items.map((item) => Math.round(item.querySelector(".hvac")!.getBoundingClientRect().top - item.getBoundingClientRect().top)),
+    );
+    expect(rowTops[3] - rowTops[4]).toBe(64);
+    // Three columns: Mikuláš and Obývák are one row, the short one stretches to the height of its neighbour.
+    await open(page, "config", 1100, 852);
+    heights = await measure();
+    expect(heights[3].top).toBe(heights[4].top);
+    expect(heights[4].height).toBe(heights[3].height);
+  });
+});
+
+test.describe("formáty čísel, času a data z profilu Home Assistantu (TODO P1.10.13)", () => {
+  const setLocale = (page: Page, changes: Record<string, string>) =>
+    page.evaluate((next) => {
+      // @ts-expect-error test hook
+      window.__test.setLocale(next);
+    }, changes);
+  const clean = (text: string | null) => (text ?? "").replace(/\s+/g, " ").trim();
+  const temperature = async (page: Page) => clean(await rooms(page).first().locator(".temperature").textContent());
+  const humidity = async (page: Page) => clean(await rooms(page).first().locator(".humidity").textContent());
+
+  test("formát čísel: jazyk, pevné formáty, systém a žádný; procenta podle jazyka; CO₂ s oddělovačem tisíců", async ({ page }) => {
+    await open(page, "alarm");
+    const co2 = async () => clean(await rooms(page).first().locator(".slot-co2 .row-label").textContent());
+    // "language" (the default): Czech writes a comma and a space before %, and a space between thousands.
+    expect([await temperature(page), await humidity(page), await co2()]).toEqual(["21,3 °C", "52 %", "1 640"]);
+    for (const [format, expected] of [
+      ["comma_decimal", ["21.3 °C", "52 %", "1,640"]],
+      ["decimal_comma", ["21,3 °C", "52 %", "1.640"]],
+      ["space_comma", ["21,3 °C", "52 %", "1 640"]],
+      ["quote_decimal", ["21.3 °C", "52 %", "1'640"]],
+      ["none", ["21.3 °C", "52 %", "1640"]],
+    ] as const) {
+      await setLocale(page, { number_format: format });
+      await expect.poll(async () => [await temperature(page), await humidity(page), await co2()], format).toEqual(expected);
+    }
+    // The card follows a change of the profile without a reload; back to the language.
+    await setLocale(page, { number_format: "language" });
+    await expect.poll(() => temperature(page)).toBe("21,3 °C");
+    // English: a point, no space before %; German (texts in English): a comma and a space, as Home Assistant writes it.
+    await open(page, "alarm", 393, 852, "dark", "en");
+    expect([await temperature(page), await humidity(page), await co2()]).toEqual(["21.3 °C", "52%", "1,640"]);
+    await setLocale(page, { number_format: "decimal_comma" });
+    await expect.poll(async () => [await temperature(page), await humidity(page)]).toEqual(["21,3 °C", "52%"]);
+    await page.evaluate(() => {
+      // @ts-expect-error test hook
+      window.__test.setLocale({ number_format: "language" });
+      // @ts-expect-error test hook
+      window.__test.setLanguage("de");
+    });
+    await expect.poll(async () => [await temperature(page), await humidity(page), await co2()]).toEqual(["21,3 °C", "52 %", "1.640"]);
+    await expect(page.locator("h1")).toHaveText("Home");
+  });
+
+  test("formát času: 12 / 24 h z profilu i z jazyka; osa grafu má celé hodiny", async ({ page }) => {
+    await page.clock.setFixedTime(new Date("2026-10-24T09:00:00+02:00"));
+    const axis = async () => (await page.locator(".chart .tick").allTextContents()).map(clean);
+    const readout = async () => {
+      await page.locator(".chart-wrap").focus();
+      await page.keyboard.press("Home");
+      return clean(await page.locator(".readout-time").textContent());
+    };
+    // English writes AM / PM by default.
+    await open(page, "full", 393, 852, "dark", "en");
+    await rooms(page).first().locator(".temperature").click();
+    await expect(page.locator(".chart")).toBeVisible();
+    expect((await axis()).every((label) => /^\d{1,2} [AP]M$/.test(label)), (await axis()).join("|")).toBe(true);
+    expect(await readout()).toMatch(/^[\p{L}]+ \d{1,2}:\d{2} [AP]M$/u);
+    // 24 h from the profile: 18:00 and "yesterday 09:00".
+    await setLocale(page, { time_format: "24" });
+    await expect.poll(axis).toEqual(["12:00", "18:00", "00:00", "06:00"]);
+    // 12 h from the profile in Czech.
+    await setLocale(page, { time_format: "12" });
+    await expect.poll(async () => (await axis()).some((label) => /:/.test(label))).toBe(false);
+    // System: the browser of the test is Czech, i.e. 24 h although the card speaks English.
+    await setLocale(page, { time_format: "system" });
+    await expect.poll(axis).toEqual(["12:00", "18:00", "00:00", "06:00"]);
+    // Language (the default): English → 12 h; the same Czech card → 24 h.
+    await setLocale(page, { time_format: "language" });
+    await expect.poll(async () => (await axis()).every((label) => /[AP]M$/i.test(label))).toBe(true);
+    await page.keyboard.press("Escape");
+    await open(page, "full", 393, 852, "dark", "cs");
+    await rooms(page).first().locator(".temperature").click();
+    await expect.poll(axis).toEqual(["12:00", "18:00", "00:00", "06:00"]);
+  });
+
+  test("pořadí dne a měsíce: z jazyka, DMY, MDY, YMD", async ({ page }) => {
+    await page.clock.setFixedTime(new Date("2026-10-24T09:00:00+02:00"));
+    await open(page, "full");
+    // Three days of history: the axis shows dates at midnight.
+    await reconfigure(page, { history: { hours: 72 } });
+    await rooms(page).first().locator(".temperature").click();
+    await expect(page.locator(".chart")).toBeVisible();
+    const first = async () => clean((await page.locator(".chart .tick").allTextContents())[0]);
+    // Czech writes the day first ("22. 10."); the month 10 is the second number.
+    await expect.poll(first).toMatch(/^\d{1,2}\. 10\.$/);
+    for (const [format, monthFirst] of [["MDY", true], ["YMD", true], ["DMY", false], ["language", false]] as const) {
+      await setLocale(page, { date_format: format });
+      await expect.poll(first, format).toMatch(monthFirst ? /^10\. \d{1,2}\.$/ : /^\d{1,2}\. 10\.$/);
+    }
+  });
+});
+
+// ------------------------------------------------- popup and the page below
+
+test.describe("popup: stránka pod ním se neposouvá (TODO P1.9.3, P1.9.9)", () => {
+  test.use({ hasTouch: true, isMobile: true });
+
+  /** A finger drag of `distance` px (negative: upwards) through the real touch input of the browser. */
+  const drag = async (page: Page, x: number, y: number, distance: number) => {
+    const cdp = await page.context().newCDPSession(page);
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] });
+    for (let step = 1; step <= 10; step += 1) {
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x, y: y + (distance * step) / 10 }] });
+    }
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    await cdp.detach();
+    await page.waitForTimeout(400);
+  };
+  const scrollY = (page: Page) => page.evaluate(() => Math.round(window.scrollY));
+
+  test("tažení prstem mimo popup i v něm nehýbe dashboardem; bez popupu ho posune", async ({ page }) => {
+    await open(page, "full", 393, 852);
+    await page.evaluate(() => window.scrollTo(0, 300));
+    // Control: without a popup the same drag scrolls the page, so the test would notice a leak.
+    await drag(page, 196, 500, -150);
+    expect(await scrollY(page)).toBeGreaterThan(330);
+
+    for (const [name, trigger] of [["Topení", ".hvac"], ["Kvalita vzduchu", ".air-block"]] as const) {
+      await page.evaluate(() => window.scrollTo(0, 300));
+      await rooms(page).nth(0).locator(trigger).evaluate((button) => (button as HTMLElement).click());
+      await expect(page.locator(".sheet")).toBeVisible();
+      await settle(page);
+      const sheet = (await page.locator(".sheet").boundingBox())!;
+      const spots: Array<[string, number, number]> = [
+        ["mimo popup", 196, 120],
+        ["v popupu", 196, sheet.y + 150],
+      ];
+      for (const [place, x, y] of spots) {
+        for (const distance of [-150, 150]) {
+          await drag(page, x, y, distance);
+          expect(await scrollY(page), `${name}, ${place}, tah ${distance}`).toBe(300);
+        }
+      }
+      // The wheel of a mouse over the dimmed area and over a popup that does not scroll.
+      await page.mouse.move(196, 120);
+      await page.mouse.wheel(0, 300);
+      await page.mouse.move(196, sheet.y + 150);
+      await page.mouse.wheel(0, -300);
+      await page.waitForTimeout(300);
+      expect(await scrollY(page), `${name}, kolečko`).toBe(300);
+      await closePopup(page);
+    }
+  });
+
+  test("telefon na šířku: historie je přes celou šířku telefonu a posouvá se jen uvnitř", async ({ page }) => {
+    await open(page, "full", 852, 393);
+    await openPopup(page, ".temperature");
+    await expect(page.locator(".chart")).toBeVisible();
+    const sizes = await page.evaluate(() => {
+      const root = document.querySelector("ha-klima-dashboard")!.shadowRoot!;
+      const sheet = root.querySelector<HTMLElement>(".sheet")!;
+      const chart = root.querySelector("svg.chart")!.getBoundingClientRect();
+      const box = sheet.getBoundingClientRect();
+      return { sheet: box.width, sheetHeight: box.height, chart: chart.width, scrolls: sheet.scrollHeight > sheet.clientHeight, screen: innerWidth };
+    });
+    // The whole width of the phone (bar the 16 px padding), not the 460 px of a popup on its end.
+    expect(sizes.sheet).toBeGreaterThanOrEqual(sizes.screen - 4);
+    expect(sizes.chart).toBeGreaterThanOrEqual(sizes.screen - 40);
+    expect(sizes.sheetHeight).toBeLessThanOrEqual(393);
+    // What does not fit scrolls inside the popup; the page below stays.
+    await page.evaluate(() => window.scrollTo(0, 120));
+    const before = await scrollY(page);
+    await drag(page, 400, 200, -120);
+    await drag(page, 400, 200, 240);
+    expect(await scrollY(page)).toBe(before);
+    // Upright again: 460 px popup, chart 428 px.
+    await closePopup(page);
+    await open(page, "full", 393, 852);
+    await openPopup(page, ".temperature");
+    await expect(page.locator(".chart")).toBeVisible();
+    expect(await page.locator("svg.chart").evaluate((chart) => Math.round(chart.getBoundingClientRect().width))).toBeLessThanOrEqual(393 - 32);
+    // A wide window that is tall enough keeps the 460 px popup.
+    await open(page, "full", 1200, 852);
+    await openPopup(page, ".temperature");
+    await expect(page.locator(".chart")).toBeVisible();
+    expect(await page.locator(".sheet").evaluate((sheet) => Math.round(sheet.getBoundingClientRect().width))).toBe(460);
+  });
 });
 
 // -------------------------------------------------------------- performance

@@ -12,6 +12,8 @@ export interface SummaryChip {
   color: string;
   /** Full sentence with room names for screen readers and the tooltip. */
   spoken: string;
+  /** Heating chip only: waves (1–3) of the strongest heating room, as in that room's row. */
+  waves?: number;
 }
 
 /** Up to two room names, otherwise a count ("Ložnice, Pracovna" / "3 místnosti"). */
@@ -90,6 +92,7 @@ export function houseSummary(
   const open: Array<[string, number]> = [];
   const manual: string[] = [];
   const heating: string[] = [];
+  let strongestWaves = 0;
   const climate: string[] = [];
 
   for (const room of roomList) {
@@ -106,6 +109,7 @@ export function houseSummary(
     }
     if (heat.waves > 0) {
       heating.push(room.name);
+      strongestWaves = Math.max(strongestWaves, heat.waves);
     }
     if (room.air_conditioner && climateView(get(room.air_conditioner), i18n).active) {
       climate.push(room.name);
@@ -152,6 +156,7 @@ export function houseSummary(
       text: texts.heating(texts.rooms(heating.length)),
       color: COLORS.warning,
       spoken: `${texts.heatingSpoken}: ${heating.join(", ")}`,
+      waves: strongestWaves,
     });
   }
   if (climate.length > 0) {

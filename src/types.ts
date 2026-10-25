@@ -25,7 +25,8 @@ export interface HomeAssistant {
   themes?: { darkMode?: boolean };
   /** Language of the frontend (user profile), e.g. "cs", "sv", "en-GB"; `locale.language` is the current one. */
   language?: string;
-  locale?: { language?: string };
+  /** Profile of the user (Home Assistant): language and the formats of numbers, time and dates. */
+  locale?: { language?: string; number_format?: string; time_format?: string; date_format?: string };
 }
 
 // ------------------------------------------------------------ configuration (YAML)

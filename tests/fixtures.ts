@@ -41,4 +41,4 @@ export const test = base.extend<{ collectCoverage: void }>({
 });
 
 export { expect } from "@playwright/test";
-export type { CDPSession, Page } from "@playwright/test";
+export type { CDPSession, Locator, Page } from "@playwright/test";

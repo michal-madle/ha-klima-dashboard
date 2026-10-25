@@ -10,8 +10,6 @@ const plural = (count: number, one: string, other: string): string => (count ===
 export const en: Texts = {
   title: "Home",
   cardDescription: "Temperature, air quality, heating and blinds of your rooms at a glance.",
-  /** Home Assistant writes no space before % in English. */
-  percentSpace: "",
 
   status: {
     polluted: "Polluted air",
@@ -96,6 +94,8 @@ export const en: Texts = {
     presetDescription: { open: "raised", shade: "lowered, slats open", dark: "full blackout" },
     hint: "Hold or double-tap",
     unavailable: "The blind is unavailable",
+    /** Short text of the bubble at the button; `failed` is the full sentence for screen readers. */
+    failedHint: "Could not send",
     failed: (room) => `${room}: the blind script could not be started.`,
   },
 
@@ -120,11 +120,6 @@ export const en: Texts = {
   chart: {
     now: "Now",
     yesterday: "yesterday",
-    temperature: "Temperature",
-    target: "Heating target",
-    intensity: "Heating (deeper = more power)",
-    humidity: (range) => `Humidity ${range}`,
-    night: (from, to) => `Night ${from}–${to} h`,
   },
 
   summaryChips: {

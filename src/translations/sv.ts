@@ -10,8 +10,6 @@ const plural = (count: number, one: string, other: string): string => (count ===
 export const sv: Texts = {
   title: "Hem",
   cardDescription: "Översikt över temperatur, luftkvalitet, värme och persienner i rummen.",
-  /** Home Assistant writes a space before % in Swedish. */
-  percentSpace: " ",
 
   status: {
     polluted: "Förorenad luft",
@@ -97,6 +95,8 @@ export const sv: Texts = {
     presetDescription: { open: "uppdragen", shade: "nerdragen, lamellerna öppna", dark: "full mörkläggning" },
     hint: "Håll in eller dubbeltryck",
     unavailable: "Persiennen är inte tillgänglig",
+    /** Short text of the bubble at the button; `failed` is the full sentence for screen readers. */
+    failedHint: "Kunde inte skickas",
     failed: (room) => `${room}: persiennskriptet kunde inte startas.`,
   },
 
@@ -121,11 +121,6 @@ export const sv: Texts = {
   chart: {
     now: "Nu",
     yesterday: "igår",
-    temperature: "Temperatur",
-    target: "Måltemperatur",
-    intensity: "Uppvärmning (djupare = mer effekt)",
-    humidity: (range) => `Luftfuktighet ${range}`,
-    night: (from, to) => `Natt ${from}–${to} h`,
   },
 
   summaryChips: {

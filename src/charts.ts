@@ -339,14 +339,7 @@ function climateStripColor(mode: ClimateMode): string {
 
 /** Label of a tick: the time, or the date for ticks a day or more apart ("24. 10."). */
 function tickLabel(tick: number, range: ChartRange, i18n: I18n): string {
-  return tickHours(range) >= 24 ? i18n.day(tick) : i18n.time(tick);
-}
-
-function legendItem(color: string, label: string, kind: "line" | "dashed" | "block" = "block"): TemplateResult {
-  return html`<span class="legend-item">
-    <span class="legend-swatch ${kind}" style=${kind === "block" ? `background: ${color}` : `border-color: ${color}`}></span
-    >${label}
-  </span>`;
+  return tickHours(range) >= 24 ? i18n.day(tick) : i18n.hour(tick);
 }
 
 /** Values under the finger (or now): time, temperature, humidity, Topení and Klimatizace. */
@@ -445,10 +438,6 @@ export function renderRoomChart(
   const scrubX = scrubTime === undefined ? undefined : x(scrubTime);
   const scrubTemperature = scrubTime === undefined ? undefined : valueAt(model.temperature, scrubTime);
   const nights = nightBands(range, model.night);
-  const heatingKinds = (["schedule", "manual", "off"] as const).filter((kind) =>
-    model.heating.some((segment) => segment.value === kind),
-  );
-  const climateModes = [...new Set(model.climate.map((segment) => segment.value as ClimateMode))];
 
   return html`
     ${renderReadout(model, scrubTime, i18n)}
@@ -522,23 +511,6 @@ export function renderRoomChart(
               : svg`<circle cx=${scrubX.toFixed(1)} cy=${yTemp(scrubTemperature).toFixed(1)} r="4"
                   style=${`${fill(COLORS.white)}; ${stroke("var(--kd-sheet-bg)")}`} stroke-width="2"></circle>`}`}
     </svg>
-    <div class="legend">
-      ${legendItem(COLORS.white, t.chart.temperature, "line")}
-      ${model.target.length > 0 ? legendItem(COLORS.plan, t.chart.target, "dashed") : nothing}
-      ${model.intensity.length > 0 ? legendItem(COLORS.warning, t.chart.intensity) : nothing}
-      ${model.humidityMin !== undefined && model.humidityMax !== undefined
-        ? legendItem(
-            COLORS.humidityLine,
-            t.chart.humidity(i18n.percent(`${Math.round(model.humidityMin)}–${Math.round(model.humidityMax)}`)),
-            "dashed",
-          )
-        : nothing}
-      ${nights.length > 0 ? legendItem("var(--kd-night-swatch)", t.chart.night(model.night[0], model.night[1])) : nothing}
-    </div>
-    <div class="legend">
-      ${heatingKinds.map((kind) => legendItem(HEATING_COLORS[kind], `${t.system.heating} ${t.heatingMode[kind]}`))}
-      ${climateModes.map((mode) => legendItem(climateStripColor(mode), `${t.system.climate} ${t.climateMode[mode]}`))}
-    </div>
   `;
 }
 

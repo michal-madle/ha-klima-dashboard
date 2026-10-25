@@ -63,6 +63,24 @@ export function renderPresetIcon(id: BlindIcon): TemplateResult {
   `;
 }
 
+/** Small grey clock behind a stale value ("not reported for a while"); the reading says it in words. */
+export function renderClockIcon(): TemplateResult {
+  return html`
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2.4"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <circle cx="12" cy="12" r="9"></circle>
+      <path d="M12 7v5.2l3.4 2"></path>
+    </svg>
+  `;
+}
+
 /** Topení row icon: three warm waves, `count` of them lit (0–3); dashed when unknown. */
 export function renderHeatingWaves(count: number, dashed: boolean): TemplateResult {
   return html`
