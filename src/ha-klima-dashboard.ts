@@ -2215,6 +2215,7 @@ export class HaKlimaDashboard extends LitElement {
       room.heating?.intensity,
       room.heating?.target,
       room.air_conditioner,
+      ...room.windows.map((window) => window.entity),
     ].filter((entityId): entityId is EntityId => Boolean(entityId));
     const settings = this._config!.history;
     const endMs = Date.now();
