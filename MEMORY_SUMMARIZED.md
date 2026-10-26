@@ -8,3 +8,4 @@
 - Jazyky: karta je česky, švédsky a anglicky podle jazyka Home Assistantu (jinak anglicky); texty jsou v `src/translations/` a každá změna textu upraví všechny tři jazyky najednou.
 - Rozložení: uživatel používá zobrazení Panel (Masonry ne), na monitoru asi 2000 px; sloupce 1 / 2 / 3 / 4 od šířky karty 620 / 1000 / 1400 px, karta nejvýš 2300 px.
 - Formáty: čísla, 12 / 24 h a pořadí dne a měsíce se berou z profilu Home Assistantu (`hass.locale`); PM2.5 0 µg/m³ je čistý vzduch, nikdy „Bez dat“ ani zastaralé.
+- Topení popup: Ručně (posuvník teploty), Boost (pevných 25 °C) a Vypnuto mají dobu trvání jako teplá voda v Tado aplikaci; výchozí Boost 30 min, Ručně do další změny plánu, Vypnuto napořád; Vypnuto na dobu = ruční 5 °C přes `tado_ce.set_climate_timer`; odešle se 2 s po poslední změně.

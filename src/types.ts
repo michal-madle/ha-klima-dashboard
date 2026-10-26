@@ -15,6 +15,8 @@ export interface HomeAssistant {
     service: string,
     serviceData?: Record<string, unknown>,
   ): Promise<unknown>;
+  /** Registered actions by domain; used to see whether an integration (Tado CE) offers an action. */
+  services?: Record<string, Record<string, unknown> | undefined>;
   callWS<T>(message: Record<string, unknown>): Promise<T>;
   /** REST call, e.g. GET states/<entity_id> (whose answer includes last_reported). */
   callApi?<T>(method: "GET" | "POST" | "PUT" | "DELETE", path: string): Promise<T>;

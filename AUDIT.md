@@ -24,7 +24,7 @@ Stav k 23. 10. 2026: všech 16 konfliktů je uzavřeno rozhodnutím uživatele; 
 | 14 | **Stavy**: starší seznam vs. finální seznam. | Finální seznam. |
 | 15 | **Kořenový `DESIGN_HISTORY.md`** tvrdil, že Topení je potvrzeno jen pro Ložnici. | Exporty (potvrzují všech pět místností). |
 | 16 | **WindFree**: spínače `switch.windfree_*` vs. preset `wind_free`. | Preset `wind_free`. |
-| 17 | **Boost u Topení**: uživatel chce ovládání Vypnuto / Plán / Ručně / Boost, ale mechanismus Boostu u integrace Topení (preset `boost`, nebo vlastní služba) není potvrzen. | Karta nabízí Boost jen tehdy, když `climate` entita uvádí `preset_modes` s `boost`; jinak je volba zašedlá. Čeká na ověření atributů entity v Nástroje → Stavy. |
+| 17 | **Boost u Topení**: uživatel chce ovládání Vypnuto / Plán / Ručně / Boost; Tado CE nemá předvolbu `boost` (jen `home` / `away`). | Zdroj integrace Tado CE 4.5.1: Boost je tlačítko (25 °C, 30 min), obecná akce je `tado_ce.set_climate_timer` (`temperature`, `time_period` 15–720 min nebo `overlay`). Karta volá tuto akci: Boost = 25 °C, výchozí 30 min; Vypnuto na dobu = ruční přepis 5 °C (skutečné `off` časovač mít nemůže). Na živé instalaci neověřeno. |
 
 ## 2. Zastaralé informace vhodné ke smazání
 

@@ -136,6 +136,23 @@ export const cs = {
     systems: "Systém",
     notOffered: "entita nenabízí",
     commandFailed: "Příkaz se nepodařilo odeslat.",
+    /** Ovládání Topení: teplota a doba trvání (Ručně, Boost, Vypnuto). */
+    heatControl: {
+      temperature: "Teplota",
+      fixedTemperature: "Pevná teplota",
+      temperatureSlider: "Cílová teplota",
+      duration: "Jak dlouho",
+      durationSlider: "Doba trvání",
+      nextPlan: "Do další změny plánu",
+      untilResumed: "Dokud neobnovíte plán",
+      until: (time: string) => `do ${time}`,
+      offTarget: "Ochrana proti zamrznutí (5 °C)",
+      sendIn: "Odešle se za 2 s",
+      sending: "Odesílám…",
+      sent: "Odesláno",
+      remaining: (time: string) => `Zbývá ${time}`,
+      noTimer: "Dobu nelze nastavit: Tado CE nenabízí časovač.",
+    },
     loading: "Načítám historii…",
     historyFailed: "Historii se nepodařilo načíst.",
     noHistory: (hours: number) =>

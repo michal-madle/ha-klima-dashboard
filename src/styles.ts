@@ -1247,6 +1247,145 @@ export const styles = css`
       opacity: 0.45;
     }
 
+    /* Topení: temperature and duration of Ručně / Boost / Vypnuto (slider of the boiler design). */
+    .heat-control {
+      margin-top: 16px;
+      padding: 12px 14px 8px;
+      border: 1px solid var(--kd-fill-border);
+      border-radius: 16px;
+      background: var(--kd-fill);
+    }
+
+    .heat-control > * + * {
+      margin-top: 12px;
+    }
+
+    .slider-head,
+    .heat-fixed {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .slider-label {
+      color: var(--kd-label);
+      font-size: 13px;
+    }
+
+    .slider-big {
+      font-size: 22px;
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+    }
+
+    .slider-sub {
+      color: var(--kd-label);
+      font-size: 13px;
+      text-align: right;
+    }
+
+    .heat-slider {
+      --track: var(--kd-slider-track, rgb(120 120 128 / 36%));
+      -webkit-appearance: none;
+      appearance: none;
+      display: block;
+      width: 100%;
+      height: 44px;
+      margin: 0;
+      background: transparent;
+      cursor: pointer;
+      touch-action: pan-y;
+    }
+
+    .heat-slider::-webkit-slider-runnable-track {
+      height: 14px;
+      border-radius: 7px;
+      background: linear-gradient(to right, var(--kd-sky) 0%, var(--kd-sky) var(--fill), var(--track) var(--fill), var(--track) 100%);
+    }
+
+    .heat-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 42px;
+      height: 28px;
+      margin-top: -7px;
+      border-radius: 14px;
+      background: #ffffff;
+      box-shadow: 0 2px 8px rgb(0 0 0 / 40%);
+    }
+
+    .heat-slider::-moz-range-track {
+      height: 14px;
+      border-radius: 7px;
+      background: var(--track);
+    }
+
+    .heat-slider::-moz-range-progress {
+      height: 14px;
+      border-radius: 7px;
+      background: var(--kd-sky);
+    }
+
+    .heat-slider::-moz-range-thumb {
+      width: 42px;
+      height: 28px;
+      border: 0;
+      border-radius: 14px;
+      background: #ffffff;
+      box-shadow: 0 2px 8px rgb(0 0 0 / 40%);
+    }
+
+    .heat-slider:focus-visible {
+      outline: none;
+    }
+
+    .heat-slider:focus-visible::-webkit-slider-thumb {
+      box-shadow: 0 0 0 3px var(--kd-sheet-bg), 0 0 0 5px var(--kd-text);
+    }
+
+    .heat-slider:focus-visible::-moz-range-thumb {
+      box-shadow: 0 0 0 3px var(--kd-sheet-bg), 0 0 0 5px var(--kd-text);
+    }
+
+    /* Ticks sit between the centres of the thumb at both ends (thumb width 42 px). */
+    .slider-ticks {
+      display: flex;
+      justify-content: space-between;
+      margin: -4px 21px 0;
+    }
+
+    .slider-ticks span {
+      width: 2px;
+      height: 6px;
+      border-radius: 1px;
+      background: var(--kd-label);
+      opacity: 0.6;
+    }
+
+    .slider-scale {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 2px;
+      color: var(--kd-label);
+      font-size: 12px;
+    }
+
+    .heat-note,
+    .heat-remaining {
+      margin: 8px 0 0;
+      color: var(--kd-label);
+      font-size: 13px;
+    }
+
+    .heat-status {
+      min-height: 16px;
+      margin: 8px 0 0;
+      color: var(--kd-label);
+      font-size: 12px;
+      text-align: right;
+    }
+
     .chips {
       display: flex;
       flex-wrap: wrap;

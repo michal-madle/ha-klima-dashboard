@@ -109,7 +109,7 @@ config.rooms.forEach((room, index) => {
     });
   }
   const heating = room.heating;
-  states[heating.climate] = state("auto", { hvac_modes: ["off", "auto", "heat"], preset_modes: ["none", "boost"], preset_mode: "none" });
+  states[heating.climate] = state("auto", { hvac_modes: ["off", "auto", "heat"], min_temp: 5, max_temp: 25, target_temp_step: 0.5, temperature: 21 });
   states[heating.overlay] = state("Schedule");
   states[heating.target] = state(21);
   states[heating.intensity] = state([20, 0, 60, 0, 90][index]);
@@ -196,6 +196,8 @@ document.documentElement.lang = language;
 const hass = {
   states,
   themes: { darkMode: !light },
+  // Registered actions: Tado CE offers the timer (?timer=none: an installation without it).
+  services: params.get("timer") === "none" ? {} : { tado_ce: { set_climate_timer: {}, resume_schedule: {} } },
   ...(language ? { language, locale: { language } } : {}),
   callService: async (...args) => {
     if (test.failNext) {

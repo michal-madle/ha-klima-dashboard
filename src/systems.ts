@@ -1,3 +1,4 @@
+import { HEATING_OFF_TARGET } from "./heating-control";
 import type { I18n } from "./i18n";
 import type { ClimateMode, DashboardThresholds, HassEntity } from "./types";
 import {
@@ -63,8 +64,12 @@ export function heatingView(
   const climateState = climate?.state.toLowerCase();
   const overlay = overlayEntity?.state.toLowerCase();
   const overlayUnknown = overlay === undefined || isUnavailable(overlay);
-  const off = climateState === "off" || overlay === "off";
   const target = numericState(targetEntity);
+  // Manual at 5 °C is Vypnuto for a limited time (Tado CE timer), shown like any Vypnuto.
+  const off =
+    climateState === "off" ||
+    overlay === "off" ||
+    (overlay === "manual" && target !== undefined && target <= HEATING_OFF_TARGET);
 
   if (off) {
     // Vypnuto never shows the 5 °C frost-protection target.

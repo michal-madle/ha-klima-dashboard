@@ -15,6 +15,24 @@ import {
   renderWindowIcon,
 } from "./icons";
 import type { HeatingOptionId } from "./icons";
+import {
+  BOOST_TEMPERATURE,
+  DURATION_MINUTES,
+  HEATING_OFF_TARGET,
+  HEAT_SEND_MS,
+  NEXT_PLAN,
+  UNTIL_RESUMED,
+  activeHeatingId,
+  defaultDuration,
+  durationMinutes,
+  heatingCommand,
+  manualRange,
+  minutesLabel,
+  numberOf,
+  snapTemperature,
+  temperatureRange,
+} from "./heating-control";
+import type { HeatingControl, HeatingControlMode, ServiceCall } from "./heating-control";
 import { renderScene, sceneTone } from "./scenes";
 import { HOUR_MS, fetchHistory, normalizeToAxis, sampleNumeric, sharedAxis } from "./history";
 import { cardLanguage, getI18n, hassLanguage } from "./i18n";
@@ -108,6 +126,18 @@ interface SheetDrag {
   dragging: boolean;
 }
 
+/** The active Topení option: the choice being set, otherwise what the climate entity reports. */
+function activeHeating(
+  heat: HeatingControl | undefined,
+  entityId: EntityId,
+  entity: HassEntity | undefined,
+): string | undefined {
+  if (heat && heat.entityId === entityId) {
+    return heat.mode === "manual" ? "heat" : heat.mode;
+  }
+  return activeHeatingId(entity);
+}
+
 const CLIMATE_MODE_ORDER = ["off", "cool", "dry", "fan_only", "auto", "heat"];
 
 export class HaKlimaDashboard extends LitElement {
@@ -127,6 +157,15 @@ export class HaKlimaDashboard extends LitElement {
 
   @state()
   private _sheetError?: string;
+
+  /** Topení popup: the Ručně / Boost / Vypnuto choice that is being set and not yet sent. */
+  @state()
+  private _heat?: HeatingControl;
+
+  @state()
+  private _heatStatus?: "pending" | "sending" | "sent";
+
+  private _heatTimer?: number;
 
   /** 24 h room history shown in the "history" popup. */
   @state()
@@ -229,6 +268,7 @@ export class HaKlimaDashboard extends LitElement {
     this._colorScheme?.removeEventListener("change", this.handleColorScheme);
     this._colorScheme = undefined;
     window.removeEventListener("resize", this.handleResize);
+    this.flushHeat();
     for (const timer of [this._pressTimer, this._flashTimer, this._hintTimer, this._hintHideTimer]) {
       window.clearTimeout(timer);
     }
@@ -1495,7 +1535,7 @@ export class HaKlimaDashboard extends LitElement {
     const options = !available || !entityId
       ? []
       : isHeating
-        ? this.heatingOptions(entityId, hvacModes, presetModes, state, preset)
+        ? this.heatingOptions(entityId, hvacModes, activeHeating(this._heat, entityId, entity))
         : this.climateOptions(entityId, hvacModes, state);
     const presets = !isHeating && available && entityId ? presetModes.filter((mode) => mode !== "none") : [];
     const order: Array<"heating" | "climate"> = isSummer ? ["climate", "heating"] : ["heating", "climate"];
@@ -1510,6 +1550,7 @@ export class HaKlimaDashboard extends LitElement {
           : html`<div class="options" role="group" aria-label=${t.sheet.modes(t.system[kind])}>
               ${options.map((option) => this.renderOption(option))}
             </div>`}
+      ${isHeating && available && entityId ? this.renderHeatControl(room, entityId, entity) : nothing}
       ${presets.length > 0
         ? html`<div class="sheet-label" id="preset-label">${t.sheet.presets}</div>
             <div class="chips" role="group" aria-labelledby="preset-label">
@@ -1804,50 +1845,274 @@ export class HaKlimaDashboard extends LitElement {
 
   /**
    * Topení options come from the entity's own `hvac_modes`: Vypnuto (off), Plán (auto) and
-   * Ručně (heat). Boost needs a `boost` preset; without it the option is shown but disabled.
+   * Ručně (heat). Boost (a fixed 25 °C) and the duration of Ručně / Boost / Vypnuto need the
+   * Tado CE action `tado_ce.set_climate_timer`; without it Boost is shown but disabled.
    */
-  private heatingOptions(
-    entityId: EntityId,
-    hvacModes: string[],
-    presetModes: string[],
-    state: string | undefined,
-    preset: string,
-  ): SheetOption[] {
+  private heatingOptions(entityId: EntityId, hvacModes: string[], active: string | undefined): SheetOption[] {
     const options: SheetOption[] = [];
     const labels = this._i18n.t.heatingMode;
+    const timer = this.timerAvailable();
     const add = (
       id: HeatingOptionId,
       label: string,
       color: string,
-      active: boolean,
       run: () => Promise<void>,
       unsupported?: string,
     ): void => {
-      options.push({ id, label, icon: renderHeatingOptionIcon(id), color, active, run, unsupported });
+      options.push({ id, label, icon: renderHeatingOptionIcon(id), color, active: active === id, run, unsupported });
     };
     if (hvacModes.includes("off")) {
-      add("off", labels.off, COLORS.off, state === "off", () => this.setHvacMode(entityId, "off"));
+      add("off", labels.off, COLORS.off, () => this.chooseHeating(entityId, "off"));
     }
     if (hvacModes.includes("auto")) {
-      add("auto", labels.schedule, COLORS.plan, state === "auto", () => this.setHvacMode(entityId, "auto"));
+      add("auto", labels.schedule, COLORS.plan, async () => {
+        this.cancelHeat();
+        await this.callCommand(heatingCommand(entityId, "plan", timer));
+      });
     }
     if (hvacModes.includes("heat")) {
-      add("heat", labels.manual, COLORS.warning, state === "heat" && preset !== "boost", () =>
-        this.setHvacMode(entityId, "heat"),
-      );
+      add("heat", labels.manual, COLORS.warning, () => this.chooseHeating(entityId, "manual"));
     }
     if (options.length > 0) {
-      const boost = presetModes.includes("boost");
       add(
         "boost",
         labels.boost,
         COLORS.alert,
-        boost && preset === "boost" && state !== "off",
-        () => this.setPresetMode(entityId, "boost"),
-        boost ? undefined : this._i18n.t.sheet.notOffered,
+        () => this.chooseHeating(entityId, "boost"),
+        timer ? undefined : this._i18n.t.sheet.notOffered,
       );
     }
     return options;
+  }
+
+  /** The Tado CE timer action exists in this Home Assistant (Home Assistant lists the registered actions). */
+  private timerAvailable(): boolean {
+    return Boolean(this.hass?.services?.tado_ce?.set_climate_timer);
+  }
+
+  /**
+   * Ručně, Boost and Vypnuto open the temperature and duration controls and send after
+   * `HEAT_SEND_MS` without a further change (like the boiler: "odešle se za 2 s"). Vypnuto without
+   * a timer action has nothing to set and is sent at once.
+   */
+  private async chooseHeating(entityId: EntityId, mode: HeatingControlMode): Promise<void> {
+    const timer = this.timerAvailable();
+    const room = this._sheet?.room;
+    if (!room) {
+      return;
+    }
+    if (mode === "off" && !timer) {
+      this.cancelHeat();
+      await this.callCommand(
+        heatingCommand(entityId, { room: room.name, entityId, mode, temperature: HEATING_OFF_TARGET, duration: UNTIL_RESUMED }, false),
+      );
+      return;
+    }
+    if (this._heat?.entityId === entityId && this._heat.mode === mode) {
+      return;
+    }
+    const range = manualRange(temperatureRange(this.getState(entityId)));
+    const current = numberOf(this.getState(entityId)?.attributes.temperature);
+    const usable = current !== undefined && current >= range.min && current < BOOST_TEMPERATURE;
+    this._heat = {
+      room: room.name,
+      entityId,
+      mode,
+      temperature: snapTemperature(usable ? current : 21, range),
+      duration: defaultDuration(mode),
+    };
+    this.scheduleHeat();
+  }
+
+  private scheduleHeat(): void {
+    window.clearTimeout(this._heatTimer);
+    this._heatStatus = "pending";
+    this._heatTimer = window.setTimeout(() => void this.sendHeat(), HEAT_SEND_MS);
+  }
+
+  private cancelHeat(): void {
+    window.clearTimeout(this._heatTimer);
+    this._heatTimer = undefined;
+    this._heat = undefined;
+    this._heatStatus = undefined;
+  }
+
+  /** A choice that is still waiting for its 2 s is sent when the popup closes, not lost. */
+  private flushHeat(): void {
+    if (this._heatTimer !== undefined) {
+      void this.sendHeat();
+    }
+  }
+
+  private async sendHeat(): Promise<void> {
+    window.clearTimeout(this._heatTimer);
+    this._heatTimer = undefined;
+    const heat = this._heat;
+    if (!heat) {
+      return;
+    }
+    this._heatStatus = "sending";
+    await this.runSheetAction(() => this.callCommand(heatingCommand(heat.entityId, heat, this.timerAvailable())));
+    if (this._heatTimer === undefined && this._heat) {
+      this._heatStatus = this._sheetError ? undefined : "sent";
+    }
+  }
+
+  private async callCommand(command: ServiceCall | undefined): Promise<void> {
+    if (!this.hass) {
+      throw new Error("Home Assistant is not connected.");
+    }
+    if (!command) {
+      throw new Error("Klima Dashboard: the heating choice has no Home Assistant action.");
+    }
+    await this.hass.callService(command.domain, command.service, command.data);
+  }
+
+  private setHeatTemperature(value: number): void {
+    if (this._heat && this._heat.mode === "manual") {
+      const range = manualRange(temperatureRange(this.getState(this._heat.entityId)));
+      this._heat = { ...this._heat, temperature: snapTemperature(value, range) };
+      this.scheduleHeat();
+    }
+  }
+
+  private setHeatDuration(index: number): void {
+    if (this._heat) {
+      const duration = Math.min(UNTIL_RESUMED, Math.max(0, Math.round(index)));
+      this._heat = { ...this._heat, duration };
+      this.scheduleHeat();
+    }
+  }
+
+  /** Remaining time of a timer overlay, from the overlay sensor, while Ručně / Boost / Vypnuto runs. */
+  private heatRemaining(room: Room, entity: HassEntity | undefined): string | undefined {
+    const active = activeHeatingId(entity);
+    if (active === undefined || active === "auto" || this._heat) {
+      return undefined;
+    }
+    const seconds = numberOf(this.getState(room.heating?.overlay)?.attributes.overlay_remaining_seconds);
+    return seconds !== undefined && seconds > 0
+      ? this._i18n.t.sheet.heatControl.remaining(minutesLabel(Math.ceil(seconds / 60)))
+      : undefined;
+  }
+
+  private renderHeatControl(room: Room, entityId: EntityId, entity: HassEntity | undefined): TemplateResult | typeof nothing {
+    const heat = this._heat;
+    const c = this._i18n.t.sheet.heatControl;
+    if (!heat || heat.entityId !== entityId) {
+      const remaining = this.heatRemaining(room, entity);
+      return remaining ? html`<p class="heat-remaining">${remaining}</p>` : nothing;
+    }
+    const i18n = this._i18n;
+    const timer = this.timerAvailable();
+    const manual = manualRange(temperatureRange(entity));
+    const minutes = durationMinutes(heat.duration);
+    const unit = `${NBSP}°C`;
+    const status = this._heatStatus === "pending" ? c.sendIn : this._heatStatus === "sending" ? c.sending : this._heatStatus === "sent" ? c.sent : "";
+
+    const temperature =
+      heat.mode === "manual"
+        ? this.renderSlider({
+            id: "heat-temperature",
+            label: c.temperature,
+            ariaLabel: c.temperatureSlider,
+            value: heat.temperature,
+            min: manual.min,
+            max: manual.max,
+            step: manual.step,
+            big: `${i18n.half(heat.temperature)}${unit}`,
+            sub: "",
+            minLabel: `${i18n.half(manual.min)}${unit}`,
+            maxLabel: `${i18n.half(manual.max)}${unit}`,
+            ticks: Math.round(manual.max - manual.min) + 1,
+            onInput: (value) => this.setHeatTemperature(value),
+          })
+        : heat.mode === "boost"
+          ? html`<div class="heat-fixed">
+              <span class="slider-label">${c.fixedTemperature}</span>
+              <span class="slider-big">${i18n.half(BOOST_TEMPERATURE)}${unit}</span>
+            </div>`
+          : nothing;
+
+    const durationBig =
+      minutes !== undefined ? minutesLabel(minutes) : heat.duration === NEXT_PLAN ? c.nextPlan : c.untilResumed;
+    const durationSub = minutes !== undefined ? c.until(i18n.time(Date.now() + minutes * 60_000)) : "";
+    const duration = timer
+      ? this.renderSlider({
+          id: "heat-duration",
+          label: c.duration,
+          ariaLabel: c.durationSlider,
+          value: heat.duration,
+          min: 0,
+          max: UNTIL_RESUMED,
+          step: 1,
+          big: durationBig,
+          sub: durationSub,
+          minLabel: minutesLabel(DURATION_MINUTES[0]),
+          maxLabel: "∞",
+          ticks: UNTIL_RESUMED + 1,
+          valueText: durationSub ? `${durationBig}, ${durationSub}` : durationBig,
+          onInput: (value) => this.setHeatDuration(value),
+        })
+      : heat.mode === "manual"
+        ? html`<p class="sheet-message">${c.noTimer}</p>`
+        : nothing;
+
+    return html`
+      <div class="heat-control" role="group" aria-label=${i18n.t.heatingMode[heat.mode]}>
+        ${temperature}
+        ${heat.mode === "off" && timer && heat.duration !== UNTIL_RESUMED ? html`<p class="heat-note">${c.offTarget}</p>` : nothing}
+        ${duration}
+        <p class="heat-status" role="status">${status}</p>
+      </div>
+    `;
+  }
+
+  /** The slider of the boiler design: label, big value, native range input (keyboard, screen reader), ticks, min / max. */
+  private renderSlider(options: {
+    id: string;
+    label: string;
+    ariaLabel: string;
+    value: number;
+    min: number;
+    max: number;
+    step: number;
+    big: string;
+    sub: string;
+    minLabel: string;
+    maxLabel: string;
+    ticks: number;
+    valueText?: string;
+    onInput: (value: number) => void;
+  }): TemplateResult {
+    const span = options.max - options.min;
+    const fill = span > 0 ? ((options.value - options.min) / span) * 100 : 0;
+    return html`
+      <div class="slider-block">
+        <div class="slider-head">
+          <span class="slider-label">${options.label}</span>
+          <span class="slider-big">${options.big}</span>
+        </div>
+        ${options.sub ? html`<div class="slider-sub">${options.sub}</div>` : nothing}
+        <input
+          class="heat-slider"
+          id=${options.id}
+          type="range"
+          min=${options.min}
+          max=${options.max}
+          step=${options.step}
+          .value=${String(options.value)}
+          aria-label=${options.ariaLabel}
+          aria-valuetext=${options.valueText ?? options.big}
+          style=${`--fill: ${fill}%`}
+          @input=${(event: Event) => options.onInput(Number((event.currentTarget as HTMLInputElement).value))}
+        />
+        <div class="slider-ticks" aria-hidden="true">
+          ${Array.from({ length: Math.max(2, options.ticks) }, () => html`<span></span>`)}
+        </div>
+        <div class="slider-scale" aria-hidden="true"><span>${options.minLabel}</span><span>${options.maxLabel}</span></div>
+      </div>
+    `;
   }
 
   private climateOptions(entityId: EntityId, hvacModes: string[], state: string | undefined): SheetOption[] {
@@ -1938,6 +2203,9 @@ export class HaKlimaDashboard extends LitElement {
   /** Segmented control in the HVAC popup: switch between Topení and Klimatizace. */
   private switchSheet(kind: "heating" | "climate"): void {
     if (this._sheet && this._sheet.kind !== kind) {
+      this.flushHeat();
+      this._heat = undefined;
+      this._heatStatus = undefined;
       this._sheetError = undefined;
       this._sheet = { kind, room: this._sheet.room };
     }
@@ -1945,6 +2213,9 @@ export class HaKlimaDashboard extends LitElement {
 
   private closeSheet(restoreFocus = true): void {
     window.removeEventListener("resize", this.handleResize);
+    this.flushHeat();
+    this._heat = undefined;
+    this._heatStatus = undefined;
     this._historyRequest += 1;
     this._sheet = undefined;
     this._sheetError = undefined;

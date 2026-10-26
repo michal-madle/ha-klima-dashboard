@@ -1,5 +1,6 @@
 import { html, nothing, svg } from "lit";
 import type { TemplateResult } from "lit";
+import { HEATING_OFF_TARGET } from "./heating-control";
 import { HOUR_MS, buildSegments, numericSeries } from "./history";
 import type { HistoryMap, Segment } from "./history";
 import type { I18n } from "./i18n";
@@ -43,8 +44,6 @@ const FONT = 11;
 const INTENSITY_OPACITY = [0, 0.24, 0.44, 0.68];
 const CLIP_ID = "history-under-temperature";
 const PLOT_CLIP_ID = "history-plot";
-/** Target (°C) Tado reports while the heating is off; never drawn or read as a target. */
-const HEATING_OFF_TARGET = 5;
 
 const HEATING_COLORS: Record<string, string> = {
   schedule: COLORS.plan,
@@ -81,9 +80,18 @@ export interface RoomChartModel {
   night: [number, number];
 }
 
-function heatingMode(overlay: string | undefined, climate: string | undefined): string | undefined {
+/** Manual at the frost-protection target is Vypnuto for a limited time (a 5 °C timer), not Ručně. */
+function heatingMode(
+  overlay: string | undefined,
+  climate: string | undefined,
+  target?: number,
+): string | undefined {
   const overlayState = overlay?.toLowerCase();
-  if (climate?.toLowerCase() === "off" || overlayState === "off") {
+  if (
+    climate?.toLowerCase() === "off" ||
+    overlayState === "off" ||
+    (overlayState === "manual" && target !== undefined && target <= HEATING_OFF_TARGET)
+  ) {
     return "off";
   }
   return overlayState === "schedule" || overlayState === "manual" ? overlayState : undefined;
@@ -150,13 +158,18 @@ export function buildRoomChart(
 
   const temperature = numericSeries(series(room.temperature), startMs, endMs);
   const humidity = numericSeries(series(room.humidity), startMs, endMs);
-  const heating = buildSegments([overlay, heatingClimate], startMs, endMs, ([o, c]) => heatingMode(o, c));
-  const intensity = buildSegments(
-    [overlay, heatingClimate, series(room.heating?.intensity)],
+  const heating = buildSegments(
+    [overlay, heatingClimate, series(room.heating?.target)],
     startMs,
     endMs,
-    ([o, c, value]) => {
-      const mode = heatingMode(o, c);
+    ([o, c, value]) => heatingMode(o, c, finite(value)),
+  );
+  const intensity = buildSegments(
+    [overlay, heatingClimate, series(room.heating?.intensity), series(room.heating?.target)],
+    startMs,
+    endMs,
+    ([o, c, value, targetValue]) => {
+      const mode = heatingMode(o, c, finite(targetValue));
       const waves = heatingWaveCount(finite(value), room.thresholds);
       return mode === undefined || mode === "off" || waves === 0 ? undefined : String(waves);
     },
@@ -166,8 +179,8 @@ export function buildRoomChart(
     startMs,
     endMs,
     ([o, c, value]) => {
-      const mode = heatingMode(o, c);
       const number = finite(value);
+      const mode = heatingMode(o, c, number);
       // Vypnuto wins over any target (CURRENT_SPEC.md, Topení). Tado reports 5 °C while off, and the
       // target entity changes a moment before or after the mode entities do, which would leave a
       // sliver of "Plán · 5 °C" at every switch; 5 °C is therefore never a target.
