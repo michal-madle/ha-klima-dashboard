@@ -2327,6 +2327,35 @@ test.describe("historie místnosti: pruhy Topení, Klimatizace a okna pod grafem
     }
   });
 
+  test("Vypnuto má v historii stejnou barvu u Topení i Klimatizace (tmavší šedá), v tmavém i světlém vzhledu", async ({ page }) => {
+    for (const theme of ["dark", "light"] as const) {
+      await open(page, "full", 393, 852, theme);
+      await page.evaluate(() => {
+        // @ts-expect-error test hook
+        const test = window.__test;
+        const room = test.config.rooms[0];
+        const now = Date.now() / 1000;
+        const off = [{ s: "off", lu: now - 10 * 3600 }];
+        test.historyFor = (entity: string) => (entity === room.heating.climate || entity === room.air_conditioner ? off : undefined);
+      });
+      await rooms(page).first().locator(".temperature").click();
+      await expect(page.locator("svg.chart")).toBeVisible();
+      const fills = await page.evaluate(() => {
+        const svg = document.querySelector("ha-klima-dashboard")!.shadowRoot!.querySelector("svg.chart")!;
+        const fillOf = (row: string) => {
+          // Rects of a row: the track, the bars of the periods, the fade around the icon; the last bar is the "off" one.
+          const bars = [...svg.querySelectorAll(`.strip-row.${row} > rect`)].slice(1, -1);
+          const bar = bars[bars.length - 1];
+          return bar ? getComputedStyle(bar).fill : "";
+        };
+        return { heating: fillOf("heating"), climate: fillOf("climate") };
+      });
+      expect(fills.heating, `${theme}: Topení Vypnuto`).not.toBe("");
+      expect(fills.climate, `${theme}: Klimatizace Vypnuto`).toBe(fills.heating);
+      await closePopup(page);
+    }
+  });
+
   test("bez otevřeného okna v historii není žádný modrý úsek, bez oken v konfiguraci není řádek oken", async ({ page }) => {
     await open(page);
     await rooms(page).first().locator(".temperature").click();

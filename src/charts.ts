@@ -360,9 +360,9 @@ function tickAnchor(x: number, left: number, right: number): { x: number; anchor
   return { x, anchor: "middle" };
 }
 
-/** In the light theme a switched-off air conditioner is a light strip, like Topení Vypnuto. */
+/** A switched-off air conditioner is the same strip as Topení Vypnuto (`HEATING_COLORS.off`). */
 function climateStripColor(mode: ClimateMode): string {
-  return mode === "off" ? "var(--kd-strip-off)" : CLIMATE_COLORS[mode] ?? COLORS.off;
+  return mode === "off" ? HEATING_COLORS.off : CLIMATE_COLORS[mode] ?? COLORS.off;
 }
 
 /** Label of a tick: the time, or the date for ticks a day or more apart ("24. 10."). */
@@ -407,7 +407,7 @@ function renderReadout(model: RoomChartModel, time: number | undefined, i18n: I1
         <span class="readout-hum">${humidity === undefined ? "" : i18n.percent(Math.round(humidity))}</span>
       </div>
       <div class="readout-systems">
-        <span class="readout-system" style=${`color: ${heating ? HEATING_COLORS[heating] : COLORS.label}`}>
+        <span class="readout-system" style=${`color: ${heating === "off" ? COLORS.off : heating ? HEATING_COLORS[heating] : COLORS.label}`}>
           <span class="readout-icon">${renderHeatingWaves(heating && heating !== "off" ? waves : 0, heating === undefined)}</span>
           ${t.system.heating} ${heatingText}
         </span>

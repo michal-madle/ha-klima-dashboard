@@ -15,7 +15,6 @@ export const styles = css`
       --kd-neutral: #c7c7cc;
       --kd-plan: #f2f2f7;
       --kd-closed: #6b6b70;
-      --kd-strip-off: #8e8e93;
       --kd-warning: #ff9f0a;
       --kd-alert: #ff453a;
       --kd-alert-popup: #ff6961;
@@ -68,7 +67,6 @@ export const styles = css`
       --kd-neutral: #48484a;
       --kd-plan: #3a3a3c;
       --kd-closed: #c7c7cc;
-      --kd-strip-off: #d1d1d6;
       --kd-warning: #a85200;
       --kd-alert: #c4001a;
       --kd-alert-popup: #c4001a;
