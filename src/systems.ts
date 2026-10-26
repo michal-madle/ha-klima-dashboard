@@ -1,4 +1,4 @@
-import { HEATING_OFF_TARGET } from "./heating-control";
+import { BOOST_TEMPERATURE, HEATING_OFF_TARGET } from "./heating-control";
 import type { I18n } from "./i18n";
 import type { ClimateMode, DashboardThresholds, HassEntity } from "./types";
 import {
@@ -27,6 +27,8 @@ export interface SystemView {
 export interface HeatingView extends SystemView {
   /** Plán / Ručně / Vypnuto, from the overlay sensor. */
   overlay?: "schedule" | "manual" | "off";
+  /** The schedule is overridden: Ručně, or Boost (a manual 25 °C); undefined for Plán and Vypnuto. */
+  override?: "manual" | "boost";
   /** Heating intensity as 0–3 waves. */
   waves: number;
 }
@@ -83,7 +85,8 @@ export function heatingView(
     return { label: labels.schedule, color: COLORS.plan, active: true, extra: targetText(target, i18n), unknown: false, overlay: "schedule", waves };
   }
   if (overlay === "manual") {
-    return { label: labels.manual, color: COLORS.warning, active: true, extra: targetText(target, i18n), unknown: false, overlay: "manual", waves };
+    const override = target === BOOST_TEMPERATURE ? "boost" : "manual";
+    return { label: labels.manual, color: COLORS.warning, active: true, extra: targetText(target, i18n), unknown: false, overlay: "manual", override, waves };
   }
   return { label: overlayEntity?.state ?? "––", color: COLORS.warning, active: true, extra: "", unknown: false, waves };
 }

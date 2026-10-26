@@ -19,10 +19,10 @@ import {
   BOOST_TEMPERATURE,
   DURATION_MINUTES,
   HEATING_OFF_TARGET,
-  HEAT_SEND_MS,
   NEXT_PLAN,
   UNTIL_RESUMED,
   activeHeatingId,
+  currentHeatingControl,
   defaultDuration,
   durationMinutes,
   heatingCommand,
@@ -126,16 +126,9 @@ interface SheetDrag {
   dragging: boolean;
 }
 
-/** The active Topení option: the choice being set, otherwise what the climate entity reports. */
-function activeHeating(
-  heat: HeatingControl | undefined,
-  entityId: EntityId,
-  entity: HassEntity | undefined,
-): string | undefined {
-  if (heat && heat.entityId === entityId) {
-    return heat.mode === "manual" ? "heat" : heat.mode;
-  }
-  return activeHeatingId(entity);
+/** The active Topení option id, from the controls (the person's change, otherwise the entity's state). */
+function activeHeating(control: HeatingControl | undefined): string | undefined {
+  return control === undefined ? undefined : control.mode === "manual" ? "heat" : control.mode === "plan" ? "auto" : control.mode;
 }
 
 const CLIMATE_MODE_ORDER = ["off", "cool", "dry", "fan_only", "auto", "heat"];
@@ -158,14 +151,9 @@ export class HaKlimaDashboard extends LitElement {
   @state()
   private _sheetError?: string;
 
-  /** Topení popup: the Ručně / Boost / Vypnuto choice that is being set and not yet sent. */
+  /** Topení popup: what the person has changed; it is sent when the popup closes. Undefined = no change. */
   @state()
   private _heat?: HeatingControl;
-
-  @state()
-  private _heatStatus?: "pending" | "sending" | "sent";
-
-  private _heatTimer?: number;
 
   /** 24 h room history shown in the "history" popup. */
   @state()
@@ -179,6 +167,8 @@ export class HaKlimaDashboard extends LitElement {
   private _scrubTime?: number;
   /** Where the finger touched the popup (clientY), to tell the direction of a drag. */
   private _touchY?: number;
+
+  private _touchOnSlider = false;
 
   /** Pull-down offset of the open popup in px. */
   @state()
@@ -568,7 +558,7 @@ export class HaKlimaDashboard extends LitElement {
         style=${image?.kind === "scene" ? `--scene-tone: ${sceneTone(image.scene)}` : nothing}
       >
         ${this.renderImage(room)}
-        ${this.renderTitle(room, index)}
+        ${this.renderTitle(room, index, roomHeating(room, (entityId) => this.getState(entityId), this._i18n).override)}
         <div class="status-line">
           <span
             class="status-dot"
@@ -651,10 +641,18 @@ export class HaKlimaDashboard extends LitElement {
   }
 
   /** Room name; with `link` a button that opens the page or address (CURRENT_SPEC.md, Room Card). */
-  private renderTitle(room: Room, index: number): TemplateResult {
+  private renderTitle(room: Room, index: number, override?: "manual" | "boost"): TemplateResult {
     const link = room.link;
+    // Heating schedule overridden (Ručně, Boost): the small icon of that mode after the name. Plán and Vypnuto show none.
+    const mark = override
+      ? html`<span class="room-override" style=${`color: ${override === "boost" ? COLORS.alert : COLORS.warning}`} aria-hidden="true"
+          >${renderHeatingOptionIcon(override === "boost" ? "boost" : "heat")}</span
+        >`
+      : nothing;
     if (!link) {
-      return html`<div class="room-title">${room.name}</div>`;
+      return override
+        ? html`<div class="room-title has-override"><span class="room-name">${room.name}</span>${mark}</div>`
+        : html`<div class="room-title">${room.name}</div>`;
     }
     const descriptionId = `link-description-${index}`;
     return html`
@@ -664,7 +662,7 @@ export class HaKlimaDashboard extends LitElement {
         aria-describedby=${descriptionId}
         @click=${() => this.openLink(link)}
       >
-        <span class="room-name">${room.name}</span><span class="room-chevron" aria-hidden="true">›</span>
+        <span class="room-name">${room.name}</span>${mark}<span class="room-chevron" aria-hidden="true">›</span>
       </button>
       <span class="sr-only" id=${descriptionId}>${link.startsWith("/") ? this._i18n.t.link.page : this._i18n.t.link.web}</span>
     `;
@@ -1535,22 +1533,26 @@ export class HaKlimaDashboard extends LitElement {
     const options = !available || !entityId
       ? []
       : isHeating
-        ? this.heatingOptions(entityId, hvacModes, activeHeating(this._heat, entityId, entity))
+        ? this.heatingOptions(entityId, hvacModes, activeHeating(this.heatControl(room, entityId, entity)))
         : this.climateOptions(entityId, hvacModes, state);
     const presets = !isHeating && available && entityId ? presetModes.filter((mode) => mode !== "none") : [];
     const order: Array<"heating" | "climate"> = isSummer ? ["climate", "heating"] : ["heating", "climate"];
     const both = Boolean(room.heating?.climate) && Boolean(room.air_conditioner);
     const { t } = this._i18n;
 
+    const unsupported = options.filter((option) => option.unsupported).map((option) => `${option.label}: ${option.unsupported}`);
     const body = html`
       ${!available
         ? html`<p class="sheet-message">${t.sheet.entityUnavailable}</p>`
         : options.length === 0
           ? html`<p class="sheet-message">${t.sheet.noModes}</p>`
-          : html`<div class="options" role="group" aria-label=${t.sheet.modes(t.system[kind])}>
-              ${options.map((option) => this.renderOption(option))}
-            </div>`}
-      ${isHeating && available && entityId ? this.renderHeatControl(room, entityId, entity) : nothing}
+          : html`${isHeating && entityId ? this.renderHeatControl(room, entityId, entity) : nothing}
+              <div class="options ${isHeating ? "icon-options" : ""}" role="group" aria-label=${t.sheet.modes(t.system[kind])}>
+                ${options.map((option) => this.renderOption(option))}
+              </div>
+              ${isHeating
+                ? html`<p class="heat-note" role="status">${this.heatNote(room, entityId, entity, unsupported)}</p>`
+                : nothing}`}
       ${presets.length > 0
         ? html`<div class="sheet-label" id="preset-label">${t.sheet.presets}</div>
             <div class="chips" role="group" aria-labelledby="preset-label">
@@ -1575,7 +1577,9 @@ export class HaKlimaDashboard extends LitElement {
       return html`<div class="sheet-label system-name">${t.system[kind]}</div>${body}`;
     }
     // ARIA tabs: arrows / Home / End switch the system, only the selected tab is in the Tab order.
+    // The switch is at the bottom, so it stays where it is when the controls above it change size.
     return html`
+      <div class="hvac-panel" role="tabpanel" id="hvac-panel" aria-labelledby=${`tab-${kind}`}>${body}</div>
       <div
         class="segmented"
         role="tablist"
@@ -1598,7 +1602,6 @@ export class HaKlimaDashboard extends LitElement {
           </button>`,
         )}
       </div>
-      <div class="hvac-panel" role="tabpanel" id="hvac-panel" aria-labelledby=${`tab-${kind}`}>${body}</div>
     `;
   }
 
@@ -1735,9 +1738,14 @@ export class HaKlimaDashboard extends LitElement {
    */
   private sheetTouchStart = (event: TouchEvent): void => {
     this._touchY = event.touches[0]?.clientY;
+    // A finger on a slider (range input) drags the slider: cancelling its moves would freeze it (iOS).
+    this._touchOnSlider = event.composedPath().some((node) => node instanceof HTMLInputElement && node.type === "range");
   };
 
   private sheetTouchMove = (event: TouchEvent): void => {
+    if (this._touchOnSlider) {
+      return;
+    }
     if (event.cancelable && this.sheetCannotScroll(event, (event.touches[0]?.clientY ?? 0) - (this._touchY ?? 0))) {
       event.preventDefault();
     }
@@ -1847,6 +1855,7 @@ export class HaKlimaDashboard extends LitElement {
    * Topení options come from the entity's own `hvac_modes`: Vypnuto (off), Plán (auto) and
    * Ručně (heat). Boost (a fixed 25 °C) and the duration of Ručně / Boost / Vypnuto need the
    * Tado CE action `tado_ce.set_climate_timer`; without it Boost is shown but disabled.
+   * A choice is applied when the popup closes.
    */
   private heatingOptions(entityId: EntityId, hvacModes: string[], active: string | undefined): SheetOption[] {
     const options: SheetOption[] = [];
@@ -1856,31 +1865,30 @@ export class HaKlimaDashboard extends LitElement {
       id: HeatingOptionId,
       label: string,
       color: string,
-      run: () => Promise<void>,
+      mode: HeatingControlMode,
       unsupported?: string,
     ): void => {
-      options.push({ id, label, icon: renderHeatingOptionIcon(id), color, active: active === id, run, unsupported });
+      options.push({
+        id,
+        label,
+        icon: renderHeatingOptionIcon(id),
+        color,
+        active: active === id,
+        run: () => this.chooseHeating(entityId, mode),
+        unsupported,
+      });
     };
     if (hvacModes.includes("off")) {
-      add("off", labels.off, COLORS.off, () => this.chooseHeating(entityId, "off"));
+      add("off", labels.off, COLORS.off, "off");
     }
     if (hvacModes.includes("auto")) {
-      add("auto", labels.schedule, COLORS.plan, async () => {
-        this.cancelHeat();
-        await this.callCommand(heatingCommand(entityId, "plan", timer));
-      });
+      add("auto", labels.schedule, COLORS.plan, "plan");
     }
     if (hvacModes.includes("heat")) {
-      add("heat", labels.manual, COLORS.warning, () => this.chooseHeating(entityId, "manual"));
+      add("heat", labels.manual, COLORS.warning, "manual");
     }
     if (options.length > 0) {
-      add(
-        "boost",
-        labels.boost,
-        COLORS.alert,
-        () => this.chooseHeating(entityId, "boost"),
-        timer ? undefined : this._i18n.t.sheet.notOffered,
-      );
+      add("boost", labels.boost, COLORS.alert, "boost", timer ? undefined : this._i18n.t.sheet.notOffered);
     }
     return options;
   }
@@ -1890,71 +1898,50 @@ export class HaKlimaDashboard extends LitElement {
     return Boolean(this.hass?.services?.tado_ce?.set_climate_timer);
   }
 
-  /**
-   * Ručně, Boost and Vypnuto open the temperature and duration controls and send after
-   * `HEAT_SEND_MS` without a further change (like the boiler: "odešle se za 2 s"). Vypnuto without
-   * a timer action has nothing to set and is sent at once.
-   */
+  /** What the controls show: the person's change, otherwise what the climate entity reports. */
+  private heatControl(room: Room, entityId: EntityId, entity: HassEntity | undefined): HeatingControl | undefined {
+    return this._heat?.entityId === entityId ? this._heat : currentHeatingControl(room.name, entityId, entity);
+  }
+
+  /** Choosing the mode the entity already has drops the change; otherwise it waits for the popup to close. */
   private async chooseHeating(entityId: EntityId, mode: HeatingControlMode): Promise<void> {
-    const timer = this.timerAvailable();
     const room = this._sheet?.room;
     if (!room) {
       return;
     }
-    if (mode === "off" && !timer) {
-      this.cancelHeat();
-      await this.callCommand(
-        heatingCommand(entityId, { room: room.name, entityId, mode, temperature: HEATING_OFF_TARGET, duration: UNTIL_RESUMED }, false),
-      );
+    const entity = this.getState(entityId);
+    const current = currentHeatingControl(room.name, entityId, entity);
+    if (current?.mode === mode) {
+      this._heat = undefined;
       return;
     }
-    if (this._heat?.entityId === entityId && this._heat.mode === mode) {
-      return;
-    }
-    const range = manualRange(temperatureRange(this.getState(entityId)));
-    const current = numberOf(this.getState(entityId)?.attributes.temperature);
-    const usable = current !== undefined && current >= range.min && current < BOOST_TEMPERATURE;
+    const base = this.heatControl(room, entityId, entity);
     this._heat = {
       room: room.name,
       entityId,
       mode,
-      temperature: snapTemperature(usable ? current : 21, range),
+      temperature: base?.temperature ?? 21,
       duration: defaultDuration(mode),
     };
-    this.scheduleHeat();
   }
 
-  private scheduleHeat(): void {
-    window.clearTimeout(this._heatTimer);
-    this._heatStatus = "pending";
-    this._heatTimer = window.setTimeout(() => void this.sendHeat(), HEAT_SEND_MS);
-  }
-
-  private cancelHeat(): void {
-    window.clearTimeout(this._heatTimer);
-    this._heatTimer = undefined;
-    this._heat = undefined;
-    this._heatStatus = undefined;
-  }
-
-  /** A choice that is still waiting for its 2 s is sent when the popup closes, not lost. */
+  /** Sends the change made in the popup (closing, switching to Klimatizace, leaving for the detail). */
   private flushHeat(): void {
-    if (this._heatTimer !== undefined) {
-      void this.sendHeat();
-    }
-  }
-
-  private async sendHeat(): Promise<void> {
-    window.clearTimeout(this._heatTimer);
-    this._heatTimer = undefined;
     const heat = this._heat;
     if (!heat) {
       return;
     }
-    this._heatStatus = "sending";
-    await this.runSheetAction(() => this.callCommand(heatingCommand(heat.entityId, heat, this.timerAvailable())));
-    if (this._heatTimer === undefined && this._heat) {
-      this._heatStatus = this._sheetError ? undefined : "sent";
+    this._heat = undefined;
+    void this.applyHeat(heat);
+  }
+
+  private async applyHeat(heat: HeatingControl): Promise<void> {
+    try {
+      await this.callCommand(heatingCommand(heat.entityId, heat, this.timerAvailable()));
+    } catch (error) {
+      // The popup is gone: a failure is a haptic "failure" and the console.
+      console.error("Klima Dashboard: the heating command failed", error);
+      this.haptic("failure");
     }
   }
 
@@ -1968,47 +1955,39 @@ export class HaKlimaDashboard extends LitElement {
     await this.hass.callService(command.domain, command.service, command.data);
   }
 
-  private setHeatTemperature(value: number): void {
-    if (this._heat && this._heat.mode === "manual") {
-      const range = manualRange(temperatureRange(this.getState(this._heat.entityId)));
-      this._heat = { ...this._heat, temperature: snapTemperature(value, range) };
-      this.scheduleHeat();
+  private editHeat(room: Room, entityId: EntityId, change: Partial<HeatingControl>): void {
+    const base = this.heatControl(room, entityId, this.getState(entityId));
+    if (base) {
+      this._heat = { ...base, ...change };
     }
   }
 
-  private setHeatDuration(index: number): void {
-    if (this._heat) {
-      const duration = Math.min(UNTIL_RESUMED, Math.max(0, Math.round(index)));
-      this._heat = { ...this._heat, duration };
-      this.scheduleHeat();
-    }
-  }
-
-  /** Remaining time of a timer overlay, from the overlay sensor, while Ručně / Boost / Vypnuto runs. */
-  private heatRemaining(room: Room, entity: HassEntity | undefined): string | undefined {
-    const active = activeHeatingId(entity);
-    if (active === undefined || active === "auto" || this._heat) {
-      return undefined;
-    }
-    const seconds = numberOf(this.getState(room.heating?.overlay)?.attributes.overlay_remaining_seconds);
-    return seconds !== undefined && seconds > 0
-      ? this._i18n.t.sheet.heatControl.remaining(minutesLabel(Math.ceil(seconds / 60)))
-      : undefined;
-  }
-
-  private renderHeatControl(room: Room, entityId: EntityId, entity: HassEntity | undefined): TemplateResult | typeof nothing {
-    const heat = this._heat;
+  /** The line under the options: what waits for the popup to close, else the time left, else what is not offered. */
+  private heatNote(room: Room, entityId: EntityId | undefined, entity: HassEntity | undefined, unsupported: string[]): string {
     const c = this._i18n.t.sheet.heatControl;
-    if (!heat || heat.entityId !== entityId) {
-      const remaining = this.heatRemaining(room, entity);
-      return remaining ? html`<p class="heat-remaining">${remaining}</p>` : nothing;
+    if (this._heat) {
+      return c.appliesOnClose;
+    }
+    const active = activeHeatingId(entity);
+    const seconds = numberOf(this.getState(room.heating?.overlay)?.attributes.overlay_remaining_seconds);
+    if (entityId && active !== undefined && active !== "auto" && seconds !== undefined && seconds > 0) {
+      return c.remaining(minutesLabel(Math.ceil(seconds / 60)));
+    }
+    return unsupported.join(" · ");
+  }
+
+  /** Temperature and duration of Ručně / Boost / Vypnuto, above the options (so these do not move when it changes). */
+  private renderHeatControl(room: Room, entityId: EntityId, entity: HassEntity | undefined): TemplateResult | typeof nothing {
+    const heat = this.heatControl(room, entityId, entity);
+    const c = this._i18n.t.sheet.heatControl;
+    if (!heat || heat.mode === "plan") {
+      return nothing;
     }
     const i18n = this._i18n;
     const timer = this.timerAvailable();
     const manual = manualRange(temperatureRange(entity));
     const minutes = durationMinutes(heat.duration);
     const unit = `${NBSP}°C`;
-    const status = this._heatStatus === "pending" ? c.sendIn : this._heatStatus === "sending" ? c.sending : this._heatStatus === "sent" ? c.sent : "";
 
     const temperature =
       heat.mode === "manual"
@@ -2025,7 +2004,8 @@ export class HaKlimaDashboard extends LitElement {
             minLabel: `${i18n.half(manual.min)}${unit}`,
             maxLabel: `${i18n.half(manual.max)}${unit}`,
             ticks: Math.round(manual.max - manual.min) + 1,
-            onInput: (value) => this.setHeatTemperature(value),
+            onInput: (value) =>
+              this.editHeat(room, entityId, { temperature: snapTemperature(value, manual), mode: "manual" }),
           })
         : heat.mode === "boost"
           ? html`<div class="heat-fixed">
@@ -2052,7 +2032,8 @@ export class HaKlimaDashboard extends LitElement {
           maxLabel: "∞",
           ticks: UNTIL_RESUMED + 1,
           valueText: durationSub ? `${durationBig}, ${durationSub}` : durationBig,
-          onInput: (value) => this.setHeatDuration(value),
+          onInput: (value) =>
+            this.editHeat(room, entityId, { duration: Math.min(UNTIL_RESUMED, Math.max(0, Math.round(value))) }),
         })
       : heat.mode === "manual"
         ? html`<p class="sheet-message">${c.noTimer}</p>`
@@ -2061,9 +2042,8 @@ export class HaKlimaDashboard extends LitElement {
     return html`
       <div class="heat-control" role="group" aria-label=${i18n.t.heatingMode[heat.mode]}>
         ${temperature}
-        ${heat.mode === "off" && timer && heat.duration !== UNTIL_RESUMED ? html`<p class="heat-note">${c.offTarget}</p>` : nothing}
+        ${heat.mode === "off" && timer && heat.duration !== UNTIL_RESUMED ? html`<p class="heat-detail">${c.offTarget}</p>` : nothing}
         ${duration}
-        <p class="heat-status" role="status">${status}</p>
       </div>
     `;
   }
@@ -2166,7 +2146,7 @@ export class HaKlimaDashboard extends LitElement {
     }
     const items = [
       ...this.renderRoot.querySelectorAll<HTMLElement>(
-        '.sheet button:not([disabled]):not([tabindex="-1"]), .sheet .chart-wrap',
+        '.sheet button:not([disabled]):not([tabindex="-1"]), .sheet input:not([disabled]), .sheet .chart-wrap',
       ),
     ];
     if (items.length === 0) {
@@ -2204,8 +2184,6 @@ export class HaKlimaDashboard extends LitElement {
   private switchSheet(kind: "heating" | "climate"): void {
     if (this._sheet && this._sheet.kind !== kind) {
       this.flushHeat();
-      this._heat = undefined;
-      this._heatStatus = undefined;
       this._sheetError = undefined;
       this._sheet = { kind, room: this._sheet.room };
     }
@@ -2214,8 +2192,6 @@ export class HaKlimaDashboard extends LitElement {
   private closeSheet(restoreFocus = true): void {
     window.removeEventListener("resize", this.handleResize);
     this.flushHeat();
-    this._heat = undefined;
-    this._heatStatus = undefined;
     this._historyRequest += 1;
     this._sheet = undefined;
     this._sheetError = undefined;

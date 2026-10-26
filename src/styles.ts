@@ -401,6 +401,30 @@ export const styles = css`
       text-overflow: ellipsis;
     }
 
+    .room-title.has-override {
+      display: flex;
+      align-items: center;
+    }
+
+    /* Small mode icon after the room name while the heating schedule is overridden. */
+    .room-override {
+      display: flex;
+      flex: none;
+      width: 18px;
+      height: 18px;
+      margin: 0 0 0 6px;
+    }
+
+    .room-link .room-override {
+      margin-left: 0;
+    }
+
+    .room-override svg {
+      display: block;
+      width: 18px;
+      height: 18px;
+    }
+
     .room-chevron {
       flex: none;
       color: var(--kd-label);
@@ -1088,7 +1112,7 @@ export const styles = css`
       grid-auto-columns: 1fr;
       grid-auto-flow: column;
       gap: 2px;
-      margin: 4px 0 14px;
+      margin: 16px 0 0;
       padding: 2px;
       border-radius: 10px;
       background: var(--kd-segmented-bg);
@@ -1371,19 +1395,44 @@ export const styles = css`
       font-size: 12px;
     }
 
-    .heat-note,
-    .heat-remaining {
+    .heat-detail {
       margin: 8px 0 0;
       color: var(--kd-label);
       font-size: 13px;
     }
 
-    .heat-status {
-      min-height: 16px;
+    /* Under the options; its height is reserved so the options never move when it appears. */
+    .heat-note {
+      min-height: 32px;
       margin: 8px 0 0;
       color: var(--kd-label);
+      font-size: 13px;
+      line-height: 16px;
+      text-align: center;
+    }
+
+    /* Topení: the four modes as icons in one row, label under the icon. */
+    .icon-options {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 6px;
+    }
+
+    .icon-options .option {
+      flex-direction: column;
+      justify-content: center;
+      gap: 4px;
+      min-height: 64px;
+      padding: 8px 2px;
       font-size: 12px;
-      text-align: right;
+      text-align: center;
+    }
+
+    .icon-options .option-text {
+      align-items: center;
+    }
+
+    .icon-options .option-hint {
+      display: none;
     }
 
     .chips {

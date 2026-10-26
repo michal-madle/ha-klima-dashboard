@@ -12,10 +12,9 @@ export const BOOST_TEMPERATURE = 25;
 export const DURATION_MINUTES = [15, 30, 45, 60, 90, 120, 180, 240, 360, 480] as const;
 export const NEXT_PLAN = DURATION_MINUTES.length;
 export const UNTIL_RESUMED = DURATION_MINUTES.length + 1;
-export const HEAT_SEND_MS = 2000;
 
-/** What the person changes in the popup: Ručně, Boost, or Vypnuto (Plán has nothing to set). */
-export type HeatingControlMode = "manual" | "boost" | "off";
+/** What the person chooses in the popup (applied when it closes); Plán has nothing to set. */
+export type HeatingControlMode = "plan" | "manual" | "boost" | "off";
 
 export interface HeatingControl {
   room: string;
@@ -35,7 +34,26 @@ export interface ServiceCall {
 
 /** Defaults by the person's wish (25. 10.): Boost 30 min, Ručně until the next schedule change, Vypnuto until resumed. */
 export function defaultDuration(mode: HeatingControlMode): number {
-  return mode === "boost" ? 1 : mode === "manual" ? NEXT_PLAN : UNTIL_RESUMED;
+  return mode === "boost" ? 1 : mode === "off" ? UNTIL_RESUMED : NEXT_PLAN;
+}
+
+/** The popup control for what the climate entity reports now; undefined when it reports nothing usable. */
+export function currentHeatingControl(room: string, entityId: EntityId, entity: HassEntity | undefined): HeatingControl | undefined {
+  const active = activeHeatingId(entity);
+  if (active === undefined) {
+    return undefined;
+  }
+  const mode: HeatingControlMode = active === "heat" ? "manual" : active === "auto" ? "plan" : active;
+  const range = manualRange(temperatureRange(entity));
+  const target = numberOf(entity?.attributes.temperature);
+  const usable = mode === "manual" && target !== undefined && target >= range.min && target <= range.max;
+  return {
+    room,
+    entityId,
+    mode,
+    temperature: snapTemperature(usable ? target : 21, range),
+    duration: defaultDuration(mode),
+  };
 }
 
 export function numberOf(value: unknown): number | undefined {
@@ -107,10 +125,10 @@ export function durationMinutes(index: number): number | undefined {
  */
 export function heatingCommand(
   entityId: EntityId,
-  choice: "plan" | HeatingControl,
+  choice: HeatingControl,
   timerAvailable: boolean,
 ): ServiceCall | undefined {
-  if (choice === "plan") {
+  if (choice.mode === "plan") {
     return { domain: "climate", service: "set_hvac_mode", data: { entity_id: entityId, hvac_mode: "auto" } };
   }
   const minutes = durationMinutes(choice.duration);
