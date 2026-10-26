@@ -4317,7 +4317,7 @@ const jo = ["off", "cool", "dry", "fan_only", "auto", "heat"], we = class we ext
     return u`
       <div class="options list-options" role="group" aria-label=${this._i18n.t.air}>
         ${s.map(({ slot: r, label: a, unit: l, entityId: d, warning: c, critical: h }) => {
-      const p = this.reading(d, o, i, r === "pm25"), m = p.value !== void 0, w = m && !p.stale ? g[r] : g.off;
+      const p = r === "pm25" ? this.pm25Reading(t, i) : this.reading(d, o, i), m = p.value !== void 0, w = m && !p.stale ? g[r] : g.off;
       return u`<button
             type="button"
             class="plain-button option list-option"
@@ -5220,9 +5220,18 @@ const jo = ["off", "cool", "dry", "fan_only", "auto", "heat"], we = class we ext
     const a = Date.parse(this.getState(t)?.last_updated ?? ""), l = Math.max(r, Number.isFinite(a) ? a : 0), d = Math.max(0, (n - l) / 6e4);
     return { value: s, ageMinutes: d, stale: !(o && s === 0) && d > i };
   }
-  /** PM2.5 of a room: a measured 0 µg/m³ is clean air and never stale (CURRENT_SPEC.md, Chybějící data). */
+  /**
+   * PM2.5 of a room (CURRENT_SPEC.md, Chybějící data). A measured 0 µg/m³ is clean air and never
+   * stale. The particle sensor shares the device of the CO₂ sensor (ALPSTUGA) and reports only a
+   * change, which a steady value may not give for hours: while the CO₂ of the room is fresh, the
+   * device is alive and the unchanged PM2.5 is fresh too.
+   */
   pm25Reading(t, i) {
-    return this.reading(t.pm25, t.thresholds.stale_minutes, i, !0);
+    const n = t.thresholds.stale_minutes, o = this.reading(t.pm25, n, i, !0);
+    if (o.value === void 0 || o.stale !== !0)
+      return o;
+    const s = this.reading(t.carbon_dioxide, n, i);
+    return s.value !== void 0 && s.stale === !1 ? { value: o.value, ageMinutes: s.ageMinutes, stale: !1 } : o;
   }
   /** Grey clock behind a stale value; the age is in the tooltip and for screen readers (CURRENT_SPEC.md, Chybějící data). */
   staleMark(t) {

@@ -829,17 +829,34 @@ test.describe("scénáře: stav místnosti, souhrn, barvy a konflikty (Stavový 
     await expect(page.locator(".summary .chip").first()).toHaveText(/Chladí se, i když je chladno: Pracovna/);
   });
 
+  test("PM2.5 se hlásí jen při změně: čerstvé CO₂ ze stejného čidla drží PM2.5 čerstvé, bez něj zastarává", async ({ page }) => {
+    await open(page, "stale");
+    // Ložnice: PM2.5 unchanged for 3 h, CO₂ fresh → no "Bez dat", no clock, in the card and in the popup "Kvalita vzduchu".
+    await expect(rooms(page).first().locator(".status-line")).not.toContainText("Bez dat");
+    await expect(rooms(page).first().locator(".slot-pm25 .stale-mark")).toHaveCount(0);
+    await rooms(page).first().locator(".air-block").click();
+    await expect(page.locator(".list-option").nth(1).locator(".stale-mark, .sr-only")).toHaveCount(0);
+    await closePopup(page);
+    // The same Ložnice without a CO₂ sensor has no device to vouch for the PM2.5, which is stale after 30 minutes.
+    await reconfigure(page, {}, { 0: { carbon_dioxide: false } });
+    expect(tidy(await statuses(page))[0]).toBe("Bez dat · PM2.5 (před 3 h)");
+    await expect(rooms(page).first().locator(".slot-pm25 .stale-mark")).toHaveCount(1);
+  });
+
   test("stale: šedá hodnota a důvod ve stavu, bez konfliktu (TODO P2.3)", async ({ page }) => {
     await open(page, "stale");
     const list = tidy(await statuses(page));
-    expect(list[0]).toBe("Bez dat · PM2.5 (před 3 h)");
+    // Ložnice: PM2.5 has not changed for 3 h, but the CO₂ of the same ALPSTUGA reports: the device is alive, nothing is stale.
+    expect(list[0]).not.toMatch(/Bez dat/);
     expect(list[1]).toBe("Bez dat · teplota (před 3 h)");
     await expect(rooms(page).nth(1).locator(".temperature")).toHaveClass(/stale/);
-    await expect(rooms(page).first().locator(".slot-pm25")).toHaveAttribute("title", "Naposledy před 3 h");
+    expect(await rooms(page).first().locator(".slot-pm25").evaluate((row) => row.hasAttribute("title"))).toBe(false);
+    await expect(rooms(page).first().locator(".slot-pm25 .row-label")).not.toHaveText("––");
     await expect(page.locator(".conflict-dot")).toHaveCount(0);
-    // A small grey clock at every stale value (TODO P2.21): Ložnice only at PM2.5, Pracovna at all four.
-    await expect(rooms(page).first().locator(".stale-mark")).toHaveCount(1);
-    await expect(rooms(page).first().locator(".slot-pm25 .stale-mark")).toHaveCount(1);
+    // A small grey clock at every stale value (TODO P2.21): none in Ložnice (fresh CO₂ keeps the PM2.5 fresh), Pracovna at all four
+    // (there the CO₂ is stale too).
+    await expect(rooms(page).first().locator(".stale-mark")).toHaveCount(0);
+    await expect(rooms(page).nth(1).locator(".slot-pm25")).toHaveAttribute("title", "Naposledy před 3 h");
     const pracovna = rooms(page).nth(1);
     for (const where of [".temperature", ".humidity", ".slot-co2", ".slot-pm25"]) {
       await expect(pracovna.locator(`${where} .stale-mark`), where).toHaveCount(1);

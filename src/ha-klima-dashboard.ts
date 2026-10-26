@@ -779,7 +779,7 @@ export class HaKlimaDashboard extends LitElement {
     return html`
       <div class="options list-options" role="group" aria-label=${this._i18n.t.air}>
         ${rows.map(({ slot, label, unit, entityId, warning, critical }) => {
-          const reading = this.reading(entityId, stale, now, slot === "pm25");
+          const reading = slot === "pm25" ? this.pm25Reading(room, now) : this.reading(entityId, stale, now);
           const hasValue = reading.value !== undefined;
           const accent = hasValue && !reading.stale ? COLORS[slot] : COLORS.off;
           return html`<button
@@ -2319,9 +2319,22 @@ export class HaKlimaDashboard extends LitElement {
     return { value, ageMinutes, stale: !(zeroIsFresh && value === 0) && ageMinutes > staleMinutes };
   }
 
-  /** PM2.5 of a room: a measured 0 µg/m³ is clean air and never stale (CURRENT_SPEC.md, Chybějící data). */
+  /**
+   * PM2.5 of a room (CURRENT_SPEC.md, Chybějící data). A measured 0 µg/m³ is clean air and never
+   * stale. The particle sensor shares the device of the CO₂ sensor (ALPSTUGA) and reports only a
+   * change, which a steady value may not give for hours: while the CO₂ of the room is fresh, the
+   * device is alive and the unchanged PM2.5 is fresh too.
+   */
   private pm25Reading(room: Room, now: number): Reading {
-    return this.reading(room.pm25, room.thresholds.stale_minutes, now, true);
+    const stale = room.thresholds.stale_minutes;
+    const own = this.reading(room.pm25, stale, now, true);
+    if (own.value === undefined || own.stale !== true) {
+      return own;
+    }
+    const device = this.reading(room.carbon_dioxide, stale, now);
+    return device.value !== undefined && device.stale === false
+      ? { value: own.value, ageMinutes: device.ageMinutes, stale: false }
+      : own;
   }
 
   /** Grey clock behind a stale value; the age is in the tooltip and for screen readers (CURRENT_SPEC.md, Chybějící data). */
