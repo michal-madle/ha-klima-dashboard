@@ -1447,7 +1447,7 @@ export class HaKlimaDashboard extends LitElement {
       return this.renderSheetFrame(
         t.sheet.history(this._config?.history.hours ?? 24),
         sheet.room.name,
-        this.renderHistoryBody(sheet.room),
+        this.renderHistoryBody(sheet.room, isSummer),
         "history-sheet",
       );
     }
@@ -1624,7 +1624,7 @@ export class HaKlimaDashboard extends LitElement {
   }
 
   /** „Historie místnosti – 24 h“ with a readout that follows the finger (or the arrow keys). */
-  private renderHistoryBody(room: Room): TemplateResult {
+  private renderHistoryBody(room: Room, isSummer: boolean): TemplateResult {
     const hours = this._config?.history.hours ?? 24;
     const { t } = this._i18n;
     let body: TemplateResult;
@@ -1648,7 +1648,7 @@ export class HaKlimaDashboard extends LitElement {
         @pointerleave=${this.chartPointerLeave}
         @keydown=${this.chartKeydown}
       >
-        ${renderRoomChart(model, this.chartWidth(), this._scrubTime, this._i18n)}
+        ${renderRoomChart(model, this.chartWidth(), this._scrubTime, this._i18n, isSummer)}
       </div>`;
     }
     const detail = room.temperature ?? room.humidity;

@@ -257,4 +257,6 @@ Formát každého bodu: **Navrženo** → **Opuštěno, protože** → **Nahraze
    - Opuštěno: automatické odeslání po 2 s.
 22. **v22 – štítky Ručně a Boost, stav podle climate (26. 10.):** ikona u názvu místnosti zrušena; v horních štítcích je Ručně (ikona posuvníků) a Boost (blesk) zvlášť místo tří vln; Plán / Ručně / Vypnuto určuje `climate` entita, senzor přepisu až když `climate` nic neříká (po Plánu se jinak ještě chvíli ukazovalo Ručně).
    - Opuštěno: ikona režimu za názvem místnosti.
-23. **v23 – otevřená okna v historii (26. 10., aktuální návrh):** v historii teploty je mezi pruhy Topení a Klimatizace tenká modrá čára, kdy bylo otevřené okno (kterékoli z oken místnosti), bez popisku a bez legendy.
+23. **v23 – otevřená okna v historii (26. 10.):** v historii teploty byla mezi pruhy Topení a Klimatizace tenká modrá čára, kdy bylo otevřené okno; v téže hodině přepracováno ve v24.
+24. **v24 – pruhy pod historií jako na kartě (26. 10., aktuální návrh):** pruhy Topení, Klimatizace a okna bez popisků, kompaktní (mezera 3 px), v pořadí jako na kartě místnosti (primární systém podle House Mode, druhý, okna); na začátku každého ikona z karty a kolem ní plynulé zeslabení do ztracena.
+   - Opuštěno: textové popisky „Topení“ a „Klimatizace“ nad pruhy a tenká modrá čára mezi pruhy.

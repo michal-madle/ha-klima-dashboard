@@ -81,23 +81,28 @@ export function renderClockIcon(): TemplateResult {
   `;
 }
 
+/** The three waves of the Topení icon, `count` of them lit (0–3); as SVG content (also used inside the history chart). */
+export function heatingWavesShape(count: number, dashed: boolean): TemplateResult {
+  return svg`${[0, 1, 2].map(
+    (index) => svg`<path
+      d="M${6 + 6 * index} 20q-3-2.4 0-4.8t0-4.8t0-4.8"
+      style=${`stroke: ${index < count ? COLORS.warning : COLORS.off}`}
+      stroke-dasharray=${dashed ? "1.6 2.6" : nothing}
+    ></path>`,
+  )}`;
+}
+
 /** Topení row icon: three warm waves, `count` of them lit (0–3); dashed when unknown. */
 export function renderHeatingWaves(count: number, dashed: boolean): TemplateResult {
   return html`
     <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
-      ${[0, 1, 2].map(
-        (index) => svg`<path
-          d="M${6 + 6 * index} 20q-3-2.4 0-4.8t0-4.8t0-4.8"
-          style=${`stroke: ${index < count ? COLORS.warning : COLORS.off}`}
-          stroke-dasharray=${dashed ? "1.6 2.6" : nothing}
-        ></path>`,
-      )}
+      ${heatingWavesShape(count, dashed)}
     </svg>
   `;
 }
 
 /** Klimatizace icon by mode; "off" and "unknown" keep the air-conditioner icon. */
-export function renderClimateIcon(mode: ClimateMode, color: string, dashed: boolean): TemplateResult {
+export function climateShape(mode: ClimateMode): TemplateResult {
   let shape: TemplateResult;
   const arm = svg`<path d="M12 3v18M9.9 5.1 12 3l2.1 2.1M9.9 18.9 12 21l2.1-2.1"></path>`;
   const blade = svg`<path d="M12 12c0-5 2.4-8.1 5.8-6.8 1.2 3.2-1.3 6.1-5.8 6.8z"></path>`;
@@ -130,7 +135,10 @@ export function renderClimateIcon(mode: ClimateMode, color: string, dashed: bool
       shape = svg`<rect x="3" y="5" width="18" height="8" rx="2"></rect>
         <path d="M7 9.5h10M8 16.5v2.5M12 16.5v2.5M16 16.5v2.5"></path>`;
   }
+  return shape;
+}
 
+export function renderClimateIcon(mode: ClimateMode, color: string, dashed: boolean): TemplateResult {
   return html`
     <svg
       viewBox="0 0 24 24"
@@ -142,9 +150,14 @@ export function renderClimateIcon(mode: ClimateMode, color: string, dashed: bool
       stroke-dasharray=${dashed ? "2 2.4" : nothing}
       aria-hidden="true"
     >
-      ${shape}
+      ${climateShape(mode)}
     </svg>
   `;
+}
+
+/** The window icon as SVG content: the rounded frame with a cross. */
+export function windowShape(): TemplateResult {
+  return svg`<rect x="5" y="3.5" width="14" height="17" rx="1.5"></rect><path d="M12 3.5v17M5 12h14"></path>`;
 }
 
 /** Window row icon: the rounded frame with a cross; dashed when unknown. */
@@ -160,8 +173,7 @@ export function renderWindowIcon(color: string, dashed: boolean): TemplateResult
       stroke-dasharray=${dashed ? "2 2.4" : nothing}
       aria-hidden="true"
     >
-      <rect x="5" y="3.5" width="14" height="17" rx="1.5"></rect>
-      <path d="M12 3.5v17M5 12h14"></path>
+      ${windowShape()}
     </svg>
   `;
 }

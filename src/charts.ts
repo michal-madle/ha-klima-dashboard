@@ -4,7 +4,7 @@ import { HEATING_OFF_TARGET, heatingKindOf } from "./heating-control";
 import { HOUR_MS, buildSegments, numericSeries } from "./history";
 import type { HistoryMap, Segment } from "./history";
 import type { I18n } from "./i18n";
-import { renderClimateIcon, renderHeatingWaves } from "./icons";
+import { climateShape, heatingWavesShape, renderClimateIcon, renderHeatingWaves, windowShape } from "./icons";
 import type { ClimateMode, HistorySettings, Room } from "./types";
 import { CLIMATE_COLORS, COLORS, climateModeFromState, heatingWaveCount } from "./utils";
 
@@ -33,20 +33,25 @@ const PAD_RIGHT = 32;
 const PLOT_TOP = 6;
 const PLOT_HEIGHT = 150;
 const PLOT_BOTTOM = PLOT_TOP + PLOT_HEIGHT;
-const STRIP_HEIGHT = 10;
-const HEATING_LABEL_Y = PLOT_BOTTOM + 20;
-const HEATING_STRIP_Y = PLOT_BOTTOM + 25;
-/** Open windows: a thin blue line between the Topení and Klimatizace strips, without a label. */
-const WINDOW_LINE_Y = PLOT_BOTTOM + 41;
-const WINDOW_LINE_HEIGHT = 5;
-/** Space the window line takes from everything below it (only for a room with windows). */
-const WINDOW_LINE_SPACE = 12;
-const CLIMATE_LABEL_Y = PLOT_BOTTOM + 50;
-const CLIMATE_STRIP_Y = PLOT_BOTTOM + 55;
-const AXIS_Y = PLOT_BOTTOM + 83;
-const CHART_BOTTOM = PLOT_BOTTOM + 90;
+/*
+ * Under the plot: one row per system, in the order of the room card (primary system first, then
+ * the other, then the windows), as compact bars. Each row starts with the icon of the card; a
+ * fade of the popup colour behind it keeps the icon readable.
+ */
+const STRIP_HEIGHT = 9;
+const ROWS_TOP = PLOT_BOTTOM + 10;
+const ROW_PITCH = 12;
+const ICON_SIZE = 12;
+const ICON_FADE = 34;
+const FADE_ID = "history-icon-fade";
+const AXIS_GAP = 14;
+const AXIS_DESCENT = 7;
+type StripRow = "heating" | "climate" | "windows";
+
+const rowCount = (model: Pick<RoomChartModel, "windows">): number => 2 + (model.windows ? 1 : 0);
+const rowsBottom = (model: Pick<RoomChartModel, "windows">): number => ROWS_TOP + rowCount(model) * ROW_PITCH;
 export const chartHeight = (model: Pick<RoomChartModel, "windows">): number =>
-  CHART_BOTTOM + (model.windows ? WINDOW_LINE_SPACE : 0);
+  rowsBottom(model) + AXIS_GAP + AXIS_DESCENT;
 const FONT = 11;
 const INTENSITY_OPACITY = [0, 0.24, 0.44, 0.68];
 const CLIP_ID = "history-under-temperature";
@@ -420,8 +425,8 @@ export function renderRoomChart(
   width: number,
   scrubTime: number | undefined,
   i18n: I18n,
+  isSummer = false,
 ): TemplateResult {
-  const { t } = i18n;
   // Ground, night and grid of the plot follow the theme (styles.ts).
   const { range } = model;
   const x = (time: number): number => xOf(time, range, width);
@@ -458,12 +463,30 @@ export function renderRoomChart(
         height=${STRIP_HEIGHT} rx="2" style=${fill(color(segment.value))}></rect>`;
     });
 
-  // A room with windows has the window line between Topení and Klimatizace; what is below moves down.
-  const shift = model.windows ? WINDOW_LINE_SPACE : 0;
-  const climateLabelY = CLIMATE_LABEL_Y + shift;
-  const climateStripY = CLIMATE_STRIP_Y + shift;
-  const axisY = AXIS_Y + shift;
+  // One row per system in the order of the room card; the windows come last.
+  const order: StripRow[] = isSummer ? ["climate", "heating"] : ["heating", "climate"];
+  if (model.windows) {
+    order.push("windows");
+  }
+  const bottom = rowsBottom(model);
+  const axisY = bottom + AXIS_GAP;
   const height = chartHeight(model);
+  const rowIcon = (row: StripRow): TemplateResult =>
+    row === "heating"
+      ? svg`${heatingWavesShape(3, false)}`
+      : row === "climate"
+        ? svg`<g style=${stroke(COLORS.off)}>${climateShape("off")}</g>`
+        : svg`<g style=${stroke("var(--kd-sky)")}>${windowShape()}</g>`;
+  const rowBars = (row: StripRow, y: number): TemplateResult =>
+    row === "heating"
+      ? svg`${strip(model.heating, y, (value) => HEATING_COLORS[value] ?? COLORS.off)}`
+      : row === "climate"
+        ? svg`${strip(model.climate, y, (value) => climateStripColor(value as ClimateMode))}`
+        : svg`${(model.windows ?? []).map((segment) => {
+            const left = x(segment.start);
+            return svg`<rect class="window-open" x=${left.toFixed(1)} y=${y} width=${Math.max(x(segment.end) - left, 1.5).toFixed(1)}
+              height=${STRIP_HEIGHT} rx="2" style=${fill("var(--kd-sky)")}></rect>`;
+          })}`;
   const scrubX = scrubTime === undefined ? undefined : x(scrubTime);
   const scrubTemperature = scrubTime === undefined ? undefined : valueAt(model.temperature, scrubTime);
   const nights = nightBands(range, model.night);
@@ -479,6 +502,11 @@ export function renderRoomChart(
     >
       <defs>
         <clipPath id=${CLIP_ID}><path d=${temperatureArea}></path></clipPath>
+        <linearGradient id=${FADE_ID} gradientUnits="userSpaceOnUse" x1=${PAD_LEFT} x2=${PAD_LEFT + ICON_FADE} y1="0" y2="0">
+          <stop offset="0" style="stop-color: var(--kd-sheet-bg); stop-opacity: 1"></stop>
+          <stop offset="0.55" style="stop-color: var(--kd-sheet-bg); stop-opacity: 0.92"></stop>
+          <stop offset="1" style="stop-color: var(--kd-sheet-bg); stop-opacity: 0"></stop>
+        </linearGradient>
         <clipPath id=${PLOT_CLIP_ID}>
           <rect x=${PAD_LEFT} y=${PLOT_TOP} width=${plotWidth(width)} height=${PLOT_HEIGHT}></rect>
         </clipPath>
@@ -517,28 +545,28 @@ export function renderRoomChart(
         ? svg`<circle cx=${x(last.t).toFixed(1)} cy=${yTemp(last.v).toFixed(1)} r="3.5" style=${fill(COLORS.white)}></circle>`
         : nothing}
 
-      <text x=${PAD_LEFT} y=${HEATING_LABEL_Y} style=${fill(COLORS.label)} font-size=${FONT}>${t.system.heating}</text>
-      <rect x=${PAD_LEFT} y=${HEATING_STRIP_Y} width=${plotWidth(width)} height=${STRIP_HEIGHT} rx="2" style=${fill("var(--kd-fill)")}></rect>
-      ${strip(model.heating, HEATING_STRIP_Y, (value) => HEATING_COLORS[value] ?? COLORS.off)}
-      ${(model.windows ?? []).map((segment) => {
-        const left = x(segment.start);
-        return svg`<rect class="window-open" x=${left.toFixed(1)} y=${WINDOW_LINE_Y} width=${Math.max(x(segment.end) - left, 1.5).toFixed(1)}
-          height=${WINDOW_LINE_HEIGHT} rx="2.5" style=${fill("var(--kd-sky)")}></rect>`;
+      ${order.map((row, index) => {
+        const rowY = ROWS_TOP + index * ROW_PITCH;
+        const barY = rowY + (ROW_PITCH - STRIP_HEIGHT) / 2;
+        return svg`<g class=${`strip-row ${row}`}>
+          <rect x=${PAD_LEFT} y=${barY} width=${plotWidth(width)} height=${STRIP_HEIGHT} rx="2" style=${fill("var(--kd-fill)")}></rect>
+          ${rowBars(row, barY)}
+          <rect x=${PAD_LEFT} y=${rowY} width=${ICON_FADE} height=${ROW_PITCH} style=${fill(`url(#${FADE_ID})`)}></rect>
+          <g class="strip-icon" transform=${`translate(${PAD_LEFT + 1} ${rowY}) scale(${ICON_SIZE / 24})`} fill="none"
+            stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${rowIcon(row)}</g>
+        </g>`;
       })}
-      <text x=${PAD_LEFT} y=${climateLabelY} style=${fill(COLORS.label)} font-size=${FONT}>${t.system.climate}</text>
-      <rect x=${PAD_LEFT} y=${climateStripY} width=${plotWidth(width)} height=${STRIP_HEIGHT} rx="2" style=${fill("var(--kd-fill)")}></rect>
-      ${strip(model.climate, climateStripY, (value) => climateStripColor(value as ClimateMode))}
 
       ${clockTicks(range).map((tick) => {
         const label = tickAnchor(x(tick), PAD_LEFT, right);
-        return svg`<line x1=${x(tick).toFixed(1)} x2=${x(tick).toFixed(1)} y1=${PLOT_TOP} y2=${climateStripY + STRIP_HEIGHT}
+        return svg`<line x1=${x(tick).toFixed(1)} x2=${x(tick).toFixed(1)} y1=${PLOT_TOP} y2=${bottom}
             style=${stroke("var(--kd-grid-soft)")} stroke-width="1"></line>
           <text class="tick" x=${label.x.toFixed(1)} y=${axisY} style=${fill(COLORS.label)} font-size=${FONT}
             text-anchor=${label.anchor}>${tickLabel(tick, range, i18n)}</text>`;
       })}
       ${scrubX === undefined
         ? nothing
-        : svg`<line x1=${scrubX.toFixed(1)} x2=${scrubX.toFixed(1)} y1=${PLOT_TOP} y2=${climateStripY + STRIP_HEIGHT}
+        : svg`<line x1=${scrubX.toFixed(1)} x2=${scrubX.toFixed(1)} y1=${PLOT_TOP} y2=${bottom}
               style=${stroke(COLORS.white)} stroke-width="1" opacity="0.7"></line>
             ${scrubTemperature === undefined
               ? nothing

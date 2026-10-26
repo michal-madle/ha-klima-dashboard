@@ -2257,9 +2257,9 @@ test.describe("Topení: posuvníky prstem (dotykový tah)", () => {
   });
 });
 
-test.describe("historie místnosti: otevřená okna", () => {
-  test("modrá čára mezi Topením a Klimatizací, jen kdy bylo okno otevřené, bez popisku", async ({ page }) => {
-    await open(page);
+test.describe("historie místnosti: pruhy Topení, Klimatizace a okna pod grafem", () => {
+  const openHistory = async (page: Page, scenario = "full") => {
+    await open(page, scenario);
     await page.evaluate(() => {
       // @ts-expect-error test hook
       const test = window.__test;
@@ -2271,35 +2271,72 @@ test.describe("historie místnosti: otevřená okna", () => {
     });
     await rooms(page).first().locator(".temperature").click();
     await expect(page.locator("svg.chart")).toBeVisible();
+  };
+
+  test("řádky jako na kartě (Topení, Klimatizace, okna; v létě Klimatizace první), bez popisků, s ikonou na začátku a zeslabením kolem ní", async ({ page }) => {
+    await openHistory(page);
+    const rows = () =>
+      page.evaluate(() => {
+        const svg = document.querySelector("ha-klima-dashboard")!.shadowRoot!.querySelector("svg.chart")!;
+        const rects = (row: Element) => [...row.querySelectorAll(":scope > rect")].map((rect) => ({ y: Number(rect.getAttribute("y")), height: Number(rect.getAttribute("height")) }));
+        return {
+          order: [...svg.querySelectorAll(".strip-row")].map((row) => row.getAttribute("class")!.replace("strip-row ", "")),
+          icons: svg.querySelectorAll(".strip-row .strip-icon").length,
+          iconPaint: [...svg.querySelectorAll(".strip-icon")].map((icon) => icon.querySelectorAll("path, rect, circle").length > 0),
+          tracks: [...svg.querySelectorAll(".strip-row")].map((row) => rects(row)[0]),
+          texts: [...svg.querySelectorAll("text")].map((text) => text.textContent?.trim() ?? ""),
+          fade: svg.querySelectorAll("linearGradient stop").length,
+        };
+      });
+    const winter = await rows();
+    expect(winter.order).toEqual(["heating", "climate", "windows"]);
+    expect(winter.icons).toBe(3);
+    expect(winter.iconPaint).toEqual([true, true, true]);
+    expect(winter.fade).toBeGreaterThanOrEqual(2);
+    // No labels: only the temperatures (°) and the clock times are text.
+    expect(winter.texts.filter((text) => !/°$|^\d{1,2}:\d{2}$/.test(text))).toEqual([]);
+    // Compact: the gap between the bars is at most 4 px.
+    for (let index = 1; index < winter.tracks.length; index += 1) {
+      const gap = winter.tracks[index].y - (winter.tracks[index - 1].y + winter.tracks[index - 1].height);
+      expect(gap, `mezera ${index}`).toBeGreaterThan(0);
+      expect(gap, `mezera ${index}`).toBeLessThanOrEqual(4);
+    }
+    await closePopup(page);
+    await openHistory(page, "summer");
+    expect((await rows()).order).toEqual(["climate", "heating", "windows"]);
+  });
+
+  test("řádek oken: modré úseky jen kdy bylo okno otevřené, ve správné šířce a ve třetím řádku", async ({ page }) => {
+    await openHistory(page);
     await expect(page.locator("svg.chart .window-open")).toHaveCount(2);
     const lines = await page.evaluate(() => {
       const svg = document.querySelector("ha-klima-dashboard")!.shadowRoot!.querySelector("svg.chart")!;
-      const rect = (element: Element) => ({ x: Number(element.getAttribute("x")), y: Number(element.getAttribute("y")), width: Number(element.getAttribute("width")), height: Number(element.getAttribute("height")) });
-      const texts = [...svg.querySelectorAll("text")].map((text) => ({ text: text.textContent?.trim(), y: Number(text.getAttribute("y")) }));
+      const num = (element: Element, name: string) => Number(element.getAttribute(name));
+      const rowY = (name: string) => num(svg.querySelector(`.strip-row.${name} > rect`)!, "y");
       return {
-        windows: [...svg.querySelectorAll(".window-open")].map(rect),
-        fill: getComputedStyle(svg.querySelector(".window-open")!).fill,
-        heating: texts.find((entry) => entry.text === "Topení")!.y,
-        climate: texts.find((entry) => entry.text === "Klimatizace")!.y,
-        labels: texts.map((entry) => entry.text),
-        plotWidth: rect(svg.querySelector("clipPath#history-plot rect")!).width,
+        windows: [...svg.querySelectorAll(".window-open")].map((rect) => ({ y: num(rect, "y"), width: num(rect, "width"), height: num(rect, "height") })),
+        track: rowY("windows"),
+        climate: rowY("climate"),
+        plotWidth: num(svg.querySelector("clipPath#history-plot rect")!, "width"),
       };
     });
-    // Between the two strips, thin, and the shorter and the longer opening as proportional pieces (1 h and 1 h of 24 h).
     for (const line of lines.windows) {
-      expect(line.y).toBeGreaterThan(lines.heating + 8);
-      expect(line.y + line.height).toBeLessThan(lines.climate - 8);
-      expect(line.height).toBeLessThanOrEqual(6);
+      expect(line.y).toBe(lines.track);
+      expect(line.y).toBeGreaterThan(lines.climate);
       expect(line.width).toBeCloseTo(lines.plotWidth / 24, 0);
     }
-    // No legend: the only texts are the two strip names, the axis labels and the temperatures.
-    expect(lines.labels.filter((label) => /okn/i.test(label ?? ""))).toEqual([]);
   });
 
-  test("bez otevřeného okna v historii není žádná čára", async ({ page }) => {
+  test("bez otevřeného okna v historii není žádný modrý úsek, bez oken v konfiguraci není řádek oken", async ({ page }) => {
     await open(page);
     await rooms(page).first().locator(".temperature").click();
     await expect(page.locator("svg.chart")).toBeVisible();
     await expect(page.locator("svg.chart .window-open")).toHaveCount(0);
+    await expect(page.locator("svg.chart .strip-row.windows")).toHaveCount(1);
+    await closePopup(page);
+    await reconfigure(page, {}, { 0: { window: undefined } });
+    await rooms(page).first().locator(".temperature").click();
+    await expect(page.locator("svg.chart")).toBeVisible();
+    await expect(page.locator("svg.chart .strip-row")).toHaveCount(2);
   });
 });
