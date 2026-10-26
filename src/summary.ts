@@ -3,7 +3,7 @@ import type { EntityId, HassEntity, Room } from "./types";
 import { climateView, heatingView } from "./systems";
 import { COLORS } from "./utils";
 
-export type SummaryKind = "windows" | "manual" | "heating" | "climate" | "conflict-window" | "conflict-cooling";
+export type SummaryKind = "windows" | "manual" | "boost" | "heating" | "climate" | "conflict-window" | "conflict-cooling";
 
 /** One status chip in the Domov header (CURRENT_SPEC.md, Dashboard Domov), in the card language. */
 export interface SummaryChip {
@@ -76,7 +76,7 @@ export function roomConflicts(
 
 /**
  * Chips only for what differs from a quiet house: conflicts first (orange), then open windows,
- * manual heating overrides, rooms that are heating now (at least one wave) and running air
+ * manual heating overrides and Boost (one chip each), rooms that are heating now (at least one wave) and running air
  * conditioners. Unknown states are never counted. `coldRooms` are the rooms whose status is
  * "Chladno".
  */
@@ -91,6 +91,7 @@ export function houseSummary(
   /** Rooms with an open window and how many of their windows are open. */
   const open: Array<[string, number]> = [];
   const manual: string[] = [];
+  const boost: string[] = [];
   const heating: string[] = [];
   let strongestWaves = 0;
   const climate: string[] = [];
@@ -104,7 +105,9 @@ export function houseSummary(
       open.push([room.name, openCount]);
     }
     const heat = roomHeating(room, get, i18n);
-    if (heat.overlay === "manual") {
+    if (heat.override === "boost") {
+      boost.push(room.name);
+    } else if (heat.override === "manual") {
       manual.push(room.name);
     }
     if (heat.waves > 0) {
@@ -148,6 +151,14 @@ export function houseSummary(
       text: `${texts.manual}: ${namesOrCount(manual, i18n)}`,
       color: COLORS.warning,
       spoken: `${texts.manualSpoken}: ${manual.join(", ")}`,
+    });
+  }
+  if (boost.length > 0) {
+    chips.push({
+      kind: "boost",
+      text: `${texts.boost}: ${namesOrCount(boost, i18n)}`,
+      color: COLORS.warning,
+      spoken: `${texts.boostSpoken}: ${boost.join(", ")}`,
     });
   }
   if (heating.length > 0) {

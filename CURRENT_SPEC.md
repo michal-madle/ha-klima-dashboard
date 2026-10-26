@@ -111,7 +111,7 @@ Stav místnosti je lidské zhodnocení prostředí, ne příkaz. Platí první s
 ## Topení
 
 - Jediný zdroj vytápění. Původní (core) integrace se odstraňuje a nepoužívá.
-- Stavy: Plán (Overlay Schedule), Ručně (ruční přepis, zvýrazněný; také Boost, tj. ruční 25 °C), Vypnuto. Při přepisu plánu (Ručně, Boost) je v záhlaví místnosti za názvem malá ikona toho režimu (Ručně posuvníky, Boost blesk); u Plánu a Vypnuto žádná. Ruční přepis s cílem 5 °C (časovač „Vypnuto na dobu“, viz Ovládání Topení) je Vypnuto: řádek, souhrn i historie ho tak ukazují.
+- Stavy: Plán (Overlay Schedule), Ručně (ruční přepis, zvýrazněný; také Boost, tj. ruční 25 °C), Vypnuto. Přepis plánu je v horních štítcích domu zvlášť: „Ručně: …“ (ikona posuvníků) a „Boost: …“ (ikona blesku), každý jen když nějaká místnost daný režim má; u názvu místnosti žádná ikona. **Stav určuje `climate` entita** (`auto` = Plán, `heat` = Ručně nebo Boost, `off` = Vypnuto), senzor přepisu až když `climate` nic použitelného neříká: Tado CE mění `climate` hned po příkazu, senzor přepisu až při dalším dotazu na Tado, a starý senzor by po Plánu ještě chvíli ukazoval Ručně. Ruční přepis s cílem 5 °C (časovač „Vypnuto na dobu“, viz Ovládání Topení) je Vypnuto: řádek, souhrn i historie ho tak ukazují.
 - Při Vypnuto se zobrazí pouze „Vypnuto“, nikdy cílová teplota 5 °C. Vypnuto není problémový stav.
 - U Plán a Ručně se zobrazí stav a cílová teplota.
 - Intenzita vytápění (heating %) se zobrazuje ikonou 0–3 teplých vln, bez čísel a procent: 0 % = 0 vln, 1–34 % = 1, 35–67 % = 2, 68–100 % = 3. Meze jsou v konfiguraci (`thresholds.heating_waves_2: 35` a `heating_waves_3: 68`: od kolika % se ukážou dvě a tři vlny; jedna vlna je vše nad 0 %).

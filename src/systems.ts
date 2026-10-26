@@ -1,4 +1,4 @@
-import { BOOST_TEMPERATURE, HEATING_OFF_TARGET } from "./heating-control";
+import { BOOST_TEMPERATURE, heatingKindOf } from "./heating-control";
 import type { I18n } from "./i18n";
 import type { ClimateMode, DashboardThresholds, HassEntity } from "./types";
 import {
@@ -67,13 +67,9 @@ export function heatingView(
   const overlay = overlayEntity?.state.toLowerCase();
   const overlayUnknown = overlay === undefined || isUnavailable(overlay);
   const target = numericState(targetEntity);
-  // Manual at 5 °C is Vypnuto for a limited time (Tado CE timer), shown like any Vypnuto.
-  const off =
-    climateState === "off" ||
-    overlay === "off" ||
-    (overlay === "manual" && target !== undefined && target <= HEATING_OFF_TARGET);
+  const kind = heatingKindOf(climateState, overlay, target);
 
-  if (off) {
+  if (kind === "off") {
     // Vypnuto never shows the 5 °C frost-protection target.
     return { label: labels.off, color: COLORS.off, active: false, extra: "", unknown: false, overlay: "off", waves: 0 };
   }
@@ -81,10 +77,10 @@ export function heatingView(
     return { label: "––", color: COLORS.label, active: false, extra: "", unknown: true, waves: 0 };
   }
   const waves = heatingWaveCount(numericState(intensityEntity), bands);
-  if (overlay === "schedule") {
+  if (kind === "schedule") {
     return { label: labels.schedule, color: COLORS.plan, active: true, extra: targetText(target, i18n), unknown: false, overlay: "schedule", waves };
   }
-  if (overlay === "manual") {
+  if (kind === "manual") {
     const override = target === BOOST_TEMPERATURE ? "boost" : "manual";
     return { label: labels.manual, color: COLORS.warning, active: true, extra: targetText(target, i18n), unknown: false, overlay: "manual", override, waves };
   }

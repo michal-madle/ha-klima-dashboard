@@ -182,6 +182,8 @@ export const cs = {
     windowsOpen: (count: number) => `${count} ${plural(count, "okno otevřené", "okna otevřená", "oken otevřených")}`,
     windowsSpoken: "Otevřená okna",
     manual: "Ručně",
+    boost: "Boost",
+    boostSpoken: "Topení v režimu Boost",
     manualSpoken: "Topení ručně",
     heating: (rooms: string) => `Topí ${rooms}`,
     heatingSpoken: "Topí se",

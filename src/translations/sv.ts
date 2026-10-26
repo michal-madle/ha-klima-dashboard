@@ -152,6 +152,8 @@ export const sv: Texts = {
     windowsOpen: (count) => `${count} fönster ${plural(count, "öppet", "öppna")}`,
     windowsSpoken: "Öppna fönster",
     manual: "Manuell",
+    boost: "Boost",
+    boostSpoken: "Värme i boost",
     manualSpoken: "Värme i manuellt läge",
     heating: (rooms) => `Värme i ${rooms}`,
     heatingSpoken: "Värme på",

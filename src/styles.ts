@@ -401,30 +401,6 @@ export const styles = css`
       text-overflow: ellipsis;
     }
 
-    .room-title.has-override {
-      display: flex;
-      align-items: center;
-    }
-
-    /* Small mode icon after the room name while the heating schedule is overridden. */
-    .room-override {
-      display: flex;
-      flex: none;
-      width: 18px;
-      height: 18px;
-      margin: 0 0 0 6px;
-    }
-
-    .room-link .room-override {
-      margin-left: 0;
-    }
-
-    .room-override svg {
-      display: block;
-      width: 18px;
-      height: 18px;
-    }
-
     .room-chevron {
       flex: none;
       color: var(--kd-label);

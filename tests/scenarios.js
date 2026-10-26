@@ -136,6 +136,7 @@ if (scenario === "alarm") {
   states["sensor.maxik_teplomer_maxik_humidity"].state = "76";
   for (const room of config.rooms) {
     for (const id of windowIds(room)) states[id].state = "on";
+    states[room.heating.climate].state = "heat";
     states[room.heating.overlay].state = "Manual";
     states[room.heating.target].state = "23.5";
   }

@@ -1,6 +1,6 @@
 import { html, nothing, svg } from "lit";
 import type { TemplateResult } from "lit";
-import { HEATING_OFF_TARGET } from "./heating-control";
+import { HEATING_OFF_TARGET, heatingKindOf } from "./heating-control";
 import { HOUR_MS, buildSegments, numericSeries } from "./history";
 import type { HistoryMap, Segment } from "./history";
 import type { I18n } from "./i18n";
@@ -80,21 +80,12 @@ export interface RoomChartModel {
   night: [number, number];
 }
 
-/** Manual at the frost-protection target is Vypnuto for a limited time (a 5 °C timer), not Ručně. */
 function heatingMode(
   overlay: string | undefined,
   climate: string | undefined,
   target?: number,
 ): string | undefined {
-  const overlayState = overlay?.toLowerCase();
-  if (
-    climate?.toLowerCase() === "off" ||
-    overlayState === "off" ||
-    (overlayState === "manual" && target !== undefined && target <= HEATING_OFF_TARGET)
-  ) {
-    return "off";
-  }
-  return overlayState === "schedule" || overlayState === "manual" ? overlayState : undefined;
+  return heatingKindOf(climate, overlay, target);
 }
 
 function finite(state: string | undefined): number | undefined {

@@ -151,6 +151,8 @@ export const en: Texts = {
     windowsOpen: (count) => `${count} ${plural(count, "window", "windows")} open`,
     windowsSpoken: "Open windows",
     manual: "Manual",
+    boost: "Boost",
+    boostSpoken: "Heating in boost",
     manualSpoken: "Heating set manually",
     heating: (rooms) => `Heating in ${rooms}`,
     heatingSpoken: "Heating",

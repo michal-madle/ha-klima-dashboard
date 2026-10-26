@@ -105,6 +105,26 @@ export function activeHeatingId(entity: HassEntity | undefined): "off" | "auto" 
   return undefined;
 }
 
+export type HeatingKind = "schedule" | "manual" | "off";
+
+/**
+ * Plán / Ručně / Vypnuto of a room. The climate entity decides (`auto` = schedule, `heat` = an
+ * override, `off`): Tado CE updates it at once after a command, while the overlay sensor changes
+ * only with the next poll and stays stale for a while (Ručně would linger after Plán). The overlay
+ * sensor is used when the climate entity says nothing usable. An override at the 5 °C target is Vypnuto.
+ */
+export function heatingKindOf(climate: string | undefined, overlay: string | undefined, target?: number): HeatingKind | undefined {
+  const c = climate?.toLowerCase();
+  const o = overlay?.toLowerCase();
+  if (c === "off") {
+    return "off";
+  }
+  const fromClimate = c === "auto" ? "schedule" : c === "heat" ? "manual" : undefined;
+  const fromOverlay = o === "off" ? "off" : o === "schedule" || o === "manual" ? o : undefined;
+  const kind: HeatingKind | undefined = fromClimate ?? fromOverlay;
+  return kind === "manual" && target !== undefined && target <= HEATING_OFF_TARGET ? "off" : kind;
+}
+
 /** "00:30:00" for the Tado CE `time_period` field. */
 export function timePeriod(minutes: number): string {
   const hours = Math.floor(minutes / 60);

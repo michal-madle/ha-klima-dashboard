@@ -519,7 +519,9 @@ export class HaKlimaDashboard extends LitElement {
             ? renderWindowIcon(chip.color, false)
             : chip.kind === "climate" || chip.kind === "conflict-cooling"
               ? renderClimateIcon("cool", chip.color, false)
-              : renderHeatingWaves(chip.waves ?? 3, false);
+              : chip.kind === "manual" || chip.kind === "boost"
+                ? renderHeatingOptionIcon(chip.kind === "boost" ? "boost" : "heat")
+                : renderHeatingWaves(chip.waves ?? 3, false);
         return html`<li class="chip" style=${`--chip-color: ${chip.color}`} title=${chip.spoken} aria-label=${chip.spoken}>
           <span class="chip-icon" aria-hidden="true">${icon}</span>${chip.text}
         </li>`;
@@ -558,7 +560,7 @@ export class HaKlimaDashboard extends LitElement {
         style=${image?.kind === "scene" ? `--scene-tone: ${sceneTone(image.scene)}` : nothing}
       >
         ${this.renderImage(room)}
-        ${this.renderTitle(room, index, roomHeating(room, (entityId) => this.getState(entityId), this._i18n).override)}
+        ${this.renderTitle(room, index)}
         <div class="status-line">
           <span
             class="status-dot"
@@ -641,18 +643,10 @@ export class HaKlimaDashboard extends LitElement {
   }
 
   /** Room name; with `link` a button that opens the page or address (CURRENT_SPEC.md, Room Card). */
-  private renderTitle(room: Room, index: number, override?: "manual" | "boost"): TemplateResult {
+  private renderTitle(room: Room, index: number): TemplateResult {
     const link = room.link;
-    // Heating schedule overridden (Ručně, Boost): the small icon of that mode after the name. Plán and Vypnuto show none.
-    const mark = override
-      ? html`<span class="room-override" style=${`color: ${override === "boost" ? COLORS.alert : COLORS.warning}`} aria-hidden="true"
-          >${renderHeatingOptionIcon(override === "boost" ? "boost" : "heat")}</span
-        >`
-      : nothing;
     if (!link) {
-      return override
-        ? html`<div class="room-title has-override"><span class="room-name">${room.name}</span>${mark}</div>`
-        : html`<div class="room-title">${room.name}</div>`;
+      return html`<div class="room-title">${room.name}</div>`;
     }
     const descriptionId = `link-description-${index}`;
     return html`
@@ -662,7 +656,7 @@ export class HaKlimaDashboard extends LitElement {
         aria-describedby=${descriptionId}
         @click=${() => this.openLink(link)}
       >
-        <span class="room-name">${room.name}</span>${mark}<span class="room-chevron" aria-hidden="true">›</span>
+        <span class="room-name">${room.name}</span><span class="room-chevron" aria-hidden="true">›</span>
       </button>
       <span class="sr-only" id=${descriptionId}>${link.startsWith("/") ? this._i18n.t.link.page : this._i18n.t.link.web}</span>
     `;

@@ -1974,13 +1974,13 @@ test.describe("výkon", () => {
 // ------------------------------------------------- Topení: teplota a doba trvání
 
 test.describe("Topení: Ručně s teplotou, Boost 25 °C a doba trvání (Ovládání Topení)", () => {
-  const heatingEntity = async (page: Page) =>
-    (await hook<{ rooms: Array<{ heating: { climate: string; overlay: string; target: string } }> }>(page, "config")).rooms[0].heating;
+  const heatingEntity = async (page: Page, room = 0) =>
+    (await hook<{ rooms: Array<{ heating: { climate: string; overlay: string; target: string } }> }>(page, "config")).rooms[room].heating;
   const option = (page: Page, name: string) => page.locator(".sheet .option", { hasText: name });
   const services = (page: Page) => hook<unknown[]>(page, "services");
   /** The state Tado CE reports: mode of the climate entity, its target and the overlay sensor. */
-  const push = async (page: Page, hvac: string, temperature: number, overlayState: string, remaining?: number) => {
-    const ids = await heatingEntity(page);
+  const push = async (page: Page, hvac: string, temperature: number, overlayState: string, remaining?: number, room = 0) => {
+    const ids = await heatingEntity(page, room);
     await page.evaluate(
       ([entities, mode, value, overlay, seconds]) => {
         // @ts-expect-error test hook
@@ -2155,16 +2155,9 @@ test.describe("Topení: Ručně s teplotou, Boost 25 °C a doba trvání (Ovlád
     await expect.poll(() => services(page)).toEqual([["climate", "set_hvac_mode", { entity_id: climate, hvac_mode: "off" }]]);
   });
 
-  test("stav z Tada: ruční 25 °C je Boost, ruční 5 °C je Vypnuto; ikona přepisu v záhlaví jen u Ručně a Boostu; zbývající čas", async ({ page }) => {
+  test("stav z Tada: ruční 25 °C je Boost, ruční 5 °C je Vypnuto; zbývající čas", async ({ page }) => {
     await open(page);
-    const mark = rooms(page).first().locator(".room-override");
-    await expect(mark).toHaveCount(0);
-    await push(page, "heat", 22, "Manual");
-    await expect(mark).toHaveCount(1);
-    await expect(mark).toHaveCSS("color", "rgb(255, 159, 10)");
     await push(page, "heat", 25, "Manual", 1_500);
-    await expect(mark).toHaveCount(1);
-    await expect(mark).not.toHaveCSS("color", "rgb(255, 159, 10)");
     await openPopup(page, ".hvac");
     await expect(option(page, "Boost")).toHaveAttribute("aria-pressed", "true");
     await expect(option(page, "Ručně")).toHaveAttribute("aria-pressed", "false");
@@ -2172,16 +2165,42 @@ test.describe("Topení: Ručně s teplotou, Boost 25 °C a doba trvání (Ovlád
     await closePopup(page);
     await push(page, "heat", 5, "Manual", 5_400);
     await expect(rooms(page).first().locator(".hvac .system-row").first()).toContainText("Vypnuto");
-    await expect(mark).toHaveCount(0);
     await openPopup(page, ".hvac");
     await expect(option(page, "Vypnuto")).toHaveAttribute("aria-pressed", "true");
     await expect(option(page, "Ručně")).toHaveAttribute("aria-pressed", "false");
     await expect(page.locator(".heat-note")).toHaveText("Zbývá 1\u00a0h 30\u00a0min");
-    await closePopup(page);
+  });
+
+  test("horní štítky: Ručně a Boost zvlášť s ikonou režimu, u názvu místnosti žádná ikona, Plán a Vypnuto bez štítku", async ({ page }) => {
+    await open(page);
+    const chips = async () => tidy(await page.locator(".summary .chip").allInnerTexts());
+    await expect(page.locator(".room-override")).toHaveCount(0);
+    expect((await chips()).some((text) => /^(Ručně|Boost):/.test(text))).toBe(false);
+    await push(page, "heat", 22, "Manual");
+    await expect.poll(chips).toContain("Ručně: Ložnice");
+    await push(page, "heat", 25, "Manual", undefined, 1);
+    await expect.poll(chips).toEqual(expect.arrayContaining(["Ručně: Ložnice", "Boost: Pracovna"]));
+    // The icon of the chip is the mode icon (not three waves).
+    const icons = await page.locator(".summary .chip").evaluateAll((items) =>
+      items.map((item) => [item.textContent?.trim(), item.querySelectorAll("path, circle").length]),
+    );
+    expect(icons.find(([text]) => String(text).startsWith("Ručně"))![1]).toBeGreaterThan(0);
     await push(page, "off", 5, "Off");
-    await expect(mark).toHaveCount(0);
-    await push(page, "auto", 21, "Schedule");
-    await expect(mark).toHaveCount(0);
+    await push(page, "auto", 21, "Schedule", undefined, 1);
+    await expect.poll(async () => (await chips()).some((text) => /^(Ručně|Boost):/.test(text))).toBe(false);
+    await expect(page.locator(".room-override")).toHaveCount(0);
+  });
+
+  test("stav určuje climate entita: po Plánu starý senzor přepisu „Manual“ neukáže Ručně (a naopak)", async ({ page }) => {
+    await open(page);
+    const row = rooms(page).first().locator(".hvac .system-row").first();
+    await push(page, "auto", 21, "Manual");
+    await expect(row).toContainText("Plán");
+    await expect.poll(async () => (await page.locator(".summary .chip").allInnerTexts()).join()).not.toContain("Ručně");
+    await push(page, "heat", 22, "Schedule");
+    await expect(row).toContainText("Ručně");
+    await push(page, "auto", 21, "Off");
+    await expect(row).toContainText("Plán");
   });
 
   test("axe a cíle 44 px: ovládání Topení ve tmavém i světlém vzhledu", async ({ page }) => {
