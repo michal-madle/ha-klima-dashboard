@@ -45,7 +45,7 @@ const tidy = (texts: string[]) => texts.map((text) => text.replace(/\s+/g, " ").
 const example = () => parse(readFileSync(new URL("../examples/domov_prototyp_loznice.yaml", import.meta.url), "utf8"));
 
 /** Test hooks of tests/scenarios.js (window.__test). */
-const hook = <T>(page: Page, name: "services" | "haptics" | "moreInfo" | "actions" | "config") =>
+const hook = <T>(page: Page, name: "services" | "scripts" | "haptics" | "moreInfo" | "actions" | "config") =>
   // @ts-expect-error test hook
   page.evaluate((key) => window.__test[key], name) as Promise<T>;
 
@@ -233,7 +233,11 @@ const tooSmall = async (page: Page, label: string, scope = "") => {
     const root = document.querySelector("ha-klima-dashboard")!.shadowRoot!;
     const selector = ["button", "[role='button']", "a[href]", "[tabindex='0']"].map((item) => `${prefix} ${item}`.trim()).join(", ");
     const targets = [...root.querySelectorAll<HTMLElement>(selector)].filter(
-      (element) => !(element as HTMLButtonElement).disabled && element.getBoundingClientRect().width > 0,
+      (element) =>
+        !(element as HTMLButtonElement).disabled &&
+        // A dimmed control (timer in Plán) is inert: nobody can touch it.
+        !element.closest("[inert]") &&
+        element.getBoundingClientRect().width > 0,
     );
     const hits = (element: HTMLElement, x: number, y: number) => {
       const hit = x < 0 || y < 0 || x >= innerWidth || y >= innerHeight ? null : root.elementFromPoint(x, y);
@@ -1578,7 +1582,7 @@ test.describe("jazyky (CURRENT_SPEC.md, Jazyky)", () => {
       expect(tidy(await page.locator(".segment").allInnerTexts())).toEqual(expected.systems);
       await noCzech("Topení");
       await page.locator(".option").nth(2).click();
-      await expect(page.locator(".heat-control")).toBeVisible();
+      await expect(page.locator(".timer-card")).toBeVisible();
       await noCzech("Topení: teplota a doba");
       await page.locator(".segment").nth(1).click();
       await noCzech("Klimatizace");
@@ -2012,19 +2016,29 @@ test.describe("Topení: Ručně s teplotou, Boost 25 °C a doba trvání (Ovlád
     );
   };
 
-  test("Ručně: posuvník teploty, výchozí doba „do další změny plánu“, odešle se až při zavření popupu", async ({ page }) => {
+  const timer = (page: Page) => page.locator(".sheet .timer-slider");
+  const dial = (page: Page) => page.locator(".sheet .dial-ring");
+  /** Slider position (0 = plán, 1–10 = 15 min … 8 h, 11 = ∞) by the keyboard. */
+  const slot = async (page: Page, target: number) => {
+    await timer(page).focus();
+    await page.keyboard.press("Home");
+    for (let i = 0; i < target; i += 1) await page.keyboard.press("ArrowRight");
+  };
+
+  test("Ručně: kruh s teplotou po celých stupních, výchozí doba „do další změny plánu“, odešle se až při zavření popupu", async ({ page }) => {
     await open(page);
     const { climate } = await heatingEntity(page);
     await openPopup(page, ".hvac");
-    await expect(page.locator(".heat-control")).toHaveCount(0);
+    await expect(page.locator(".sheet .timer-card")).toHaveClass(/dim/);
     await option(page, "Ručně").click();
-    const temperature = page.locator("#heat-temperature");
-    await expect(temperature).toHaveValue("21");
-    await expect(page.locator(".heat-control")).toContainText("Do další změny plánu");
+    await expect(dial(page)).toHaveAttribute("role", "slider");
+    await expect(dial(page)).toHaveAttribute("aria-valuenow", "21");
+    await expect(timer(page)).toHaveAttribute("aria-valuenow", "0");
+    await expect(page.locator(".timer-read")).toHaveText("Do další změny plánu");
     await expect(page.locator(".heat-note")).toHaveText("Použije se po zavření okna");
-    await temperature.focus();
-    for (let i = 0; i < 4; i += 1) await page.keyboard.press("ArrowRight");
-    await expect(page.locator(".heat-control")).toContainText("23 °C");
+    await dial(page).focus();
+    for (let i = 0; i < 2; i += 1) await page.keyboard.press("ArrowUp");
+    await expect(page.locator(".dial-big")).toHaveText("23°");
     // Nothing is sent while the popup is open.
     await page.waitForTimeout(2_500);
     expect(await services(page)).toEqual([]);
@@ -2034,16 +2048,16 @@ test.describe("Topení: Ručně s teplotou, Boost 25 °C a doba trvání (Ovlád
     ]);
   });
 
-  test("Boost: pevných 25 °C bez posuvníku teploty, výchozí doba 30 min, time_period 00:30:00", async ({ page }) => {
+  test("Boost: pevných 25 °C bez posuvné teploty, výchozí doba 30 min, time_period 00:30:00", async ({ page }) => {
     await open(page);
     const { climate } = await heatingEntity(page);
     await openPopup(page, ".hvac");
     await option(page, "Boost").click();
-    await expect(page.locator("#heat-temperature")).toHaveCount(0);
-    await expect(page.locator(".heat-fixed")).toContainText("25 °C");
-    await expect(page.locator("#heat-duration")).toHaveValue("1");
-    await expect(page.locator(".heat-control")).toContainText("30 min");
-    await expect(page.locator(".heat-control")).toContainText(/do \d{1,2}:\d{2}/);
+    await expect(dial(page)).toHaveAttribute("role", "img");
+    await expect(page.locator(".dial-big")).toHaveText("25°");
+    await expect(timer(page)).toHaveAttribute("aria-valuenow", "2");
+    await expect(page.locator(".timer-read")).toContainText("30 min");
+    await expect(page.locator(".timer-read")).toContainText(/do \d{1,2}:\d{2}/);
     await closePopup(page);
     await expect.poll(() => services(page)).toEqual([
       ["tado_ce", "set_climate_timer", { entity_id: climate, temperature: 25, time_period: "00:30:00" }],
@@ -2055,42 +2069,77 @@ test.describe("Topení: Ručně s teplotou, Boost 25 °C a doba trvání (Ovlád
     const { climate } = await heatingEntity(page);
     await openPopup(page, ".hvac");
     await option(page, "Vypnuto").click();
-    await expect(page.locator("#heat-duration")).toHaveValue("11");
-    await expect(page.locator(".heat-control")).toContainText("Dokud neobnovíte plán");
-    await expect(page.locator("#heat-temperature")).toHaveCount(0);
+    await expect(timer(page)).toHaveAttribute("aria-valuenow", "11");
+    await expect(page.locator(".timer-read")).toHaveText("Dokud neobnovíte plán");
+    await expect(dial(page)).toHaveAttribute("role", "img");
     await closePopup(page);
     await expect.poll(() => services(page)).toEqual([["climate", "set_hvac_mode", { entity_id: climate, hvac_mode: "off" }]]);
 
     await open(page);
     await openPopup(page, ".hvac");
     await option(page, "Vypnuto").click();
-    await page.locator("#heat-duration").fill("3");
-    await expect(page.locator(".heat-detail")).toHaveText("Ochrana proti zamrznutí (5 °C)");
+    await slot(page, 4);
+    await expect(page.locator(".timer-read")).toContainText("1 h");
+    await expect(page.locator(".after-row")).toHaveClass(/away/);
     await closePopup(page);
     await expect.poll(() => services(page)).toEqual([
       ["tado_ce", "set_climate_timer", { entity_id: climate, temperature: 5, time_period: "01:00:00" }],
     ]);
   });
 
-  test("poslední zarážka „dokud neobnovíte plán“ u Ručně = overlay manual", async ({ page }) => {
+  test("poslední zarážka ∞ u Ručně = overlay manual; ikona ∞ a plánu na koncích osy", async ({ page }) => {
     await open(page);
     const { climate } = await heatingEntity(page);
     await openPopup(page, ".hvac");
     await option(page, "Ručně").click();
-    await page.locator("#heat-duration").fill("11");
-    await expect(page.locator(".heat-control")).toContainText("Dokud neobnovíte plán");
+    await page.locator(".sheet .end-button").nth(1).click();
+    await expect(page.locator(".timer-read")).toHaveText("Dokud neobnovíte plán");
+    await expect(page.locator(".timer-ticks")).toContainText("Plán");
+    await expect(page.locator(".timer-ticks")).toContainText("∞");
     await closePopup(page);
     await expect.poll(() => services(page)).toEqual([
       ["tado_ce", "set_climate_timer", { entity_id: climate, temperature: 21, overlay: "manual" }],
     ]);
   });
 
-  test("otevřený popup ukáže posuvníky aktivního režimu; beze změny se nic neodešle; Plán se použije až při zavření", async ({ page }) => {
+  test("Po skončení: Plán nebo Vypnuto; Vypnuto naplánuje vypnutí v Home Assistantu, volba se pamatuje", async ({ page }) => {
+    await open(page);
+    const { climate } = await heatingEntity(page);
+    await openPopup(page, ".hvac");
+    await option(page, "Ručně").click();
+    // Without a time limit there is nothing to follow (the row keeps its place, hidden).
+    await expect(page.locator(".after-row")).toHaveClass(/away/);
+    await slot(page, 4);
+    const after = page.locator(".after-row .mini-segment");
+    await expect(after.nth(0)).toHaveAttribute("aria-pressed", "true");
+    await expect(page.locator(".timer-foot")).toContainText("potom přejde do Plánu");
+    await after.nth(1).click();
+    await expect(page.locator(".timer-foot")).toContainText("potom se topení vypne");
+    await closePopup(page);
+    await expect.poll(() => services(page)).toEqual([
+      ["tado_ce", "set_climate_timer", { entity_id: climate, temperature: 21, time_period: "01:00:00" }],
+    ]);
+    const scripts = await hook<Array<{ type: string; sequence: Array<Record<string, unknown>> }>>(page, "scripts");
+    expect(scripts).toHaveLength(1);
+    expect(scripts[0].type).toBe("execute_script");
+    expect(scripts[0].sequence[0]).toEqual({ delay: { hours: 1, minutes: 0, seconds: 15 } });
+    expect(scripts[0].sequence.at(-1)).toEqual({
+      action: "climate.set_hvac_mode",
+      target: { entity_id: climate },
+      data: { hvac_mode: "off" },
+    });
+    // The choice is remembered for the next time.
+    await openPopup(page, ".hvac");
+    await option(page, "Boost").click();
+    await expect(page.locator(".after-row .mini-segment").nth(1)).toHaveAttribute("aria-pressed", "true");
+  });
+
+  test("otevřený popup ukáže kruh aktivního režimu; beze změny se nic neodešle; Plán se použije až při zavření", async ({ page }) => {
     await open(page);
     const { climate } = await heatingEntity(page);
     await push(page, "heat", 22, "Manual");
     await openPopup(page, ".hvac");
-    await expect(page.locator("#heat-temperature")).toHaveValue("22");
+    await expect(dial(page)).toHaveAttribute("aria-valuenow", "22");
     await expect(option(page, "Ručně")).toHaveAttribute("aria-pressed", "true");
     await closePopup(page);
     await page.waitForTimeout(300);
@@ -2098,7 +2147,7 @@ test.describe("Topení: Ručně s teplotou, Boost 25 °C a doba trvání (Ovlád
 
     await openPopup(page, ".hvac");
     await option(page, "Plán").click();
-    await expect(page.locator(".heat-control")).toHaveCount(0);
+    await expect(page.locator(".sheet .timer-card")).toHaveClass(/dim/);
     await expect(option(page, "Plán")).toHaveAttribute("aria-pressed", "true");
     expect(await services(page)).toEqual([]);
     await closePopup(page);
@@ -2115,7 +2164,7 @@ test.describe("Topení: Ručně s teplotou, Boost 25 °C a doba trvání (Ovlád
     expect(await services(page)).toHaveLength(0);
   });
 
-  test("čtyři ikony v jedné řadě, nad nimi posuvníky a dole přepínač; volby se při změně režimu nehýbou", async ({ page }) => {
+  test("přepínač Topení | Klimatizace je nahoře, čtyři ikony v jedné řadě; volby se při změně režimu nehýbou", async ({ page }) => {
     await open(page);
     await openPopup(page, ".hvac");
     const options = page.locator(".sheet .icon-options .option");
@@ -2124,19 +2173,17 @@ test.describe("Topení: Ručně s teplotou, Boost 25 °C a doba trvání (Ovlád
     const before = await rects();
     expect(new Set(before.map((box) => Math.round(box!.y))).size).toBe(1);
     const switcher = await page.locator(".segmented").boundingBox();
-    expect(switcher!.y).toBeGreaterThan(before[0]!.y + before[0]!.height);
+    expect(switcher!.y + switcher!.height).toBeLessThan(before[0]!.y);
     await option(page, "Ručně").click();
-    await expect(page.locator(".heat-control")).toBeVisible();
-    await option(page, "Boost").click();
-    await option(page, "Vypnuto").click();
+    await expect(dial(page)).toHaveAttribute("role", "slider");
     for (const [name, index] of [["Vypnuto", 0], ["Plán", 1], ["Ručně", 2], ["Boost", 3]] as const) {
       await option(page, name).click();
       const after = await rects();
-      expect(Math.round(after[index]!.y), `${name}: svisle`).toBe(Math.round(before[index]!.y));
       expect(Math.round(after[index]!.x), `${name}: vodorovně`).toBe(Math.round(before[index]!.x));
+      expect(after[index]!.height, `${name}: výška`).toBe(before[index]!.height);
     }
     await option(page, "Plán").click();
-    await expect(page.locator(".heat-control")).toHaveCount(0);
+    await expect(page.locator(".sheet .timer-card")).toHaveClass(/dim/);
   });
 
   test("chyba příkazu po zavření: haptika „failure“ místo hlášky v popupu", async ({ page }) => {
@@ -2158,16 +2205,17 @@ test.describe("Topení: Ručně s teplotou, Boost 25 °C a doba trvání (Ovlád
     await expect(option(page, "Boost")).toBeDisabled();
     await expect(page.locator(".heat-note")).toHaveText("Boost: entita nenabízí");
     await option(page, "Ručně").click();
-    await expect(page.locator("#heat-duration")).toHaveCount(0);
-    await expect(page.locator(".heat-control")).toContainText("Dobu nelze nastavit");
-    await page.locator("#heat-temperature").fill("22.5");
+    await expect(timer(page)).toHaveCount(0);
+    await expect(page.locator(".sheet-message")).toContainText("Dobu nelze nastavit");
+    await dial(page).focus();
+    await page.keyboard.press("ArrowUp");
     await closePopup(page);
-    await expect.poll(() => services(page)).toEqual([["climate", "set_temperature", { entity_id: climate, temperature: 22.5 }]]);
+    await expect.poll(() => services(page)).toEqual([["climate", "set_temperature", { entity_id: climate, temperature: 22 }]]);
 
     await open(page, "full&timer=none");
     await openPopup(page, ".hvac");
     await option(page, "Vypnuto").click();
-    await expect(page.locator("#heat-duration")).toHaveCount(0);
+    await expect(timer(page)).toHaveCount(0);
     await closePopup(page);
     await expect.poll(() => services(page)).toEqual([["climate", "set_hvac_mode", { entity_id: climate, hvac_mode: "off" }]]);
   });
@@ -2225,12 +2273,12 @@ test.describe("Topení: Ručně s teplotou, Boost 25 °C a doba trvání (Ovlád
       await open(page, "full", 393, 852, theme);
       await openPopup(page, ".hvac");
       await option(page, "Ručně").click();
-      await expect(page.locator(".heat-control")).toBeVisible();
+      await expect(dial(page)).toHaveAttribute("role", "slider");
       expect(await axeViolations(page), `${theme} Ručně`).toEqual([]);
       await option(page, "Boost").click();
-      await expect(page.locator(".heat-fixed")).toBeVisible();
+      await expect(dial(page)).toHaveAttribute("role", "img");
       expect(await axeViolations(page), `${theme} Boost`).toEqual([]);
-      const slider = await page.locator("#heat-duration").boundingBox();
+      const slider = await timer(page).boundingBox();
       expect(slider!.height).toBeGreaterThanOrEqual(44);
       expect(slider!.width).toBeLessThanOrEqual(393);
       await closePopup(page);
@@ -2252,25 +2300,133 @@ test.describe("Topení: posuvníky prstem (dotykový tah)", () => {
     await cdp.detach();
   };
 
-  test("tah prstem po posuvníku teploty i doby mění hodnotu a nehýbe stránkou", async ({ page }) => {
+  test("tah prstem po časovači mění dobu a nehýbe stránkou", async ({ page }) => {
     await open(page, "full", 393, 852);
     await page.evaluate(() => window.scrollTo(0, 300));
     await rooms(page).first().locator(".hvac").evaluate((button) => (button as HTMLElement).click());
     await expect(page.locator(".sheet")).toBeVisible();
     await settle(page);
     await page.locator(".sheet .option", { hasText: "Ručně" }).click();
-    for (const [id, direction] of [["heat-temperature", 1], ["heat-duration", -1]] as const) {
-      const slider = page.locator(`#${id}`);
-      const before = Number(await slider.inputValue());
-      const box = (await slider.boundingBox())!;
-      // Start on the thumb (the native input centres it at 21 px from the ends), so the swipe drags it.
-      const { min, max } = await slider.evaluate((input: HTMLInputElement) => ({ min: Number(input.min), max: Number(input.max) }));
-      const start = box.x + 21 + ((before - min) / (max - min)) * (box.width - 42);
-      await swipe(page, start, box.y + box.height / 2, direction * 100);
-      const after = Number(await slider.inputValue());
-      expect(direction * (after - before), `${id}: ${before} → ${after}`).toBeGreaterThan(0);
-    }
+    const slider = page.locator(".sheet .timer-slider");
+    const before = Number(await slider.getAttribute("aria-valuenow"));
+    const box = (await slider.boundingBox())!;
+    await swipe(page, box.x + 4, box.y + box.height / 2, 100);
+    const after = Number(await slider.getAttribute("aria-valuenow"));
+    expect(after - before, `${before} → ${after}`).toBeGreaterThan(0);
     expect(await page.evaluate(() => Math.round(window.scrollY))).toBe(300);
+  });
+});
+
+test.describe("Hromadné nastavení a Klimatizace (Ovládání Topení a Klimatizace)", () => {
+  const services = (page: Page) => hook<unknown[]>(page, "services");
+  const option = (page: Page, name: string) => page.locator(".sheet .option", { hasText: name });
+  const config = async (page: Page) =>
+    hook<{ rooms: Array<{ name: string; heating: { climate: string }; air_conditioner: string }> }>(page, "config");
+
+  test("štítek „Topí 3 místnosti“ otevře popup se všemi třemi, volba se pošle každé; ikona HVAC v místnosti jen té jedné", async ({ page }) => {
+    await open(page);
+    const { rooms: all } = await config(page);
+    const chip = page.locator(".summary .chip-open", { hasText: "Topí" });
+    await expect(chip).toBeVisible();
+    await chip.click();
+    await expect(page.locator("#sheet-title")).toHaveText("Ložnice, Maxík, Obývák");
+    await option(page, "Boost").click();
+    // No detail link for a group (it has no single entity).
+    await expect(page.locator(".sheet-link")).toHaveCount(0);
+    await closePopup(page);
+    const heating = (name: string) => all.find((room) => room.name === name)!.heating.climate;
+    await expect.poll(() => services(page)).toEqual(
+      ["Ložnice", "Maxík", "Obývák"].map((name) => [
+        "tado_ce",
+        "set_climate_timer",
+        { entity_id: heating(name), temperature: 25, time_period: "00:30:00" },
+      ]),
+    );
+
+    await openPopup(page, ".hvac");
+    await expect(page.locator("#sheet-title")).toHaveText("Ložnice");
+    await expect(page.locator(".sheet-link")).toHaveCount(1);
+  });
+
+  test("štítek Klimatizace: režimy ve pořadí návrhu, WindFree jedním klepnutím (chlazení + předvolba), teplota po celých stupních", async ({ page }) => {
+    await open(page, "summer");
+    const chip = page.locator(".summary .chip-open", { hasText: "Klimatizace" });
+    await chip.click();
+    await expect(page.locator(".sheet .segment[aria-selected='true']")).toHaveText("Klimatizace");
+    expect(tidy(await page.locator(".sheet .climate-options .option").allInnerTexts())).toEqual([
+      "Vypnuto",
+      "Chlazení",
+      "WindFree",
+      "Topení",
+      "Větrání",
+      "Sušení",
+      "Auto",
+    ]);
+    const { rooms: all } = await config(page);
+    const names = (await page.locator("#sheet-title").innerText()).split(", ");
+    expect(names.length).toBeGreaterThan(0);
+    await option(page, "WindFree").click();
+    await expect.poll(async () => (await services(page)).length).toBe(2 * names.length);
+    const calls = (await services(page)) as Array<[string, string, Record<string, unknown>]>;
+    expect(calls.filter((call) => call[1] === "set_hvac_mode").every((call) => call[2].hvac_mode === "cool")).toBe(true);
+    expect(calls.filter((call) => call[1] === "set_preset_mode").every((call) => call[2].preset_mode === "wind_free")).toBe(true);
+    const ids = new Set(names.map((name) => all.find((room) => room.name === name)!.air_conditioner));
+    expect(new Set(calls.map((call) => call[2].entity_id))).toEqual(ids);
+
+    // The ring moves by whole degrees and is sent at once (keyboard) to every room.
+    await page.evaluate(() => {
+      // @ts-expect-error test hook
+      window.__test.services.length = 0;
+    });
+    const dial = page.locator(".sheet .dial-ring");
+    await expect(dial).toHaveAttribute("role", "slider");
+    await dial.focus();
+    await page.keyboard.press("ArrowUp");
+    await expect.poll(async () => (await services(page)).length).toBe(names.length);
+    const temperatures = ((await services(page)) as Array<[string, string, Record<string, unknown>]>).map((call) => call[2].temperature);
+    expect(new Set(temperatures).size).toBe(1);
+    expect(Number.isInteger(temperatures[0])).toBe(true);
+  });
+
+  test("Klimatizace: časovač vypnutí naplánuje v Home Assistantu vypnutí; ∞ nic neplánuje", async ({ page }) => {
+    await open(page, "summer");
+    await openPopup(page, ".hvac");
+    await expect(page.locator(".sheet .segment[aria-selected='true']")).toHaveText("Klimatizace");
+    const slider = page.locator(".sheet .timer-slider");
+    await expect(slider).toHaveAttribute("aria-valuenow", "10");
+    await expect(page.locator(".timer-read")).toHaveText("Bez omezení");
+    await expect(page.locator(".timer-foot")).toHaveText("Klimatizace běží, dokud ji nevypnete.");
+    await slider.focus();
+    await page.keyboard.press("Home");
+    await page.keyboard.press("ArrowRight");
+    await expect(page.locator(".timer-read")).toContainText("30 min");
+    await expect(page.locator(".timer-foot")).toContainText("potom se klimatizace vypne");
+    await expect(page.locator(".after-row")).toHaveCount(0);
+    await closePopup(page);
+    const scripts = await hook<Array<{ sequence: Array<Record<string, unknown>> }>>(page, "scripts");
+    expect(scripts.length).toBeGreaterThan(0);
+    for (const script of scripts) {
+      expect(script.sequence[0]).toEqual({ delay: { hours: 0, minutes: 30, seconds: 0 } });
+      expect(script.sequence[1]).toMatchObject({ condition: "state", state: "cool" });
+      expect(script.sequence[2]).toMatchObject({ action: "climate.set_hvac_mode", data: { hvac_mode: "off" } });
+    }
+
+    await openPopup(page, ".hvac");
+    await slider.focus();
+    await page.keyboard.press("End");
+    await closePopup(page);
+    expect(await hook<unknown[]>(page, "scripts")).toHaveLength(scripts.length);
+  });
+
+  test("světlý i tmavý vzhled: popup Klimatizace bez porušení axe, cíle aspoň 44 px", async ({ page }) => {
+    for (const theme of ["dark", "light"] as const) {
+      await open(page, "summer", 393, 852, theme);
+      await openPopup(page, ".hvac");
+      await expect(page.locator(".sheet .dial-ring")).toBeVisible();
+      expect(await axeViolations(page), theme).toEqual([]);
+      expect(await tooSmall(page, theme, ".sheet")).toEqual([]);
+      await closePopup(page);
+    }
   });
 });
 

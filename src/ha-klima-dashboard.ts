@@ -21,18 +21,22 @@ import {
   HEATING_OFF_TARGET,
   NEXT_PLAN,
   UNTIL_RESUMED,
+  acSlotToDuration,
   activeHeatingId,
   currentHeatingControl,
   defaultDuration,
+  delayedOffScript,
   durationMinutes,
+  durationToAcSlot,
+  durationToSlot,
   heatingCommand,
   manualRange,
   minutesLabel,
   numberOf,
-  snapTemperature,
+  slotToDuration,
   temperatureRange,
 } from "./heating-control";
-import type { HeatingControl, HeatingControlMode, ServiceCall } from "./heating-control";
+import type { AfterTimer, HeatingControl, HeatingControlMode, ServiceCall } from "./heating-control";
 import { renderScene, sceneTone } from "./scenes";
 import { HOUR_MS, fetchHistory, normalizeToAxis, sampleNumeric, sharedAxis } from "./history";
 import { cardLanguage, getI18n, hassLanguage } from "./i18n";
@@ -44,6 +48,7 @@ import { climateView, spokenSystem } from "./systems";
 import type { SystemView } from "./systems";
 import type {
   BlindPreset,
+  ClimateMode,
   DashboardConfig,
   EntityId,
   HassEntity,
@@ -82,6 +87,8 @@ import {
   trendStep,
 } from "./utils";
 
+/** localStorage key of the last "Po skončení" choice. */
+const AFTER_KEY = "klima-dashboard.after-timer";
 const TREND_REFRESH_MS = 5 * 60_000;
 const CLOCK_TICK_MS = 30_000;
 const NBSP = " ";
@@ -154,6 +161,13 @@ export class HaKlimaDashboard extends LitElement {
   /** Topení popup: what the person has changed; it is sent when the popup closes. Undefined = no change. */
   @state()
   private _heat?: HeatingControl;
+
+  /** Klimatizace popup: the target while the ring is dragged, and the "turn off after" time (sent when the popup closes). */
+  @state()
+  private _acTarget?: number;
+
+  @state()
+  private _ac?: { duration: number; touched: boolean };
 
   /** 24 h room history shown in the "history" popup. */
   @state()
@@ -522,6 +536,22 @@ export class HaKlimaDashboard extends LitElement {
               : chip.kind === "manual" || chip.kind === "boost"
                 ? renderHeatingOptionIcon(chip.kind === "boost" ? "boost" : "heat")
                 : renderHeatingWaves(chip.waves ?? 3, false);
+        const opens = chip.opens;
+        if (opens && opens.rooms.length > 0) {
+          // The chip sets exactly the rooms it names (CURRENT_SPEC.md, Hromadné nastavení).
+          return html`<li class="chip" style=${`--chip-color: ${chip.color}`}>
+            <button
+              type="button"
+              class="plain-button chip-open"
+              title=${chip.spoken}
+              aria-label=${`${chip.text}. ${chip.spoken}`}
+              aria-haspopup="dialog"
+              @click=${(event: Event) => this.openGroupSheet(opens.system, opens.rooms, event)}
+            >
+              <span class="chip-icon" aria-hidden="true">${icon}</span>${chip.text}
+            </button>
+          </li>`;
+        }
         return html`<li class="chip" style=${`--chip-color: ${chip.color}`} title=${chip.spoken} aria-label=${chip.spoken}>
           <span class="chip-icon" aria-hidden="true">${icon}</span>${chip.text}
         </li>`;
@@ -1457,7 +1487,8 @@ export class HaKlimaDashboard extends LitElement {
     if (sheet.kind === "windows") {
       return this.renderSheetFrame(t.window.popup, sheet.room.name, this.renderWindowsBody(sheet.room, Date.now()));
     }
-    return this.renderSheetFrame(sheet.room.name, undefined, this.renderHvacBody(sheet.room, sheet.kind, isSummer));
+    const { title, sub } = this.hvacTitle(sheet.kind);
+    return this.renderSheetFrame(title, sub, this.renderHvacBody(sheet.room, sheet.kind, isSummer));
   }
 
   /**
@@ -1513,89 +1544,534 @@ export class HaKlimaDashboard extends LitElement {
     `;
   }
 
-  /** Topení / Klimatizace controls, with a segmented control to switch between the two. */
-  private renderHvacBody(room: Room, kind: "heating" | "climate", isSummer: boolean): TemplateResult {
-    const isHeating = kind === "heating";
-    const entityId = isHeating ? room.heating?.climate : room.air_conditioner;
+  /** Title of the Topení / Klimatizace popup: the room, or the rooms it sets together (names, or "all"). */
+  private hvacTitle(kind: "heating" | "climate"): { title: string; sub?: string } {
+    const { t } = this._i18n;
+    const rooms = this.sheetRooms().filter((room) => (kind === "heating" ? room.heating?.climate : room.air_conditioner));
+    if (rooms.length <= 1) {
+      return { title: (rooms[0] ?? this._sheet?.room)?.name ?? "" };
+    }
+    const everyone = (this._config?.rooms ?? []).filter((room) => (kind === "heating" ? room.heating?.climate : room.air_conditioner));
+    const all = rooms.length === everyone.length;
+    return { title: all ? t.sheet.allRooms : rooms.map((room) => room.name).join(", "), sub: all ? rooms.map((room) => room.name).join(", ") : undefined };
+  }
+
+  /** Topení / Klimatizace controls: the segmented switch on top, then the panel of the chosen system. */
+  private renderHvacBody(_room: Room, kind: "heating" | "climate", isSummer: boolean): TemplateResult {
+    const rooms = this.sheetRooms();
+    const heatRooms = rooms.filter((room) => room.heating?.climate);
+    const acRooms = rooms.filter((room) => room.air_conditioner);
+    const order: Array<"heating" | "climate"> = isSummer ? ["climate", "heating"] : ["heating", "climate"];
+    const both = heatRooms.length > 0 && acRooms.length > 0;
+    const { t } = this._i18n;
+    const panel = kind === "heating" ? this.renderHeatingPanel(heatRooms) : this.renderClimatePanel(acRooms);
+
+    // ARIA tabs: arrows / Home / End switch the system, only the selected tab is in the Tab order.
+    const switcher = both
+      ? html`<div
+          class="segmented"
+          role="tablist"
+          aria-label=${t.sheet.systems}
+          @keydown=${(event: KeyboardEvent) => this.segmentKeydown(event, order, kind)}
+        >
+          ${order.map(
+            (system) => html`<button
+              type="button"
+              role="tab"
+              id=${`tab-${system}`}
+              class="plain-button segment"
+              data-system=${system}
+              aria-selected=${system === kind ? "true" : "false"}
+              aria-controls="hvac-panel"
+              tabindex=${system === kind ? "0" : "-1"}
+              @click=${() => this.switchSheet(system)}
+            >
+              ${t.system[system]}
+            </button>`,
+          )}
+        </div>`
+      : html`<div class="sheet-label system-name">${t.system[kind]}</div>`;
+    return html`${switcher}
+      <div class="hvac-panel" role=${both ? "tabpanel" : nothing} id="hvac-panel" aria-labelledby=${both ? `tab-${kind}` : nothing}>
+        ${panel}
+      </div>`;
+  }
+
+  /** "Teď 21,9 °C" under the big value: only for one room (a group has no single temperature). */
+  private roomNow(rooms: Room[]): string {
+    if (rooms.length !== 1) {
+      return "";
+    }
+    const value = numberOf(this.getState(rooms[0].temperature)?.state);
+    return value === undefined ? "" : this._i18n.t.sheet.now(`${this._i18n.one(value)}${NBSP}°C`);
+  }
+
+  private renderHeatingPanel(rooms: Room[]): TemplateResult {
+    const { t } = this._i18n;
+    const room = rooms[0];
+    const entityId = room?.heating?.climate;
     const entity = this.getState(entityId);
     const available = entity !== undefined && !isUnavailable(entity.state.toLowerCase());
+    const hvacModes = stringList(entity?.attributes.hvac_modes);
+    if (!room || !entityId || !available) {
+      return html`<p class="sheet-message">${t.sheet.entityUnavailable}</p>${this.renderSheetTail(undefined)}`;
+    }
+    const heat = this.heatControl(room, entityId, entity);
+    const options = this.heatingOptions(entityId, hvacModes, activeHeating(heat));
+    if (options.length === 0 || !heat) {
+      return html`<p class="sheet-message">${t.sheet.noModes}</p>${this.renderSheetTail(entityId)}`;
+    }
+    const c = t.sheet.heatControl;
+    const timer = this.timerAvailable();
+    const manual = this.wholeRange(manualRange(temperatureRange(entity)));
+    const planTarget = numberOf(entity?.attributes.temperature);
+    const tone = heat.mode === "boost" ? COLORS.alert : heat.mode === "manual" ? COLORS.warning : heat.mode === "plan" ? COLORS.plan : COLORS.off;
+
+    let hero: TemplateResult;
+    if (heat.mode === "off") {
+      hero = this.renderDial({ id: "heat-dial", text: t.heatingMode.off, eyebrow: t.system.heating, sub: this.roomNow(rooms), tone });
+    } else if (heat.mode === "plan") {
+      hero = this.renderDial({
+        id: "heat-dial",
+        value: planTarget,
+        min: manual.min,
+        max: manual.max,
+        eyebrow: c.bySchedule,
+        sub: this.roomNow(rooms),
+        tone,
+      });
+    } else if (heat.mode === "boost") {
+      hero = this.renderDial({
+        id: "heat-dial",
+        value: BOOST_TEMPERATURE,
+        min: manual.min,
+        max: manual.max,
+        eyebrow: t.heatingMode.boost,
+        sub: this.roomNow(rooms),
+        tone,
+      });
+    } else {
+      hero = this.renderDial({
+        id: "heat-dial",
+        value: Math.round(heat.temperature),
+        min: manual.min,
+        max: manual.max,
+        eyebrow: c.temperature,
+        sub: this.roomNow(rooms),
+        tone,
+        label: c.temperatureSlider,
+        onChange: (value) => this.editHeat(room, entityId, { temperature: value, mode: "manual" }),
+      });
+    }
+
+    // The timer stays in place (dimmed in Plán) so the modes above it do not jump when the mode changes.
+    const showTimer = timer;
+    const idle = heat.mode === "plan";
+    const minutes = durationMinutes(heat.duration);
+    const afterOn = (heat.mode === "manual" || heat.mode === "boost") && minutes !== undefined;
+    const after = heat.after ?? this.defaultAfter();
+    const readout =
+      minutes !== undefined
+        ? `${minutesLabel(minutes)} · ${c.until(this._i18n.time(Date.now() + minutes * 60_000))}`
+        : heat.duration === NEXT_PLAN
+          ? c.nextPlan
+          : c.untilResumed;
+    const foot =
+      minutes === undefined
+        ? heat.duration === NEXT_PLAN
+          ? c.footPlan
+          : heat.mode === "off"
+            ? c.footOffForever
+            : c.footForever
+        : heat.mode === "off"
+          ? c.footOffTimed(this._i18n.time(Date.now() + minutes * 60_000))
+          : c.footTimed(this._i18n.time(Date.now() + minutes * 60_000), after === "off" ? c.afterOffText : c.afterPlanText);
+
+    return html`
+      ${hero}
+      <div class="options icon-options" role="group" aria-label=${t.sheet.modes(t.system.heating)}>
+        ${options.map((option) => this.renderOption(option))}
+      </div>
+      ${showTimer
+        ? html`<div class="timer-card ${idle ? "dim" : ""}" ?inert=${idle}>
+              ${this.renderTimer({
+                slot: durationToSlot(heat.duration),
+                last: DURATION_MINUTES.length + 1,
+                readout,
+                label: c.durationSlider,
+                leftLabel: c.nextPlan,
+                leftIcon: renderHeatingOptionIcon("auto"),
+                leftText: html`<b>${t.heatingMode.schedule}</b>`,
+                rightLabel: c.untilResumed,
+                onSlot: (slot) => this.editHeat(room, entityId, { duration: slotToDuration(slot) }),
+              })}
+              ${html`<div class="after-row ${afterOn ? "" : "away"}" ?inert=${!afterOn}>
+                    <span id="after-label">${c.after}</span>
+                    <div class="mini-segmented" role="group" aria-labelledby="after-label">
+                      ${(["plan", "off"] as const).map(
+                        (value) => html`<button
+                          type="button"
+                          class="plain-button mini-segment"
+                          aria-pressed=${after === value ? "true" : "false"}
+                          @click=${() => this.chooseAfter(room, entityId, value)}
+                        >
+                          ${value === "plan" ? t.heatingMode.schedule : t.heatingMode.off}
+                        </button>`,
+                      )}
+                    </div>
+                  </div>`}
+            </div>
+            <p class="timer-foot">${idle ? c.footIdle : foot}</p>`
+        : heat.mode === "manual" && !timer
+          ? html`<p class="sheet-message">${c.noTimer}</p>`
+          : nothing}
+      <p class="heat-note" role="status">${this.heatNote(room, entityId, entity, options.filter((o) => o.unsupported).map((o) => `${o.label}: ${o.unsupported}`))}</p>
+      ${this._sheetError ? html`<p class="sheet-message error" role="alert">${this._sheetError}</p>` : nothing}
+      ${this.renderSheetTail(rooms.length === 1 ? entityId : undefined)}
+    `;
+  }
+
+  private renderClimatePanel(rooms: Room[]): TemplateResult {
+    const { t } = this._i18n;
+    const room = rooms[0];
+    const entityId = room?.air_conditioner;
+    const entity = this.getState(entityId);
+    const available = entity !== undefined && !isUnavailable(entity.state.toLowerCase());
+    if (!room || !entityId || !available) {
+      return html`<p class="sheet-message">${t.sheet.entityUnavailable}</p>${this.renderSheetTail(undefined)}`;
+    }
     const hvacModes = stringList(entity?.attributes.hvac_modes);
     const presetModes = stringList(entity?.attributes.preset_modes);
     const state = entity?.state.toLowerCase();
     const preset = String(entity?.attributes.preset_mode ?? "none").toLowerCase();
+    const options = this.climateOptions(entityId, hvacModes, state, presetModes, preset);
+    if (options.length === 0) {
+      return html`<p class="sheet-message">${t.sheet.noModes}</p>${this.renderSheetTail(entityId)}`;
+    }
+    const view = climateView(entity, this._i18n);
+    const minTemp = Math.ceil(numberOf(entity?.attributes.min_temp) ?? 16);
+    const maxTemp = Math.floor(numberOf(entity?.attributes.max_temp) ?? 30);
+    const stored = this._acTarget ?? numberOf(entity?.attributes.temperature);
+    const target = stored === undefined ? undefined : Math.round(stored);
+    const hasTarget = ["cool", "wind_free", "heat", "auto"].includes(view.mode);
+    const textMode = view.mode === "off" || view.mode === "fan" || view.mode === "dry" || view.mode === "unknown";
+    const hero = this.renderDial({
+      id: "ac-dial",
+      text: textMode ? t.climateMode[view.mode === "unknown" ? "unknown" : view.mode] : undefined,
+      value: textMode ? undefined : target,
+      min: minTemp,
+      max: maxTemp,
+      eyebrow: view.mode === "off" ? t.system.climate : textMode ? t.sheet.mode : t.sheet.heatControl.temperature,
+      sub: this.roomNow(rooms),
+      tone: view.color,
+      label: t.sheet.heatControl.temperatureSlider,
+      onChange: hasTarget ? (value) => (this._acTarget = value) : undefined,
+      onCommit: hasTarget ? () => void this.runSheetAction(() => this.commitAcTarget(rooms)) : undefined,
+    });
 
-    const options = !available || !entityId
-      ? []
-      : isHeating
-        ? this.heatingOptions(entityId, hvacModes, activeHeating(this.heatControl(room, entityId, entity)))
-        : this.climateOptions(entityId, hvacModes, state);
-    const presets = !isHeating && available && entityId ? presetModes.filter((mode) => mode !== "none") : [];
-    const order: Array<"heating" | "climate"> = isSummer ? ["climate", "heating"] : ["heating", "climate"];
-    const both = Boolean(room.heating?.climate) && Boolean(room.air_conditioner);
-    const { t } = this._i18n;
+    const fanModes = stringList(entity?.attributes.fan_modes);
+    const swingModes = stringList(entity?.attributes.swing_modes);
+    const fan = String(entity?.attributes.fan_mode ?? "").toLowerCase();
+    const swing = String(entity?.attributes.swing_mode ?? "").toLowerCase();
+    const presets = presetModes.filter((mode) => mode !== "none" && mode !== "wind_free");
+    const running = view.active;
+    const duration = this._ac?.duration ?? UNTIL_RESUMED;
+    const minutes = durationMinutes(duration);
+    const c = t.sheet.heatControl;
+    const readout = minutes === undefined ? c.noLimit : `${minutesLabel(minutes)} · ${c.until(this._i18n.time(Date.now() + minutes * 60_000))}`;
+    const foot = minutes === undefined ? c.acFootForever : c.acFootTimed(this._i18n.time(Date.now() + minutes * 60_000));
+    const hasTimer = Boolean(this.hass?.callWS);
+    const idle = !running;
 
-    const unsupported = options.filter((option) => option.unsupported).map((option) => `${option.label}: ${option.unsupported}`);
-    const body = html`
-      ${!available
-        ? html`<p class="sheet-message">${t.sheet.entityUnavailable}</p>`
-        : options.length === 0
-          ? html`<p class="sheet-message">${t.sheet.noModes}</p>`
-          : html`${isHeating && entityId ? this.renderHeatControl(room, entityId, entity) : nothing}
-              <div class="options ${isHeating ? "icon-options" : ""}" role="group" aria-label=${t.sheet.modes(t.system[kind])}>
-                ${options.map((option) => this.renderOption(option))}
-              </div>
-              ${isHeating
-                ? html`<p class="heat-note" role="status">${this.heatNote(room, entityId, entity, unsupported)}</p>`
-                : nothing}`}
+    return html`
+      ${hero}
+      <div class="options climate-options" role="group" aria-label=${t.sheet.modes(t.system.climate)}>
+        ${options.map((option) => this.renderOption(option))}
+      </div>
+      ${hasTimer
+        ? html`<div class="timer-card ${idle ? "dim" : ""}" ?inert=${idle}>
+              ${this.renderTimer({
+                slot: durationToAcSlot(duration),
+                last: DURATION_MINUTES.length,
+                readout,
+                label: c.durationSlider,
+                leftLabel: minutesLabel(DURATION_MINUTES[0]),
+                leftIcon: renderClockIcon(),
+                leftText: html`<b>${minutesLabel(DURATION_MINUTES[0])}</b>`,
+                rightLabel: c.noLimit,
+                onSlot: (slot) => (this._ac = { duration: acSlotToDuration(slot), touched: true }),
+              })}
+            </div>
+            <p class="timer-foot">${idle ? c.acFootIdle : foot}</p>`
+        : nothing}
+      ${fanModes.length > 0
+        ? this.renderChoice(t.sheet.climate.fan, fanModes, fan, idle, (mode) => this.callClimateEach(rooms, "set_fan_mode", { fan_mode: mode }), (mode) => this.fanLabel(mode))
+        : nothing}
+      ${swingModes.length > 0
+        ? this.renderChoice(t.sheet.climate.swing, swingModes, swing, idle, (mode) => this.callClimateEach(rooms, "set_swing_mode", { swing_mode: mode }), (mode) => this.swingLabel(mode))
+        : nothing}
       ${presets.length > 0
         ? html`<div class="sheet-label" id="preset-label">${t.sheet.presets}</div>
             <div class="chips" role="group" aria-labelledby="preset-label">
-              ${presets.map((mode) => this.renderPresetChip(entityId as EntityId, mode, preset, state, presetModes))}
+              ${presets.map((mode) => this.renderPresetChip(rooms, mode, preset, state, presetModes))}
             </div>`
         : nothing}
       ${this._sheetError ? html`<p class="sheet-message error" role="alert">${this._sheetError}</p>` : nothing}
-      <button
-        type="button"
-        class="plain-button sheet-link"
-        ?disabled=${!entityId}
-        @click=${() => {
-          this.closeSheet(false);
-          this.showMoreInfo(entityId);
-        }}
-      >
-        ${t.detailsAndHistory}
-      </button>
+      ${this.renderSheetTail(rooms.length === 1 ? entityId : undefined)}
     `;
+  }
 
-    if (!both) {
-      return html`<div class="sheet-label system-name">${t.system[kind]}</div>${body}`;
+  /** Link to the standard detail of one entity; a group of rooms has none. */
+  private renderSheetTail(entityId: EntityId | undefined): TemplateResult | typeof nothing {
+    if (!entityId) {
+      return nothing;
     }
-    // ARIA tabs: arrows / Home / End switch the system, only the selected tab is in the Tab order.
-    // The switch is at the bottom, so it stays where it is when the controls above it change size.
-    return html`
-      <div class="hvac-panel" role="tabpanel" id="hvac-panel" aria-labelledby=${`tab-${kind}`}>${body}</div>
-      <div
-        class="segmented"
-        role="tablist"
-        aria-label=${t.sheet.systems}
-        @keydown=${(event: KeyboardEvent) => this.segmentKeydown(event, order, kind)}
-      >
-        ${order.map(
-          (system) => html`<button
+    return html`<button
+      type="button"
+      class="plain-button sheet-link"
+      @click=${() => {
+        this.closeSheet(false);
+        this.showMoreInfo(entityId);
+      }}
+    >
+      ${this._i18n.t.detailsAndHistory}
+    </button>`;
+  }
+
+  /** Whole-degree range of the dial (the dial moves by 1 °C). */
+  private wholeRange(range: { min: number; max: number }): { min: number; max: number } {
+    return { min: Math.ceil(range.min), max: Math.floor(range.max) };
+  }
+
+  private fanLabel(mode: string): string {
+    const known = this._i18n.t.sheet.climate.fanModes as Record<string, string>;
+    return known[mode.toLowerCase()] ?? formatPreset(mode);
+  }
+
+  private swingLabel(mode: string): string {
+    const known = this._i18n.t.sheet.climate.swingModes as Record<string, string>;
+    return known[mode.toLowerCase()] ?? formatPreset(mode);
+  }
+
+  /** A row of mutually exclusive choices (iOS segmented look), e.g. the fan speed. */
+  private renderChoice(
+    title: string,
+    modes: string[],
+    current: string,
+    idle: boolean,
+    run: (mode: string) => Promise<void>,
+    label: (mode: string) => string,
+  ): TemplateResult {
+    return html`<div class="sheet-label">${title}</div>
+      <div class="mini-segmented wide ${idle ? "dim" : ""}" ?inert=${idle} role="group" aria-label=${title}>
+        ${modes.map(
+          (mode) => html`<button
             type="button"
-            role="tab"
-            id=${`tab-${system}`}
-            class="plain-button segment"
-            data-system=${system}
-            aria-selected=${system === kind ? "true" : "false"}
-            aria-controls="hvac-panel"
-            tabindex=${system === kind ? "0" : "-1"}
-            @click=${() => this.switchSheet(system)}
+            class="plain-button mini-segment"
+            aria-pressed=${mode.toLowerCase() === current ? "true" : "false"}
+            @click=${() => void this.runSheetAction(() => run(mode))}
           >
-            ${t.system[system]}
+            ${label(mode)}
           </button>`,
         )}
+      </div>`;
+  }
+
+  /**
+   * The big temperature in a ring (iOS thermostat). Value or text is in the middle; with `onChange`
+   * the ring is a slider: drag along the ring, or use the arrow keys. Moves by whole degrees.
+   */
+  private renderDial(options: {
+    id: string;
+    value?: number;
+    text?: string;
+    min?: number;
+    max?: number;
+    eyebrow: string;
+    sub: string;
+    tone: string;
+    label?: string;
+    onChange?: (value: number) => void;
+    onCommit?: () => void;
+  }): TemplateResult {
+    const SIZE = 272;
+    // The ring is open at the bottom: the empty quarter is cut off (the text stays centred on the ring).
+    const VIEW_HEIGHT = 232;
+    const CENTER = SIZE / 2;
+    const RADIUS = 118;
+    const START = 135;
+    const SWEEP = 270;
+    const point = (angle: number): [number, number] => [
+      CENTER + RADIUS * Math.cos((angle * Math.PI) / 180),
+      CENTER + RADIUS * Math.sin((angle * Math.PI) / 180),
+    ];
+    const arc = (from: number, to: number): string => {
+      const [x0, y0] = point(from);
+      const [x1, y1] = point(to);
+      return `M${x0.toFixed(2)} ${y0.toFixed(2)} A${RADIUS} ${RADIUS} 0 ${to - from > 180 ? 1 : 0} 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`;
+    };
+    const min = options.min ?? 0;
+    const max = options.max ?? 1;
+    const value = options.text === undefined ? options.value : undefined;
+    const fraction = value === undefined || max <= min ? 0 : Math.min(1, Math.max(0, (value - min) / (max - min)));
+    const knobAngle = START + SWEEP * fraction;
+    const [kx, ky] = point(knobAngle);
+    const interactive = options.onChange !== undefined && value !== undefined;
+    const shown = options.text ?? (value === undefined ? "––" : `${this._i18n.whole(value)}°`);
+
+    const valueAt = (event: PointerEvent): number => {
+      const box = (event.currentTarget as Element).getBoundingClientRect();
+      let angle = (Math.atan2(event.clientY - (box.top + box.height / 2), event.clientX - (box.left + box.width / 2)) * 180) / Math.PI;
+      if (angle < 0) {
+        angle += 360;
+      }
+      if (angle < START) {
+        angle += 360;
+      }
+      if (angle > START + SWEEP) {
+        angle = angle - (START + SWEEP) < (360 - SWEEP) / 2 ? START + SWEEP : START;
+      }
+      return Math.round(min + ((angle - START) / SWEEP) * (max - min));
+    };
+    const pointer = (event: PointerEvent): void => {
+      if (!interactive) {
+        return;
+      }
+      if (event.type === "pointerdown") {
+        (event.currentTarget as Element).setPointerCapture?.(event.pointerId);
+      } else if (event.buttons !== 1) {
+        return;
+      }
+      const next = valueAt(event);
+      if (next !== value) {
+        options.onChange?.(next);
+      }
+    };
+    const key = (event: KeyboardEvent): void => {
+      if (!interactive || value === undefined) {
+        return;
+      }
+      const step = event.key === "ArrowUp" || event.key === "ArrowRight" ? 1 : event.key === "ArrowDown" || event.key === "ArrowLeft" ? -1 : 0;
+      const target = event.key === "Home" ? min : event.key === "End" ? max : value + step;
+      if (target === value && step === 0 && event.key !== "Home" && event.key !== "End") {
+        return;
+      }
+      event.preventDefault();
+      options.onChange?.(Math.min(max, Math.max(min, target)));
+      options.onCommit?.();
+    };
+
+    return html`
+      <div class="dial" style=${`--tone: ${options.tone}`}>
+        <div
+          class="dial-ring"
+          data-drag
+          role=${interactive ? "slider" : "img"}
+          tabindex=${interactive ? "0" : nothing}
+          aria-label=${options.label ?? `${options.eyebrow}: ${shown}`}
+          aria-valuemin=${interactive ? min : nothing}
+          aria-valuemax=${interactive ? max : nothing}
+          aria-valuenow=${interactive ? value : nothing}
+          aria-valuetext=${interactive ? `${shown} °C` : nothing}
+          @pointerdown=${pointer}
+          @pointermove=${pointer}
+          @pointerup=${() => interactive && options.onCommit?.()}
+          @keydown=${key}
+        >
+          <svg viewBox="0 0 ${SIZE} ${VIEW_HEIGHT}" aria-hidden="true">
+            <path class="dial-track" d=${arc(START, START + SWEEP)}></path>
+            ${value === undefined || fraction <= 0 ? nothing : html`<path class="dial-value" d=${arc(START, Math.max(START + 1, knobAngle))}></path>`}
+            ${value === undefined ? nothing : html`<circle class="dial-knob ${interactive ? "" : "still"}" cx=${kx} cy=${ky} r="11"></circle>`}
+          </svg>
+          <div class="dial-text" aria-hidden="true">
+            <span class="dial-eyebrow">${options.eyebrow}</span>
+            <span class="dial-big ${options.text === undefined ? "" : "word"}">${shown}</span>
+            <span class="dial-sub">${options.sub}</span>
+          </div>
+        </div>
       </div>
+    `;
+  }
+
+  /**
+   * The timer slider of the Tado hot-water screen: an icon at the left end (the plan, or the
+   * shortest time), ∞ at the right end, the chosen time above. Native range semantics via ARIA.
+   */
+  private renderTimer(options: {
+    slot: number;
+    last: number;
+    readout: string;
+    label: string;
+    leftLabel: string;
+    leftIcon: TemplateResult;
+    leftText: TemplateResult;
+    rightLabel: string;
+    onSlot: (slot: number) => void;
+  }): TemplateResult {
+    const { slot, last } = options;
+    const percent = last > 0 ? (slot / last) * 100 : 0;
+    const pick = (event: PointerEvent): void => {
+      if (event.type === "pointerdown") {
+        (event.currentTarget as Element).setPointerCapture?.(event.pointerId);
+      } else if (event.buttons !== 1) {
+        return;
+      }
+      const box = (event.currentTarget as Element).getBoundingClientRect();
+      const next = Math.round(Math.min(1, Math.max(0, (event.clientX - box.left) / Math.max(box.width, 1))) * last);
+      if (next !== slot) {
+        options.onSlot(next);
+      }
+    };
+    const key = (event: KeyboardEvent): void => {
+      const delta = event.key === "ArrowRight" || event.key === "ArrowUp" ? 1 : event.key === "ArrowLeft" || event.key === "ArrowDown" ? -1 : 0;
+      const target = event.key === "Home" ? 0 : event.key === "End" ? last : slot + delta;
+      if (delta === 0 && event.key !== "Home" && event.key !== "End") {
+        return;
+      }
+      event.preventDefault();
+      options.onSlot(Math.min(last, Math.max(0, target)));
+    };
+    return html`
+      <div class="timer-read" role="status">${options.readout}</div>
+      <div class="timer-row">
+        <button
+          type="button"
+          class="plain-button end-button"
+          aria-label=${options.leftLabel}
+          aria-pressed=${slot === 0 ? "true" : "false"}
+          @click=${() => options.onSlot(0)}
+        >
+          <span class="end-icon" aria-hidden="true">${options.leftIcon}</span>
+        </button>
+        <div
+          class="timer-slider"
+          data-drag
+          role="slider"
+          tabindex="0"
+          aria-label=${options.label}
+          aria-valuemin="0"
+          aria-valuemax=${last}
+          aria-valuenow=${slot}
+          aria-valuetext=${options.readout}
+          @pointerdown=${pick}
+          @pointermove=${pick}
+          @keydown=${key}
+        >
+          <span class="timer-track"></span>
+          <span class="timer-fill" style=${`width: ${percent}%`}></span>
+          <span class="timer-knob" style=${`left: ${percent}%`}></span>
+        </div>
+        <button
+          type="button"
+          class="plain-button end-button"
+          aria-label=${options.rightLabel}
+          aria-pressed=${slot === last ? "true" : "false"}
+          @click=${() => options.onSlot(last)}
+        >
+          <span class="end-icon infinity" aria-hidden="true">∞</span>
+        </button>
+      </div>
+      <div class="timer-ticks" aria-hidden="true"><span>${options.leftText}</span><span><b>∞</b></span></div>
     `;
   }
 
@@ -1733,7 +2209,9 @@ export class HaKlimaDashboard extends LitElement {
   private sheetTouchStart = (event: TouchEvent): void => {
     this._touchY = event.touches[0]?.clientY;
     // A finger on a slider (range input) drags the slider: cancelling its moves would freeze it (iOS).
-    this._touchOnSlider = event.composedPath().some((node) => node instanceof HTMLInputElement && node.type === "range");
+    this._touchOnSlider = event
+      .composedPath()
+      .some((node) => (node instanceof HTMLInputElement && node.type === "range") || (node instanceof HTMLElement && "drag" in node.dataset));
   };
 
   private sheetTouchMove = (event: TouchEvent): void => {
@@ -1824,7 +2302,7 @@ export class HaKlimaDashboard extends LitElement {
   }
 
   private renderPresetChip(
-    entityId: EntityId,
+    rooms: Room[],
     mode: string,
     current: string,
     state: string | undefined,
@@ -1838,7 +2316,7 @@ export class HaKlimaDashboard extends LitElement {
         type="button"
         class="plain-button chip-button"
         aria-pressed=${active ? "true" : "false"}
-        @click=${() => void this.runSheetAction(() => this.setPresetMode(entityId, target))}
+        @click=${() => void this.runSheetAction(() => this.callClimateEach(rooms, "set_preset_mode", { preset_mode: target }))}
       >
         ${formatPreset(mode)}
       </button>
@@ -1905,7 +2383,8 @@ export class HaKlimaDashboard extends LitElement {
     }
     const entity = this.getState(entityId);
     const current = currentHeatingControl(room.name, entityId, entity);
-    if (current?.mode === mode) {
+    // One room: choosing what it already has drops the change. A group may differ room by room, so it is always sent.
+    if (current?.mode === mode && this.sheetRooms().length === 1) {
       this._heat = undefined;
       return;
     }
@@ -1916,26 +2395,67 @@ export class HaKlimaDashboard extends LitElement {
       mode,
       temperature: base?.temperature ?? 21,
       duration: defaultDuration(mode),
+      after: base?.after,
     };
   }
 
-  /** Sends the change made in the popup (closing, switching to Klimatizace, leaving for the detail). */
+  /** Sends the changes made in the popup (closing, switching system, leaving for the detail). */
   private flushHeat(): void {
     const heat = this._heat;
-    if (!heat) {
-      return;
+    if (heat) {
+      this._heat = undefined;
+      const rooms = this.sheetRooms().filter((room) => room.heating?.climate);
+      void this.applyHeat(heat, rooms.length > 0 ? rooms : []);
     }
-    this._heat = undefined;
-    void this.applyHeat(heat);
+    this.flushAc();
   }
 
-  private async applyHeat(heat: HeatingControl): Promise<void> {
+  /** The Klimatizace "turn off after" time: a script that Home Assistant runs by itself. */
+  private flushAc(): void {
+    const ac = this._ac;
+    this._ac = undefined;
+    this._acTarget = undefined;
+    const minutes = ac?.touched ? durationMinutes(ac.duration) : undefined;
+    if (minutes === undefined) {
+      return;
+    }
+    for (const room of this.sheetRooms()) {
+      const entityId = room.air_conditioner;
+      const state = this.getState(entityId)?.state.toLowerCase();
+      if (entityId && state && state !== "off" && !isUnavailable(state)) {
+        void this.runDelayedOff(delayedOffScript(entityId, minutes, state));
+      }
+    }
+  }
+
+  private async runDelayedOff(script: { sequence: Array<Record<string, unknown>> }): Promise<void> {
     try {
-      await this.callCommand(heatingCommand(heat.entityId, heat, this.timerAvailable()));
+      await this.hass?.callWS({ type: "execute_script", ...script });
     } catch (error) {
       // The popup is gone: a failure is a haptic "failure" and the console.
-      console.error("Klima Dashboard: the heating command failed", error);
+      console.error("Klima Dashboard: scheduling the switch-off failed", error);
       this.haptic("failure");
+    }
+  }
+
+  private async applyHeat(heat: HeatingControl, rooms: Room[]): Promise<void> {
+    const minutes = durationMinutes(heat.duration);
+    const toOff = (heat.mode === "manual" || heat.mode === "boost") && minutes !== undefined && (heat.after ?? this.defaultAfter()) === "off";
+    for (const room of rooms) {
+      const entityId = room.heating?.climate;
+      if (!entityId) {
+        continue;
+      }
+      try {
+        await this.callCommand(heatingCommand(entityId, { ...heat, entityId, room: room.name }, this.timerAvailable()));
+        if (toOff && minutes !== undefined) {
+          // Tado returns to the plan itself when the timer ends; the script then switches the heating off.
+          void this.runDelayedOff(delayedOffScript(entityId, minutes, "auto", 15));
+        }
+      } catch (error) {
+        console.error("Klima Dashboard: the heating command failed", error);
+        this.haptic("failure");
+      }
     }
   }
 
@@ -1970,146 +2490,97 @@ export class HaKlimaDashboard extends LitElement {
     return unsupported.join(" · ");
   }
 
-  /** Temperature and duration of Ručně / Boost / Vypnuto, above the options (so these do not move when it changes). */
-  private renderHeatControl(room: Room, entityId: EntityId, entity: HassEntity | undefined): TemplateResult | typeof nothing {
-    const heat = this.heatControl(room, entityId, entity);
-    const c = this._i18n.t.sheet.heatControl;
-    if (!heat || heat.mode === "plan") {
-      return nothing;
+  private isSummerNow(): boolean {
+    const config = this._config;
+    return config !== undefined && plainText(this.entityState(config.houseModeEntity) ?? "") === plainText(config.houseModes.summer);
+  }
+
+  /** After-timer choice: the person's last pick, otherwise by season (winter Plán, summer Vypnuto). */
+  private defaultAfter(): AfterTimer {
+    try {
+      const stored = window.localStorage.getItem(AFTER_KEY);
+      if (stored === "plan" || stored === "off") {
+        return stored;
+      }
+    } catch {
+      // Storage can be blocked (private mode): the seasonal default applies.
     }
-    const i18n = this._i18n;
-    const timer = this.timerAvailable();
-    const manual = manualRange(temperatureRange(entity));
-    const minutes = durationMinutes(heat.duration);
-    const unit = `${NBSP}°C`;
-
-    const temperature =
-      heat.mode === "manual"
-        ? this.renderSlider({
-            id: "heat-temperature",
-            label: c.temperature,
-            ariaLabel: c.temperatureSlider,
-            value: heat.temperature,
-            min: manual.min,
-            max: manual.max,
-            step: manual.step,
-            big: `${i18n.half(heat.temperature)}${unit}`,
-            sub: "",
-            minLabel: `${i18n.half(manual.min)}${unit}`,
-            maxLabel: `${i18n.half(manual.max)}${unit}`,
-            ticks: Math.round(manual.max - manual.min) + 1,
-            onInput: (value) =>
-              this.editHeat(room, entityId, { temperature: snapTemperature(value, manual), mode: "manual" }),
-          })
-        : heat.mode === "boost"
-          ? html`<div class="heat-fixed">
-              <span class="slider-label">${c.fixedTemperature}</span>
-              <span class="slider-big">${i18n.half(BOOST_TEMPERATURE)}${unit}</span>
-            </div>`
-          : nothing;
-
-    const durationBig =
-      minutes !== undefined ? minutesLabel(minutes) : heat.duration === NEXT_PLAN ? c.nextPlan : c.untilResumed;
-    const durationSub = minutes !== undefined ? c.until(i18n.time(Date.now() + minutes * 60_000)) : "";
-    const duration = timer
-      ? this.renderSlider({
-          id: "heat-duration",
-          label: c.duration,
-          ariaLabel: c.durationSlider,
-          value: heat.duration,
-          min: 0,
-          max: UNTIL_RESUMED,
-          step: 1,
-          big: durationBig,
-          sub: durationSub,
-          minLabel: minutesLabel(DURATION_MINUTES[0]),
-          maxLabel: "∞",
-          ticks: UNTIL_RESUMED + 1,
-          valueText: durationSub ? `${durationBig}, ${durationSub}` : durationBig,
-          onInput: (value) =>
-            this.editHeat(room, entityId, { duration: Math.min(UNTIL_RESUMED, Math.max(0, Math.round(value))) }),
-        })
-      : heat.mode === "manual"
-        ? html`<p class="sheet-message">${c.noTimer}</p>`
-        : nothing;
-
-    return html`
-      <div class="heat-control" role="group" aria-label=${i18n.t.heatingMode[heat.mode]}>
-        ${temperature}
-        ${heat.mode === "off" && timer && heat.duration !== UNTIL_RESUMED ? html`<p class="heat-detail">${c.offTarget}</p>` : nothing}
-        ${duration}
-      </div>
-    `;
+    return this.isSummerNow() ? "off" : "plan";
   }
 
-  /** The slider of the boiler design: label, big value, native range input (keyboard, screen reader), ticks, min / max. */
-  private renderSlider(options: {
-    id: string;
-    label: string;
-    ariaLabel: string;
-    value: number;
-    min: number;
-    max: number;
-    step: number;
-    big: string;
-    sub: string;
-    minLabel: string;
-    maxLabel: string;
-    ticks: number;
-    valueText?: string;
-    onInput: (value: number) => void;
-  }): TemplateResult {
-    const span = options.max - options.min;
-    const fill = span > 0 ? ((options.value - options.min) / span) * 100 : 0;
-    return html`
-      <div class="slider-block">
-        <div class="slider-head">
-          <span class="slider-label">${options.label}</span>
-          <span class="slider-big">${options.big}</span>
-        </div>
-        ${options.sub ? html`<div class="slider-sub">${options.sub}</div>` : nothing}
-        <input
-          class="heat-slider"
-          id=${options.id}
-          type="range"
-          min=${options.min}
-          max=${options.max}
-          step=${options.step}
-          .value=${String(options.value)}
-          aria-label=${options.ariaLabel}
-          aria-valuetext=${options.valueText ?? options.big}
-          style=${`--fill: ${fill}%`}
-          @input=${(event: Event) => options.onInput(Number((event.currentTarget as HTMLInputElement).value))}
-        />
-        <div class="slider-ticks" aria-hidden="true">
-          ${Array.from({ length: Math.max(2, options.ticks) }, () => html`<span></span>`)}
-        </div>
-        <div class="slider-scale" aria-hidden="true"><span>${options.minLabel}</span><span>${options.maxLabel}</span></div>
-      </div>
-    `;
+  private chooseAfter(room: Room, entityId: EntityId, value: AfterTimer): void {
+    try {
+      window.localStorage.setItem(AFTER_KEY, value);
+    } catch {
+      // Remembering is a convenience only.
+    }
+    this.editHeat(room, entityId, { after: value });
   }
 
-  private climateOptions(entityId: EntityId, hvacModes: string[], state: string | undefined): SheetOption[] {
-    return CLIMATE_MODE_ORDER.filter((mode) => hvacModes.includes(mode)).map((mode) => {
-      const climateMode = climateModeFromState(mode);
-      const color = CLIMATE_COLORS[climateMode];
-      return {
-        id: mode,
-        label: this._i18n.t.climateMode[climateMode],
-        icon: renderClimateIcon(climateMode, color, false),
-        color,
-        active: state === mode,
-        run: () => this.setHvacMode(entityId, mode),
-      };
+  /** Air conditioner target: sent once the finger lifts (or a key was pressed), to every room of the popup. */
+  private async commitAcTarget(rooms: Room[]): Promise<void> {
+    const target = this._acTarget;
+    if (target === undefined) {
+      return;
+    }
+    await this.callClimateEach(rooms, "set_temperature", { temperature: target });
+    this._acTarget = undefined;
+  }
+
+  /** One climate action for the air conditioner of every room in the popup. */
+  private async callClimateEach(rooms: Room[], service: string, data: Record<string, unknown>): Promise<void> {
+    const targets = rooms.map((room) => room.air_conditioner).filter((id): id is EntityId => Boolean(id));
+    await Promise.all(targets.map((entityId) => this.callClimate(service, { entity_id: entityId, ...data })));
+  }
+
+  /**
+   * Klimatizace modes in the order of the popup: Vypnuto, Chlazení, WindFree (cooling with the
+   * `wind_free` preset, one tap), Topení, Větrání, Sušení and Auto. Every choice goes to the
+   * air conditioner of every room in the popup.
+   */
+  private climateOptions(
+    entityId: EntityId,
+    hvacModes: string[],
+    state: string | undefined,
+    presetModes: string[],
+    preset: string,
+  ): SheetOption[] {
+    const rooms = this.sheetRooms().filter((room) => room.air_conditioner);
+    const windFree = presetModes.includes("wind_free");
+    const clearPreset = presetModes.includes("none");
+    const labels = this._i18n.t.climateMode;
+    const make = (id: string, mode: ClimateMode, active: boolean, run: () => Promise<void>): SheetOption => ({
+      id,
+      label: labels[mode],
+      icon: renderClimateIcon(mode, CLIMATE_COLORS[mode], false),
+      color: CLIMATE_COLORS[mode],
+      active,
+      run,
     });
-  }
-
-  private setHvacMode(entityId: EntityId, hvacMode: string): Promise<void> {
-    return this.callClimate("set_hvac_mode", { entity_id: entityId, hvac_mode: hvacMode });
-  }
-
-  private setPresetMode(entityId: EntityId, presetMode: string): Promise<void> {
-    return this.callClimate("set_preset_mode", { entity_id: entityId, preset_mode: presetMode });
+    const setMode = (hvacMode: string, presetMode?: string) => async (): Promise<void> => {
+      await this.callClimateEach(rooms, "set_hvac_mode", { hvac_mode: hvacMode });
+      if (presetMode !== undefined) {
+        await this.callClimateEach(rooms, "set_preset_mode", { preset_mode: presetMode });
+      }
+    };
+    const options: SheetOption[] = [];
+    if (hvacModes.includes("off")) {
+      options.push(make("off", "off", state === "off", setMode("off")));
+    }
+    if (hvacModes.includes("cool")) {
+      const plainCool = state === "cool" && preset !== "wind_free";
+      options.push(make("cool", "cool", plainCool, setMode("cool", preset === "wind_free" && clearPreset ? "none" : undefined)));
+      if (windFree) {
+        options.push(make("wind_free", "wind_free", state === "cool" && preset === "wind_free", setMode("cool", "wind_free")));
+      }
+    }
+    for (const [hvacMode, mode] of [["heat", "heat"], ["fan_only", "fan"], ["dry", "dry"], ["auto", "auto"]] as const) {
+      if (hvacModes.includes(hvacMode)) {
+        options.push(make(hvacMode, mode, state === hvacMode, setMode(hvacMode)));
+      }
+    }
+    void entityId;
+    return options;
   }
 
   private async callClimate(service: string, data: Record<string, unknown>): Promise<void> {
@@ -2166,6 +2637,8 @@ export class HaKlimaDashboard extends LitElement {
     this._opener = event.currentTarget instanceof HTMLElement ? event.currentTarget : undefined;
     this._sheetError = undefined;
     this._dragY = 0;
+    this._acTarget = undefined;
+    this._ac = undefined;
     this._sheet = { kind, room };
     window.addEventListener("resize", this.handleResize, { passive: true });
     if (kind === "history") {
@@ -2174,12 +2647,31 @@ export class HaKlimaDashboard extends LitElement {
     }
   }
 
+  /** Summary chip: the Topení / Klimatizace popup for the rooms the chip names. */
+  private openGroupSheet(kind: "heating" | "climate", names: string[], event: Event): void {
+    const rooms = (this._config?.rooms ?? []).filter((room) => names.includes(room.name));
+    if (rooms.length === 0) {
+      return;
+    }
+    this.openSheet(kind, rooms[0], event);
+    this._sheet = { kind, room: rooms[0], rooms };
+  }
+
+  /** The rooms a Topení / Klimatizace popup sets: one room, or the rooms of a summary chip that have the system. */
+  private sheetRooms(): Room[] {
+    const sheet = this._sheet;
+    if (!sheet) {
+      return [];
+    }
+    return sheet.rooms ?? [sheet.room];
+  }
+
   /** Segmented control in the HVAC popup: switch between Topení and Klimatizace. */
   private switchSheet(kind: "heating" | "climate"): void {
     if (this._sheet && this._sheet.kind !== kind) {
       this.flushHeat();
       this._sheetError = undefined;
-      this._sheet = { kind, room: this._sheet.room };
+      this._sheet = { kind, room: this._sheet.room, rooms: this._sheet.rooms };
     }
   }
 

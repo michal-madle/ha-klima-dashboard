@@ -1086,7 +1086,7 @@ export const styles = css`
       grid-auto-columns: 1fr;
       grid-auto-flow: column;
       gap: 2px;
-      margin: 16px 0 0;
+      margin: 0 0 4px;
       padding: 2px;
       border-radius: 10px;
       background: var(--kd-segmented-bg);
@@ -1428,6 +1428,318 @@ export const styles = css`
     .chip-button[aria-pressed="true"] {
       border-color: color-mix(in srgb, var(--kd-sky) 70%, transparent);
       background: color-mix(in srgb, var(--kd-sky) 18%, transparent);
+    }
+
+    /* Summary chip that opens the popup for the rooms it names: 44 px high touch target, the chip stays 30 px. */
+    .chip-open {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 44px;
+      margin: -7px -12px -7px -9px;
+      padding: 13px 12px 13px 9px;
+      border-radius: 22px;
+      color: inherit;
+      font: inherit;
+      text-align: left;
+    }
+
+    /* Big temperature in a ring (Topení / Klimatizace popup). */
+    .dial {
+      display: flex;
+      justify-content: center;
+      margin: 4px 0 0;
+    }
+
+    .dial-ring {
+      position: relative;
+      width: min(100%, 176px);
+      aspect-ratio: 272 / 232;
+      touch-action: none;
+      border-radius: 50%;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    .dial-ring[role="slider"] {
+      cursor: pointer;
+    }
+
+    .dial-ring:focus-visible {
+      outline: 2px solid var(--kd-sky);
+      outline-offset: 2px;
+    }
+
+    .dial-ring svg {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .dial-track,
+    .dial-value {
+      fill: none;
+      stroke-width: 14;
+      stroke-linecap: round;
+    }
+
+    .dial-track {
+      stroke: var(--kd-fill-border);
+    }
+
+    .dial-value {
+      stroke: var(--tone);
+    }
+
+    .dial-knob {
+      fill: #fff;
+      stroke: var(--tone);
+      stroke-width: 3;
+      filter: drop-shadow(0 1px 2px rgb(0 0 0 / 35%));
+    }
+
+    .dial-knob.still {
+      fill: var(--tone);
+      stroke: none;
+      filter: none;
+    }
+
+    /* The value is centred in the ring both ways; the small texts do not move it. */
+    .dial-text {
+      position: absolute;
+      inset: 0 0 auto 0;
+      /* As high as the whole ring (272 / 232), so the value sits in its centre. */
+      height: 117.24%;
+      display: grid;
+      grid-template-rows: 1fr auto 1fr;
+      justify-items: center;
+      pointer-events: none;
+    }
+
+    .dial-eyebrow {
+      align-self: end;
+      padding-bottom: 2px;
+      color: var(--kd-label);
+      font-size: 13px;
+    }
+
+    .dial-big {
+      font-size: 56px;
+      font-weight: 600;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .dial-big.word {
+      font-size: 30px;
+    }
+
+    .dial-sub {
+      align-self: start;
+      padding-top: 4px;
+      color: var(--kd-label);
+      font-size: 13px;
+    }
+
+    /* Timer: icon at the left end, ∞ at the right end, the time above (Tado hot water). */
+    .options + .timer-card,
+    .options + .heat-note + .timer-card {
+      margin-top: 10px;
+    }
+
+    .timer-card {
+      padding: 10px 12px 8px;
+      border: 1px solid var(--kd-fill-border);
+      border-radius: 16px;
+      background: var(--kd-fill);
+    }
+
+    .timer-read {
+      padding: 2px 0 0;
+      font-size: 17px;
+      font-weight: 600;
+      line-height: 22px;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .timer-row {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .end-button {
+      display: flex;
+      flex: 0 0 44px;
+      width: 44px;
+      height: 44px;
+      align-items: center;
+      justify-content: center;
+      border-radius: 22px;
+      color: var(--kd-label);
+    }
+
+    .end-button[aria-pressed="true"] {
+      background: color-mix(in srgb, var(--kd-sky) 20%, transparent);
+      color: var(--kd-text);
+    }
+
+    .end-icon {
+      display: flex;
+      width: 22px;
+      height: 22px;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .end-icon svg {
+      width: 22px;
+      height: 22px;
+    }
+
+    .end-icon.infinity {
+      font-size: 26px;
+      line-height: 1;
+    }
+
+    .timer-slider {
+      position: relative;
+      flex: 1;
+      height: 44px;
+      margin: 0 12px;
+      touch-action: none;
+      cursor: pointer;
+    }
+
+    .timer-slider:focus-visible {
+      outline: 2px solid var(--kd-sky);
+      outline-offset: 2px;
+      border-radius: 8px;
+    }
+
+    .timer-track,
+    .timer-fill {
+      position: absolute;
+      top: 20px;
+      height: 4px;
+      border-radius: 2px;
+    }
+
+    .timer-track {
+      left: 0;
+      right: 0;
+      background: var(--kd-fill-border);
+    }
+
+    .timer-fill {
+      left: 0;
+      background: var(--kd-sky);
+    }
+
+    .timer-knob {
+      position: absolute;
+      top: 8px;
+      width: 28px;
+      height: 28px;
+      margin-left: -14px;
+      border-radius: 14px;
+      background: #fff;
+      box-shadow: 0 1px 4px rgb(0 0 0 / 35%), 0 0 0 0.5px rgb(0 0 0 / 10%);
+    }
+
+    .timer-ticks {
+      display: flex;
+      justify-content: space-between;
+      padding: 0 8px;
+      color: var(--kd-label);
+      font-size: 12px;
+      line-height: 16px;
+    }
+
+    .timer-ticks b {
+      color: var(--kd-text);
+      font-weight: 600;
+    }
+
+    .dim {
+      opacity: 0.4;
+    }
+
+    .after-row.away {
+      visibility: hidden;
+    }
+
+    .timer-foot {
+      min-height: 36px;
+      margin: 8px 4px 0;
+      color: var(--kd-label);
+      font-size: 13px;
+      line-height: 18px;
+    }
+
+    /* Po skončení: Plán | Vypnuto. */
+    .after-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-top: 6px;
+      padding-top: 8px;
+      border-top: 1px solid var(--kd-fill-border);
+      font-size: 15px;
+    }
+
+    .mini-segmented {
+      display: grid;
+      grid-auto-columns: 1fr;
+      grid-auto-flow: column;
+      gap: 2px;
+      padding: 2px;
+      border-radius: 10px;
+      background: var(--kd-segmented-bg);
+    }
+
+    .mini-segmented.wide {
+      width: 100%;
+    }
+
+    .mini-segment {
+      min-height: 44px;
+      min-width: 76px;
+      padding: 0 8px;
+      border-radius: 8px;
+      color: var(--kd-text);
+      font-size: 14px;
+      font-weight: 500;
+      text-align: center;
+    }
+
+    .mini-segmented.wide .mini-segment {
+      min-width: 0;
+    }
+
+    .mini-segment[aria-pressed="true"] {
+      background: var(--kd-segment-on);
+      box-shadow: var(--kd-segment-shadow);
+    }
+
+    .climate-options {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .climate-options .option {
+      flex-direction: column;
+      justify-content: center;
+      gap: 4px;
+      min-height: 64px;
+      padding: 8px 2px;
+      font-size: 12px;
+      text-align: center;
+    }
+
+    .climate-options .option-text {
+      align-items: center;
     }
 
     .sheet-link {

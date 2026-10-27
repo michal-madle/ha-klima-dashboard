@@ -293,7 +293,10 @@ export type SheetKind = "heating" | "climate" | "history" | "air" | "windows";
 
 export interface SheetState {
   kind: SheetKind;
+  /** The room the popup is about; for a group (a house summary chip) the first of `rooms`. */
   room: Room;
+  /** Topení / Klimatizace popup opened from a summary chip: every room it sets, in card order. */
+  rooms?: Room[];
 }
 
 declare global {

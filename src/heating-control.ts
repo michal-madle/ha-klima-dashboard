@@ -24,6 +24,54 @@ export interface HeatingControl {
   temperature: number;
   /** Index into `DURATION_MINUTES`, or `NEXT_PLAN` / `UNTIL_RESUMED`. */
   duration: number;
+  /** After a timed Ručně / Boost: back to Plán (what Tado does itself), or Vypnuto. Undefined = Plán. */
+  after?: AfterTimer;
+}
+
+/** What follows a timed Ručně / Boost (CURRENT_SPEC.md, Časovač). */
+export type AfterTimer = "plan" | "off";
+
+/** Slider positions run from the plan (left) over the durations to "until resumed" (right, ∞). */
+export function durationToSlot(duration: number): number {
+  return duration === NEXT_PLAN ? 0 : duration === UNTIL_RESUMED ? DURATION_MINUTES.length + 1 : duration + 1;
+}
+
+export function slotToDuration(slot: number): number {
+  const last = DURATION_MINUTES.length + 1;
+  const clamped = Math.min(last, Math.max(0, Math.round(slot)));
+  return clamped === 0 ? NEXT_PLAN : clamped === last ? UNTIL_RESUMED : clamped - 1;
+}
+
+/** Air conditioner: the same durations, no plan; the last position is "no limit" (`UNTIL_RESUMED`). */
+export function durationToAcSlot(duration: number): number {
+  return duration === UNTIL_RESUMED || duration === NEXT_PLAN ? DURATION_MINUTES.length : duration;
+}
+
+export function acSlotToDuration(slot: number): number {
+  const clamped = Math.min(DURATION_MINUTES.length, Math.max(0, Math.round(slot)));
+  return clamped === DURATION_MINUTES.length ? UNTIL_RESUMED : clamped;
+}
+
+/**
+ * A script Home Assistant runs by itself after `minutes`: it turns the climate entity off, but only
+ * while it is still in `onlyWhile` (so a change made meanwhile is not overridden). Sent with the
+ * `execute_script` WebSocket command, so it needs no script in the Home Assistant configuration.
+ */
+export function delayedOffScript(
+  entityId: EntityId,
+  minutes: number,
+  onlyWhile: string | undefined,
+  graceSeconds = 0,
+): { sequence: Array<Record<string, unknown>> } {
+  const seconds = Math.round(minutes * 60) + graceSeconds;
+  const sequence: Array<Record<string, unknown>> = [
+    { delay: { hours: Math.floor(seconds / 3600), minutes: Math.floor((seconds % 3600) / 60), seconds: seconds % 60 } },
+  ];
+  if (onlyWhile !== undefined) {
+    sequence.push({ condition: "state", entity_id: entityId, state: onlyWhile });
+  }
+  sequence.push({ action: "climate.set_hvac_mode", target: { entity_id: entityId }, data: { hvac_mode: "off" } });
+  return { sequence };
 }
 
 export interface ServiceCall {

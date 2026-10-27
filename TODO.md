@@ -16,6 +16,7 @@ Konsolidace 24. 10.: odstraněny hotové body P1.1, P1.3, P1.4, P2.2–P2.9, P2.
 | [P1.9](#p1-9) | Ověření | Kontrolní seznam na iPhonu v aplikaci Home Assistant |
 | [P1.10](#p1-10) | Rozhodnutí | Potvrdit rozhodnutí, která jsem udělal sám |
 | [P1.11](#p1-11) | Ověření | Stín: tolerance ±5 % na skutečné žaluzii |
+| [P1.13](#p1-13) | Rozhodnutí | Nový popup Topení / Klimatizace: co jsem rozhodl sám |
 | [P2.10](#p2-10) | Návrh | Tlačítko historie v popupu Topení / Klimatizace |
 | [P2.13](#p2-13) | Rozhodnutí | Hromadné akce pro celý dům |
 | [P2.19](#p2-19) | Návrh | Popup: zavírací animace a stránka pod ním |
@@ -63,6 +64,17 @@ Všechno dosud ověřeno jen v Chromiu s náhradními daty a náhradní ikonou C
 
 Podle vašeho měření žaluzie při otevření lamel vyjede o 3–4 % nahoru, takže Stín je ve skutečnosti 4 / 100 (před otevřením lamel 0 / 0). Poloha i naklopení předvolby se proto porovnávají s tolerancí ±5 % (dřív ±2 %; tolerance platí i pro Den a Tmu, u stavů `open` a `closed` beze změny). Test hlídá 4 / 100 a 5 / 95 jako shodu, 6 / 100 jako neshodu.
 Ověřit: na iPhonu po nastavení Stínu se prostřední ikona rozsvítí a pulzování předvolby skončí. Hraniční případ: Tma a Stín se liší jen naklopením (0 / 0 a 0 / 100), takže se nepletou; Den (100 / 100) a Stín také ne.
+
+<a id="p1-13"></a>
+### P1.13 Nový popup Topení / Klimatizace: co jsem rozhodl sám · Rozhodnutí
+
+Popup byl přepracován podle návrhu (27. 10.): přepínač systému nahoře, kruh s teplotou po celých °C, jeden posuvník časovače, „Po skončení“, hromadné nastavení ze štítků souhrnu. K potvrzení:
+1. **Plán × Auto**: v návrhu se režim jmenoval Auto, na kartě zůstává „Plán“ (jmenuje se tak i řádek Topení a štítky). Přejmenovat všude?
+2. **Vypnutí po časovači** (Topení „Po skončení: Vypnuto“ a časovač Klimatizace) řeší skript přes WebSocket `execute_script` s `delay`. Neověřeno na skutečném Home Assistantu: potřebuje administrátora, po restartu Home Assistantu se ztratí a dřívější naplánovaný skript se změnou stavu nezruší (jen ho podmínka na stav přeskočí).
+3. **Rychlé turbo a Tichý** z návrhu nejsou: entita má jednu předvolbu (`preset_mode`), takže zůstaly tlačítka předvoleb (Sleep, Boost, WindFree Sleep …). Přepínače by znamenaly vymyslet mapování na předvolby Samsungu.
+4. Čas dalšího bloku plánu („Plán do 22:00, potom 17°“ z návrhu) karta nezná, u levého konce osy je jen „Plán“.
+5. Popisky „Režim“ a „Časovač“ jsou skryté kvůli výšce popupu (přes 680 px byl moc velký).
+6. Výška: popup Topení má při 852 px vysokém displeji kolem 680 px; v aplikaci Home Assistant na iPhonu je viditelná plocha menší, popup se pak posouvá uvnitř. Ověřit na iPhonu (P1.9).
 
 ## P2 – denní používání
 

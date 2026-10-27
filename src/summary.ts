@@ -14,6 +14,8 @@ export interface SummaryChip {
   spoken: string;
   /** Heating chip only: waves (1–3) of the strongest heating room, as in that room's row. */
   waves?: number;
+  /** Heating and air-conditioning chips open the popup for exactly these rooms (in card order). */
+  opens?: { system: "heating" | "climate"; rooms: string[] };
 }
 
 /** Up to two room names, otherwise a count ("Ložnice, Pracovna" / "3 místnosti"). */
@@ -151,6 +153,7 @@ export function houseSummary(
       text: `${texts.manual}: ${namesOrCount(manual, i18n)}`,
       color: COLORS.warning,
       spoken: `${texts.manualSpoken}: ${manual.join(", ")}`,
+      opens: { system: "heating", rooms: manual },
     });
   }
   if (boost.length > 0) {
@@ -159,6 +162,7 @@ export function houseSummary(
       text: `${texts.boost}: ${namesOrCount(boost, i18n)}`,
       color: COLORS.warning,
       spoken: `${texts.boostSpoken}: ${boost.join(", ")}`,
+      opens: { system: "heating", rooms: boost },
     });
   }
   if (heating.length > 0) {
@@ -168,6 +172,7 @@ export function houseSummary(
       color: COLORS.warning,
       spoken: `${texts.heatingSpoken}: ${heating.join(", ")}`,
       waves: strongestWaves,
+      opens: { system: "heating", rooms: heating },
     });
   }
   if (climate.length > 0) {
@@ -176,6 +181,7 @@ export function houseSummary(
       text: `${texts.climate}: ${namesOrCount(climate, i18n)}`,
       color: COLORS.cool,
       spoken: `${texts.climateSpoken}: ${climate.join(", ")}`,
+      opens: { system: "climate", rooms: climate },
     });
   }
   return chips;

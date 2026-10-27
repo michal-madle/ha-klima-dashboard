@@ -172,7 +172,7 @@ function series(value) {
   }));
 }
 
-const test = { services: [], haptics: [], moreInfo: [], actions: [], states, config };
+const test = { services: [], scripts: [], haptics: [], moreInfo: [], actions: [], states, config };
 window.__test = test;
 window.addEventListener("haptic", (event) => test.haptics.push(event.detail));
 window.addEventListener("hass-more-info", (event) => test.moreInfo.push(event.detail.entityId));
@@ -208,7 +208,10 @@ const hass = {
     test.services.push(args);
   },
   callWS: async (message) =>
-    Object.fromEntries(
+    message.type === "execute_script"
+      ? // A script Home Assistant runs by itself (switch-off after a timer): only recorded.
+        (test.scripts.push(message), {})
+      : Object.fromEntries(
       message.entity_ids.map((id) => {
         const override = test.historyFor?.(id);
         if (override) return [id, override];
