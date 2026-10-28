@@ -3926,7 +3926,7 @@ const Oo = Ni`
       position: relative;
       flex: 1;
       height: 44px;
-      margin: 0 12px;
+      margin: 0 20px;
       touch-action: none;
       cursor: pointer;
     }
@@ -3937,12 +3937,13 @@ const Oo = Ni`
       border-radius: 8px;
     }
 
+    /* iOS slider: a thick rounded track and a pill-shaped thumb. */
     .timer-track,
     .timer-fill {
       position: absolute;
-      top: 20px;
-      height: 4px;
-      border-radius: 2px;
+      top: 17px;
+      height: 10px;
+      border-radius: 5px;
     }
 
     .timer-track {
@@ -3958,13 +3959,13 @@ const Oo = Ni`
 
     .timer-knob {
       position: absolute;
-      top: 8px;
-      width: 28px;
-      height: 28px;
-      margin-left: -14px;
-      border-radius: 14px;
+      top: 6px;
+      width: 40px;
+      height: 32px;
+      margin-left: -20px;
+      border-radius: 16px;
       background: #fff;
-      box-shadow: 0 1px 4px rgb(0 0 0 / 35%), 0 0 0 0.5px rgb(0 0 0 / 10%);
+      box-shadow: 0 2px 6px rgb(0 0 0 / 35%), 0 0 0 0.5px rgb(0 0 0 / 10%);
     }
 
     .timer-ticks {
@@ -5496,8 +5497,8 @@ const Se = class Se extends St {
         >
           <svg viewBox="0 0 ${272} ${232}" aria-hidden="true">
             <path class="dial-track" d=${c(135, 405)}></path>
-            ${h === void 0 || m <= 0 ? f : u`<path class="dial-value" d=${c(135, Math.max(136, $))}></path>`}
-            ${h === void 0 ? f : u`<circle class="dial-knob ${w ? "" : "still"}" cx=${v} cy=${S} r="11"></circle>`}
+            ${h === void 0 || m <= 0 ? f : y`<path class="dial-value" d=${c(135, Math.max(136, $))}></path>`}
+            ${h === void 0 ? f : y`<circle class="dial-knob ${w ? "" : "still"}" cx=${v} cy=${S} r="12"></circle>`}
           </svg>
           <div class="dial-text" aria-hidden="true">
             <span class="dial-eyebrow">${t.eyebrow}</span>

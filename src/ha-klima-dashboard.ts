@@ -1,4 +1,4 @@
-import { LitElement, html, nothing } from "lit";
+import { LitElement, html, nothing, svg } from "lit";
 import { property, state } from "lit/decorators.js";
 import type { PropertyValues, TemplateResult } from "lit";
 import { BLIND_HEIGHT, BLIND_WIDTH, renderBlindShape } from "./blind";
@@ -1980,8 +1980,8 @@ export class HaKlimaDashboard extends LitElement {
         >
           <svg viewBox="0 0 ${SIZE} ${VIEW_HEIGHT}" aria-hidden="true">
             <path class="dial-track" d=${arc(START, START + SWEEP)}></path>
-            ${value === undefined || fraction <= 0 ? nothing : html`<path class="dial-value" d=${arc(START, Math.max(START + 1, knobAngle))}></path>`}
-            ${value === undefined ? nothing : html`<circle class="dial-knob ${interactive ? "" : "still"}" cx=${kx} cy=${ky} r="11"></circle>`}
+            ${value === undefined || fraction <= 0 ? nothing : svg`<path class="dial-value" d=${arc(START, Math.max(START + 1, knobAngle))}></path>`}
+            ${value === undefined ? nothing : svg`<circle class="dial-knob ${interactive ? "" : "still"}" cx=${kx} cy=${ky} r="12"></circle>`}
           </svg>
           <div class="dial-text" aria-hidden="true">
             <span class="dial-eyebrow">${options.eyebrow}</span>
