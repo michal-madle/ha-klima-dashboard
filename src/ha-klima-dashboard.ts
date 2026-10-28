@@ -732,7 +732,7 @@ export class HaKlimaDashboard extends LitElement {
   }
 
   /**
-   * CO₂ and PM2.5 are one touch target over both rows (52 px, TODO P1.2). With both sensors it
+   * CO₂ and PM2.5 are one touch target over both rows (52 px). With both sensors it
    * opens the popup "Kvalita vzduchu" with a link to each detail; with one it opens that
    * detail at once. A sensor the room does not have (`carbon_dioxide: false`) has no row; without
    * both the place stays empty, so the rows below keep their position (CURRENT_SPEC.md, Room Card).
@@ -1353,7 +1353,7 @@ export class HaKlimaDashboard extends LitElement {
     } catch (error) {
       console.error("Klima Dashboard: the blind script failed", error);
       this.endMoving(room.name);
-      // The error appears at the button that was pressed, not far above the cards (TODO P2.18).
+      // The error appears at the button that was pressed, not far above the cards.
       const { cover } = this._i18n.t;
       this.showHint(`${room.name}|${preset.id}`, cover.failedHint, "failure", { spoken: cover.failed(room.name) });
     }
@@ -2191,7 +2191,7 @@ export class HaKlimaDashboard extends LitElement {
   };
 
   /**
-   * A finger drag or the wheel over a popup must not move the page under it (TODO P1.9.3, P1.9.9).
+   * A finger drag or the wheel over a popup must not move the page under it.
    * Outside the popup, and inside it when it cannot scroll further in that direction, the move is
    * cancelled; a popup that does scroll keeps its own scrolling (`overscroll-behavior` covers the rest).
    */

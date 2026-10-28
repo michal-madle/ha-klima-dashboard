@@ -248,8 +248,8 @@ let ct = class extends HTMLElement {
 };
 ct.elementStyles = [], ct.shadowRootOptions = { mode: "open" }, ct[_t("elementProperties")] = /* @__PURE__ */ new Map(), ct[_t("finalized")] = /* @__PURE__ */ new Map(), Yi?.({ ReactiveElement: ct }), (qt.reactiveElementVersions ??= []).push("2.1.2");
 const $e = globalThis, Ee = (i) => i, Wt = $e.trustedTypes, Oe = Wt ? Wt.createPolicy("lit-html", { createHTML: (i) => i }) : void 0, ui = "$lit$", X = `lit$${Math.random().toFixed(9).slice(2)}$`, mi = "?" + X, Gi = `<${mi}>`, rt = document, Tt = () => rt.createComment(""), Mt = (i) => i === null || typeof i != "object" && typeof i != "function", we = Array.isArray, Zi = (i) => we(i) || typeof i?.[Symbol.iterator] == "function", Xt = `[ 	
-\f\r]`, ft = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, Pe = /-->/g, De = />/g, tt = RegExp(`>|${Xt}(?:([^\\s"'>=/]+)(${Xt}*=${Xt}*(?:[^ 	
-\f\r"'\`<>=]|("|')|))|$)`, "g"), Le = /'/g, ze = /"/g, fi = /^(?:script|style|textarea|title)$/i, gi = (i) => (t, ...e) => ({ _$litType$: i, strings: t, values: e }), m = gi(1), y = gi(2), pt = /* @__PURE__ */ Symbol.for("lit-noChange"), f = /* @__PURE__ */ Symbol.for("lit-nothing"), Re = /* @__PURE__ */ new WeakMap(), st = rt.createTreeWalker(rt, 129);
+\f\r]`, ft = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, Pe = /-->/g, Le = />/g, tt = RegExp(`>|${Xt}(?:([^\\s"'>=/]+)(${Xt}*=${Xt}*(?:[^ 	
+\f\r"'\`<>=]|("|')|))|$)`, "g"), De = /'/g, ze = /"/g, fi = /^(?:script|style|textarea|title)$/i, gi = (i) => (t, ...e) => ({ _$litType$: i, strings: t, values: e }), m = gi(1), y = gi(2), pt = /* @__PURE__ */ Symbol.for("lit-noChange"), f = /* @__PURE__ */ Symbol.for("lit-nothing"), Re = /* @__PURE__ */ new WeakMap(), st = rt.createTreeWalker(rt, 129);
 function vi(i, t) {
   if (!we(i) || !i.hasOwnProperty("raw")) throw Error("invalid template strings array");
   return Oe !== void 0 ? Oe.createHTML(t) : t;
@@ -260,7 +260,7 @@ const Xi = (i, t) => {
   for (let a = 0; a < e; a++) {
     const l = i[a];
     let c, d, p = -1, h = 0;
-    for (; h < l.length && (r.lastIndex = h, d = r.exec(l), d !== null); ) h = r.lastIndex, r === ft ? d[1] === "!--" ? r = Pe : d[1] !== void 0 ? r = De : d[2] !== void 0 ? (fi.test(d[2]) && (o = RegExp("</" + d[2], "g")), r = tt) : d[3] !== void 0 && (r = tt) : r === tt ? d[0] === ">" ? (r = o ?? ft, p = -1) : d[1] === void 0 ? p = -2 : (p = r.lastIndex - d[2].length, c = d[1], r = d[3] === void 0 ? tt : d[3] === '"' ? ze : Le) : r === ze || r === Le ? r = tt : r === Pe || r === De ? r = ft : (r = tt, o = void 0);
+    for (; h < l.length && (r.lastIndex = h, d = r.exec(l), d !== null); ) h = r.lastIndex, r === ft ? d[1] === "!--" ? r = Pe : d[1] !== void 0 ? r = Le : d[2] !== void 0 ? (fi.test(d[2]) && (o = RegExp("</" + d[2], "g")), r = tt) : d[3] !== void 0 && (r = tt) : r === tt ? d[0] === ">" ? (r = o ?? ft, p = -1) : d[1] === void 0 ? p = -2 : (p = r.lastIndex - d[2].length, c = d[1], r = d[3] === void 0 ? tt : d[3] === '"' ? ze : De) : r === ze || r === De ? r = tt : r === Pe || r === Le ? r = ft : (r = tt, o = void 0);
     const u = r === tt && i[a + 1].startsWith("/>") ? " " : "";
     s += r === ft ? l + Gi : p >= 0 ? (n.push(c), l.slice(0, p) + ui + l.slice(p) + X + u) : l + X + (p === -2 ? a : u);
   }
@@ -841,14 +841,14 @@ const Cn = "input_select.house_mode", An = {
   script: "script.zaluzie_posun",
   tolerance: 5,
   stall_seconds: 5
-}, Pn = le.map((i) => ({ icon: i, ...bi[i] })), Ve = { winter: "Zima", summer: "Léto" }, Ke = ["auto", "dark", "light"], qe = 3, Dn = {
+}, Pn = le.map((i) => ({ icon: i, ...bi[i] })), Ve = { winter: "Zima", summer: "Léto" }, Ke = ["auto", "dark", "light"], qe = 3, Ln = {
   loznice: "bedroom",
   pracovna: "office",
   maxik: "kids",
   mikulas: "kids",
   obyvak: "living",
   "obyvaci pokoj": "living"
-}, Ln = [
+}, Dn = [
   "name",
   "temperature",
   "humidity",
@@ -943,7 +943,7 @@ function Fn(i, t) {
   i.image != null && i.scene != null && M(`${t}: use either image or scene (older name), not both.`);
   const e = i.image != null ? "image" : "scene", n = i.image ?? i.scene;
   if (n == null) {
-    const s = Dn[J(i.name)];
+    const s = Ln[J(i.name)];
     return s ? { kind: "scene", scene: s } : void 0;
   }
   (typeof n != "string" || !n.trim()) && M(`${t}.${e} must be ${[...Jt, Qt].join(", ")} or the address of an image.`);
@@ -972,7 +972,7 @@ function jn(i, t, e) {
     ["samsung", "air_conditioner"]
   ])
     p in s && M(`${o}: key "${p}" was renamed to "${h}".`);
-  "windows" in s && M(`${o}: the key is "window" (one entity or a list of them), not "windows".`), at(s, Ln, o);
+  "windows" in s && M(`${o}: the key is "window" (one entity or a list of them), not "windows".`), at(s, Dn, o);
   const r = Z(i.heating, `${o}.heating`);
   "heating" in r && M(`${o}: key "heating.heating" was renamed to "heating.intensity".`), at(r, zn, `${o}.heating`);
   const a = i.heating == null ? void 0 : {
@@ -1432,7 +1432,7 @@ function oe(i) {
     </svg>
   `;
 }
-const U = 4, no = 32, nt = 6, ot = 150, xt = nt + ot, Dt = 9, Di = xt + 10, jt = 12, oo = 12, ii = 34, ni = "history-icon-fade", Li = 14, so = 7, ro = (i) => 2 + (i.windows ? 1 : 0), zi = (i) => Di + ro(i) * jt, ao = (i) => zi(i) + Li + so, oi = 11, lo = [0, 0.24, 0.44, 0.68], si = "history-under-temperature", ri = "history-plot", ye = {
+const U = 4, no = 32, nt = 6, ot = 150, xt = nt + ot, Lt = 9, Li = xt + 10, jt = 12, oo = 12, ii = 34, ni = "history-icon-fade", Di = 14, so = 7, ro = (i) => 2 + (i.windows ? 1 : 0), zi = (i) => Li + ro(i) * jt, ao = (i) => zi(i) + Di + so, oi = 11, lo = [0, 0.24, 0.44, 0.68], si = "history-under-temperature", ri = "history-plot", ye = {
   schedule: g.plan,
   manual: g.warning,
   off: g.closed
@@ -1440,7 +1440,7 @@ const U = 4, no = 32, nt = 6, ot = 150, xt = nt + ot, Dt = 9, Di = xt + 10, jt =
 function se(i, t, e) {
   return Ci(t, i, e);
 }
-function Lt(i) {
+function Dt(i) {
   if (i === void 0)
     return;
   const t = Number.parseFloat(i);
@@ -1472,13 +1472,13 @@ function uo(i, t, e, n) {
     [a, l, o(t.heating?.target)],
     s,
     r,
-    ([T, k, A]) => se(T, k, Lt(A))
+    ([T, k, A]) => se(T, k, Dt(A))
   ), h = wt(
     [a, l, o(t.heating?.intensity), o(t.heating?.target)],
     s,
     r,
     ([T, k, A, S]) => {
-      const F = se(T, k, Lt(S)), I = yi(Lt(A), t.thresholds);
+      const F = se(T, k, Dt(S)), I = yi(Dt(A), t.thresholds);
       return F === void 0 || F === "off" || I === 0 ? void 0 : String(I);
     }
   ), u = wt(
@@ -1486,7 +1486,7 @@ function uo(i, t, e, n) {
     s,
     r,
     ([T, k, A]) => {
-      const S = Lt(A), F = se(T, k, S);
+      const S = Dt(A), F = se(T, k, S);
       if (!(S === void 0 || S <= Q))
         return F === "schedule" || F === "manual" ? String(S) : void 0;
     }
@@ -1617,22 +1617,22 @@ function ko(i, t, e) {
   `;
 }
 function xo(i, t, e, n, o = !1) {
-  const { range: s } = i, r = (x) => fo(x, s, t), a = (x) => xt - (x - i.tempMin) / (i.tempMax - i.tempMin) * ot, l = (i.humidityMin ?? 0) - 3, c = Math.max((i.humidityMax ?? 100) + 3, l + 12), d = (x) => xt - (x - l) / (c - l) * ot, p = U + ht(t), h = (x, H) => x.map((P, L) => `${L === 0 ? "M" : "L"}${r(P.t).toFixed(1)} ${H(P.v).toFixed(1)}`).join(" "), u = h(i.temperature, a), $ = i.temperature[0], v = i.temperature[i.temperature.length - 1], _ = $ && v ? `${u} L${r(v.t).toFixed(1)} ${xt} L${r($.t).toFixed(1)} ${xt} Z` : "";
+  const { range: s } = i, r = (x) => fo(x, s, t), a = (x) => xt - (x - i.tempMin) / (i.tempMax - i.tempMin) * ot, l = (i.humidityMin ?? 0) - 3, c = Math.max((i.humidityMax ?? 100) + 3, l + 12), d = (x) => xt - (x - l) / (c - l) * ot, p = U + ht(t), h = (x, H) => x.map((P, D) => `${D === 0 ? "M" : "L"}${r(P.t).toFixed(1)} ${H(P.v).toFixed(1)}`).join(" "), u = h(i.temperature, a), $ = i.temperature[0], v = i.temperature[i.temperature.length - 1], _ = $ && v ? `${u} L${r(v.t).toFixed(1)} ${xt} L${r($.t).toFixed(1)} ${xt} Z` : "";
   let w = "";
   i.target.forEach((x, H) => {
-    const P = a(Number(x.value)).toFixed(1), L = i.target[H - 1];
-    w += L && L.end === x.start ? ` L${r(x.start).toFixed(1)} ${P}` : ` M${r(x.start).toFixed(1)} ${P}`, w += ` L${r(x.end).toFixed(1)} ${P}`;
+    const P = a(Number(x.value)).toFixed(1), D = i.target[H - 1];
+    w += D && D.end === x.start ? ` L${r(x.start).toFixed(1)} ${P}` : ` M${r(x.start).toFixed(1)} ${P}`, w += ` L${r(x.end).toFixed(1)} ${P}`;
   });
-  const C = po(i.tempMin, i.tempMax, i.tempStep), E = (x, H, P) => x.map((L) => {
-    const D = r(L.start);
-    return y`<rect x=${D.toFixed(1)} y=${H} width=${Math.max(r(L.end) - D, 0.8).toFixed(1)}
-        height=${Dt} rx="2" style=${W(P(L.value))}></rect>`;
+  const C = po(i.tempMin, i.tempMax, i.tempStep), E = (x, H, P) => x.map((D) => {
+    const L = r(D.start);
+    return y`<rect x=${L.toFixed(1)} y=${H} width=${Math.max(r(D.end) - L, 0.8).toFixed(1)}
+        height=${Lt} rx="2" style=${W(P(D.value))}></rect>`;
   }), b = o ? ["climate", "heating"] : ["heating", "climate"];
   i.windows && b.push("windows");
-  const T = zi(i), k = T + Li, A = ao(i), S = (x) => x === "heating" ? y`${Ei(3, !1)}` : x === "climate" ? y`<g style=${Y(g.off)}>${Oi("off")}</g>` : y`<g style=${Y("var(--kd-sky)")}>${Pi()}</g>`, F = (x, H) => x === "heating" ? y`${E(i.heating, H, (P) => ye[P] ?? g.off)}` : x === "climate" ? y`${E(i.climate, H, (P) => bo(P))}` : y`${(i.windows ?? []).map((P) => {
-    const L = r(P.start);
-    return y`<rect class="window-open" x=${L.toFixed(1)} y=${H} width=${Math.max(r(P.end) - L, 1.5).toFixed(1)}
-              height=${Dt} rx="2" style=${W("var(--kd-sky)")}></rect>`;
+  const T = zi(i), k = T + Di, A = ao(i), S = (x) => x === "heating" ? y`${Ei(3, !1)}` : x === "climate" ? y`<g style=${Y(g.off)}>${Oi("off")}</g>` : y`<g style=${Y("var(--kd-sky)")}>${Pi()}</g>`, F = (x, H) => x === "heating" ? y`${E(i.heating, H, (P) => ye[P] ?? g.off)}` : x === "climate" ? y`${E(i.climate, H, (P) => bo(P))}` : y`${(i.windows ?? []).map((P) => {
+    const D = r(P.start);
+    return y`<rect class="window-open" x=${D.toFixed(1)} y=${H} width=${Math.max(r(P.end) - D, 1.5).toFixed(1)}
+              height=${Lt} rx="2" style=${W("var(--kd-sky)")}></rect>`;
   })}`, I = e === void 0 ? void 0 : r(e), N = e === void 0 ? void 0 : pe(i.temperature, e), q = vo(s, i.night);
   return m`
     ${ko(i, e, n)}
@@ -1681,10 +1681,10 @@ function xo(i, t, e, n, o = !1) {
       ${v && e === void 0 ? y`<circle cx=${r(v.t).toFixed(1)} cy=${a(v.v).toFixed(1)} r="3.5" style=${W(g.white)}></circle>` : f}
 
       ${b.map((x, H) => {
-    const P = Di + H * jt, L = P + (jt - Dt) / 2;
+    const P = Li + H * jt, D = P + (jt - Lt) / 2;
     return y`<g class=${`strip-row ${x}`}>
-          <rect x=${U} y=${L} width=${ht(t)} height=${Dt} rx="2" style=${W("var(--kd-fill)")}></rect>
-          ${F(x, L)}
+          <rect x=${U} y=${D} width=${ht(t)} height=${Lt} rx="2" style=${W("var(--kd-fill)")}></rect>
+          ${F(x, D)}
           <rect x=${U} y=${P} width=${ii} height=${jt} style=${W(`url(#${ni})`)}></rect>
           <g class="strip-icon" transform=${`translate(${U + 1} ${P}) scale(${oo / 24})`} fill="none"
             stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${S(x)}</g>
@@ -1827,14 +1827,14 @@ function Po(i, t, e) {
   let d = c.get(l);
   return d || (d = zo(i[t], t, o, s, r, a), c.set(l, d)), d;
 }
-function Do(i) {
+function Lo(i) {
   try {
     return new Intl.NumberFormat(i), i;
   } catch {
     return "en";
   }
 }
-function Lo(i, t) {
+function Do(i, t) {
   if (i === "12")
     return !0;
   if (i === "24")
@@ -1843,7 +1843,7 @@ function Lo(i, t) {
   return (/* @__PURE__ */ new Date("January 1, 2023 22:00:00")).toLocaleString(e).includes("10");
 }
 function zo(i, t, e, n, o, s) {
-  const r = Do(e), a = n === "system" ? void 0 : n === "none" ? "en-US" : Oo[n] ?? r, l = n === "none" ? { useGrouping: !1 } : {}, c = new Intl.NumberFormat(a, { minimumFractionDigits: 1, maximumFractionDigits: 1, ...l }), d = new Intl.NumberFormat(a, { maximumFractionDigits: 1, ...l }), p = new Intl.NumberFormat(a, { maximumFractionDigits: 0, ...l }), h = Lo(o, r), u = h ? "h12" : "h23", $ = new Intl.DateTimeFormat(r, { hour: h ? "numeric" : "2-digit", minute: "2-digit", hourCycle: u }), v = new Intl.DateTimeFormat(r, h ? { hour: "numeric", hourCycle: u } : { hour: "2-digit", minute: "2-digit", hourCycle: u }), _ = s === "system" ? void 0 : r, w = new Intl.DateTimeFormat(_, { day: "numeric", month: "numeric" }), C = (b) => {
+  const r = Lo(e), a = n === "system" ? void 0 : n === "none" ? "en-US" : Oo[n] ?? r, l = n === "none" ? { useGrouping: !1 } : {}, c = new Intl.NumberFormat(a, { minimumFractionDigits: 1, maximumFractionDigits: 1, ...l }), d = new Intl.NumberFormat(a, { maximumFractionDigits: 1, ...l }), p = new Intl.NumberFormat(a, { maximumFractionDigits: 0, ...l }), h = Do(o, r), u = h ? "h12" : "h23", $ = new Intl.DateTimeFormat(r, { hour: h ? "numeric" : "2-digit", minute: "2-digit", hourCycle: u }), v = new Intl.DateTimeFormat(r, h ? { hour: "numeric", hourCycle: u } : { hour: "2-digit", minute: "2-digit", hourCycle: u }), _ = s === "system" ? void 0 : r, w = new Intl.DateTimeFormat(_, { day: "numeric", month: "numeric" }), C = (b) => {
     if (!["DMY", "MDY", "YMD"].includes(s))
       return w.format(b);
     const T = w.formatToParts(b), k = T.find((N) => N.type === "literal")?.value ?? "/", A = T[T.length - 1], S = A?.type === "literal" ? A.value : "", F = T.find((N) => N.type === "day")?.value ?? "", I = T.find((N) => N.type === "month")?.value ?? "";
@@ -2517,7 +2517,7 @@ const Fo = Ii`
       display: grid;
       gap: 12px;
       container: dashboard / inline-size;
-      /* Panel view and wide screens: no wider than four rooms side by side (TODO P1.12). */
+      /* Panel view and wide screens: no wider than four rooms side by side. */
       max-width: 2300px;
       margin-inline: auto;
     }
@@ -2846,7 +2846,7 @@ const Fo = Ii`
       line-height: 28px;
     }
 
-    /* Invisible touch target of 44 px in height (TODO P1.2). */
+    /* Invisible touch target of 44 px in height. */
     .humidity::after {
       content: "";
       position: absolute;
@@ -2858,7 +2858,7 @@ const Fo = Ii`
     }
 
     /*
-     * Small grey clock at a stale value (TODO P2.21): the grey number alone could look like a fault.
+     * Small grey clock at a stale value: the grey number alone could look like a fault.
      * Beside CO₂ / PM2.5 it follows the unit; at temperature and humidity it sits above the end of
      * the text, so the row never changes its width when a value turns stale (the picture keeps its room).
      */
@@ -2932,7 +2932,7 @@ const Fo = Ii`
       font-variant-numeric: tabular-nums;
     }
 
-    /* CO₂ and PM2.5: one touch target over both rows (52 px, TODO P1.2). */
+    /* CO₂ and PM2.5: one touch target over both rows (52 px). */
     .air-block {
       grid-column: 1 / -1;
       grid-row: 1 / span 2;
@@ -2951,7 +2951,7 @@ const Fo = Ii`
       grid-column: 1 / -1;
       grid-row: 4 / span 2;
       justify-self: start;
-      /* At least the whole left column, so no tap falls into a gap (TODO P1.5). */
+      /* At least the whole left column, so no tap falls into a gap. */
       min-width: calc((100% - var(--info-gap)) / 2);
       max-width: calc((100% - var(--info-gap)) / 2 * 1.4 + var(--info-gap));
     }
@@ -3004,7 +3004,7 @@ const Fo = Ii`
     /*
      * CO₂ / PM2.5: icon and value, then the trend. The trend starts at a fixed distance from the
      * left edge (--air-text + gap), under the end of even the shortest value ("2 µg/m³"), so
-     * it always continues right behind the value instead of at a distant column (TODO P1.10.1).
+     * it always continues right behind the value instead of at a distant column.
      */
     .air-row {
       display: grid;
@@ -3241,7 +3241,7 @@ const Fo = Ii`
       transition: transform 120ms ease-out;
     }
 
-    /* Invisible touch target of 44 px in width: reaches into the gap to the panel and the card padding (TODO P1.2). */
+    /* Invisible touch target of 44 px in width: reaches into the gap to the panel and the card padding. */
     .preset::before {
       content: "";
       position: absolute;
@@ -3308,7 +3308,7 @@ const Fo = Ii`
       pointer-events: none;
     }
 
-    /* Script failed: red ring around the button, a short shake, the reason in a red bubble (TODO P2.18). */
+    /* Script failed: red ring around the button, a short shake, the reason in a red bubble. */
     .preset.failed {
       box-shadow: inset 0 0 0 1.5px var(--kd-alert);
       color: var(--kd-alert);
@@ -3394,7 +3394,7 @@ const Fo = Ii`
       align-items: flex-end;
       justify-content: center;
       background: rgb(0 0 0 / calc(var(--kd-backdrop) * var(--backdrop-opacity, 1)));
-      /* A drag on the dimmed area must not move the dashboard below (TODO P1.9.3). */
+      /* A drag on the dimmed area must not move the dashboard below. */
       overscroll-behavior: contain;
       touch-action: none;
     }
@@ -3461,7 +3461,7 @@ const Fo = Ii`
 
     /*
      * Phone on its side (or any short window): the history popup takes the whole width, so the
-     * chart uses the full width of the phone (TODO P1.9.9). The same query is in chartWidth().
+     * chart uses the full width of the phone. The same query is in chartWidth().
      */
     @media (orientation: landscape) and (max-height: 600px) {
       .sheet.history-sheet {
@@ -4750,7 +4750,7 @@ const Se = class Se extends St {
     return t.value === void 0 || t.stale ? g.label : t.value >= n ? g.alert : t.value >= e ? g.warning : g.white;
   }
   /**
-   * CO₂ and PM2.5 are one touch target over both rows (52 px, TODO P1.2). With both sensors it
+   * CO₂ and PM2.5 are one touch target over both rows (52 px). With both sensors it
    * opens the popup "Kvalita vzduchu" with a link to each detail; with one it opens that
    * detail at once. A sensor the room does not have (`carbon_dioxide: false`) has no row; without
    * both the place stays empty, so the rows below keep their position (CURRENT_SPEC.md, Room Card).
@@ -5443,17 +5443,17 @@ const Se = class Se extends St {
       sub: this.roomNow(t),
       tone: h.color,
       label: e.sheet.heatControl.temperatureSlider,
-      onChange: w ? (D) => this._acTarget = D : void 0,
+      onChange: w ? (L) => this._acTarget = L : void 0,
       onCommit: w ? () => {
         this.runSheetAction(() => this.commitAcTarget(t));
       } : void 0
-    }), b = gt(s?.attributes.fan_modes), T = gt(s?.attributes.swing_modes), k = String(s?.attributes.fan_mode ?? "").toLowerCase(), A = String(s?.attributes.swing_mode ?? "").toLowerCase(), S = l.filter((D) => D !== "none" && D !== "wind_free"), F = h.active, I = this._ac?.duration ?? dt, N = kt(I), q = e.sheet.heatControl, x = N === void 0 ? q.noLimit : `${$t(N)} · ${q.until(this._i18n.time(Date.now() + N * 6e4))}`, H = N === void 0 ? q.acFootForever : q.acFootTimed(this._i18n.time(Date.now() + N * 6e4)), P = !!this.hass?.callWS, L = !F;
+    }), b = gt(s?.attributes.fan_modes), T = gt(s?.attributes.swing_modes), k = String(s?.attributes.fan_mode ?? "").toLowerCase(), A = String(s?.attributes.swing_mode ?? "").toLowerCase(), S = l.filter((L) => L !== "none" && L !== "wind_free"), F = h.active, I = this._ac?.duration ?? dt, N = kt(I), q = e.sheet.heatControl, x = N === void 0 ? q.noLimit : `${$t(N)} · ${q.until(this._i18n.time(Date.now() + N * 6e4))}`, H = N === void 0 ? q.acFootForever : q.acFootTimed(this._i18n.time(Date.now() + N * 6e4)), P = !!this.hass?.callWS, D = !F;
     return m`
       ${E}
       <div class="options climate-options" role="group" aria-label=${e.sheet.modes(e.system.climate)}>
-        ${p.map((D) => this.renderOption(D))}
+        ${p.map((L) => this.renderOption(L))}
       </div>
-      ${P ? m`<div class="timer-card ${L ? "dim" : ""}" ?inert=${L}>
+      ${P ? m`<div class="timer-card ${D ? "dim" : ""}" ?inert=${D}>
               ${this.renderTimer({
       slot: qn(I),
       last: B.length,
@@ -5463,15 +5463,15 @@ const Se = class Se extends St {
       leftIcon: ei(),
       leftText: m`<b>${$t(B[0])}</b>`,
       rightLabel: q.noLimit,
-      onSlot: (D) => this._ac = { duration: Yn(D), touched: !0 }
+      onSlot: (L) => this._ac = { duration: Yn(L), touched: !0 }
     })}
             </div>
-            <p class="timer-foot">${L ? q.acFootIdle : H}</p>` : f}
-      ${b.length > 0 ? this.renderChoice(e.sheet.climate.fan, b, k, L, (D) => this.callClimateEach(t, "set_fan_mode", { fan_mode: D }), (D) => this.fanLabel(D)) : f}
-      ${T.length > 0 ? this.renderChoice(e.sheet.climate.swing, T, A, L, (D) => this.callClimateEach(t, "set_swing_mode", { swing_mode: D }), (D) => this.swingLabel(D)) : f}
+            <p class="timer-foot">${D ? q.acFootIdle : H}</p>` : f}
+      ${b.length > 0 ? this.renderChoice(e.sheet.climate.fan, b, k, D, (L) => this.callClimateEach(t, "set_fan_mode", { fan_mode: L }), (L) => this.fanLabel(L)) : f}
+      ${T.length > 0 ? this.renderChoice(e.sheet.climate.swing, T, A, D, (L) => this.callClimateEach(t, "set_swing_mode", { swing_mode: L }), (L) => this.swingLabel(L)) : f}
       ${S.length > 0 ? m`<div class="sheet-label" id="preset-label">${e.sheet.presets}</div>
             <div class="chips" role="group" aria-labelledby="preset-label">
-              ${S.map((D) => this.renderPresetChip(t, D, d, c, l))}
+              ${S.map((L) => this.renderPresetChip(t, L, d, c, l))}
             </div>` : f}
       ${this._sheetError ? m`<p class="sheet-message error" role="alert">${this._sheetError}</p>` : f}
       ${this.renderSheetTail(t.length === 1 ? o : void 0)}

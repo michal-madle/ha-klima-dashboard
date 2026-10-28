@@ -73,7 +73,7 @@ V zobrazení Masonry lze dosáhnout dvou sloupců dvěma kartami vedle sebe: ka�
     - name: Obývák
 ```
 
-Jak to vypadá na iPhonu v aplikaci Home Assistant, je v [TODO P1.9](./TODO.md#p1-9) k ověření.
+Jak to vypadá na iPhonu v aplikaci Home Assistant, je v [TODO C1](./TODO.md#c1) k ověření.
 
 ### 5. Zkontrolujte entity
 
@@ -108,7 +108,7 @@ Co mají karty Klima a Energie společné, je v repozitáři [ha-dashboard-kit](
 - [DESIGN_HISTORY.md](./DESIGN_HISTORY.md) – historie návrhu a nahrazená rozhodnutí
 - [MEMORY_SUMMARIZED.md](./MEMORY_SUMMARIZED.md) – stručná projektová paměť
 - [AUDIT.md](./AUDIT.md) – konflikty, chybějící informace a doporučení pro údržbu
-- [TODO.md](./TODO.md) – navržená vylepšení UX/UI (zatím nerozhodnutá, nejsou součástí zadání)
+- [TODO.md](./TODO.md) – otevřené otázky a ověření na zařízení (nejsou součástí zadání)
 
 Pro aktuální chování a návrh má přednost `CURRENT_SPEC.md`, poté `ENTITY_MAP.md`. Historická rozhodnutí nejsou závazná.
 
@@ -116,36 +116,7 @@ Pro aktuální chování a návrh má přednost `CURRENT_SPEC.md`, poté `ENTITY
 
 Všechno, co jde nastavit, je v YAML konfiguraci karty. [Příklad](./examples/domov_prototyp_loznice.yaml) obsahuje úplně všechna nastavení: nahoře **společné nastavení pro celý dům** (prahy CO₂ a PM2.5, komfortní teploty, úsek mikrotrendů, historie, žaluzie, barevný režim …) s výchozími hodnotami, pod ním místnosti, každou se všemi klíči. Stačí přepsat číslo nebo text. Klíč bez hodnoty (např. `link:`) nebo smazaný klíč znamená výchozí hodnotu; u místnosti tedy prázdné `thresholds:` a `cover_presets:` = společné nastavení. Starší konfigurace bez nových klíčů funguje beze změny. Chybnou hodnotu karta neignoruje: místo karty ukáže chybu s názvem klíče (např. `thresholds: co2_warning (1600) must be below co2_critical (1500)`). Přesná pravidla jsou v [CURRENT_SPEC.md](./CURRENT_SPEC.md#konfigurace).
 
-Společné pro všechny místnosti:
-
-| Klíč | Výchozí | Co nastavuje |
-|---|---|---|
-| `title` | `Domov` (v jazyce karty) | nadpis; `""` ho vynechá |
-| `theme` | `auto` | barevný režim: `auto` podle Home Assistantu (s motivem „Automaticky“ podle systému iPhonu), `dark`, `light` |
-| `language` | `auto` | jazyk karty: `auto` podle Home Assistantu (čeština, švédština, jinak angličtina), `cs`, `sv`, `en` |
-| `house_mode_entity` | `input_select.house_mode` | entita režimu domu |
-| `house_modes` | `winter: Zima`, `summer: Léto` | hodnoty režimu domu |
-| `thresholds` | viz příklad | vlhkost, CO₂, PM2.5, komfortní pásma v zimě a v létě, zastaralá data (`stale_minutes`), vlny vytápění (`heating_waves_2`, `heating_waves_3`) |
-| `trends` | `minutes: 120`, `samples: 12` | úsek a počet bodů mikrotrendů, krok společné osy (`temperature_step`, `co2_step`, `pm25_step`) |
-| `history` | `hours: 24`, noc 22–6 h | délka popupu Historie místnosti, noc v grafu, nejmenší rozsah osy teploty |
-| `covers` | `script.zaluzie_posun`, ±5 %, 5 s | skript předvoleb, tolerance shody, konec pulzování; `presets` = 1–3 předvolby (Den, Stín, Tma; bez `name` pojmenované v jazyce karty) |
-| `outside` | – | entity venkovních podmínek v hlavičce |
-
-Pro každou místnost (`rooms`):
-
-| Klíč | Co nastavuje |
-|---|---|
-| `name` | název (povinný) |
-| `image` | ilustrace `bedroom`, `office`, `kids`, `living`, `none`, nebo adresa vlastního obrázku (`/local/klima/loznice.jpg`); bez klíče podle názvu místnosti; starší název klíče `scene` platí dál |
-| `link` | klepnutí na název místnosti otevře stránku Home Assistantu (`/lovelace/loznice`) nebo webovou adresu |
-| `temperature`, `humidity` | entity teploty a vlhkosti |
-| `carbon_dioxide`, `pm25` | entity CO₂ a PM2.5; `false` = místnost čidlo nemá (řádek zmizí a stav místnosti ho nepotřebuje) |
-| `window` | entita okna, nebo seznam oken |
-| `cover`, `cover_presets` | žaluzie a vlastní předvolby jen pro ni |
-| `thresholds` | vlastní prahy jen pro tuto místnost (zbytek společný) |
-| `heating`, `air_conditioner` | Topení (`climate`, `overlay`, `target`, `intensity`) a Klimatizace |
-
-Starší klíče `tado`, `samsung` a `heating.heating` karta odmítne s chybovou hláškou; přejmenujte je podle příkladu. Neznámý klíč místnosti (překlep) také.
+Klíče společné pro celý dům: `title`, `theme`, `language`, `house_mode_entity`, `house_modes`, `thresholds`, `trends`, `history`, `covers` (skript, tolerance a předvolby žaluzií) a `outside` (venkovní podmínky v hlavičce). Pro každou místnost (`rooms`): `name` (povinný), `image`, `link`, `temperature`, `humidity`, `carbon_dioxide`, `pm25` (`false` = místnost čidlo nemá, řádek zmizí a stav místnosti ho nepotřebuje), `window` (entita nebo seznam oken), `cover`, `cover_presets`, vlastní `thresholds`, `heating` a `air_conditioner`. Výchozí hodnoty a význam každého klíče jsou v [CURRENT_SPEC.md](./CURRENT_SPEC.md#konfigurace). Starší klíče `tado`, `samsung` a `heating.heating` karta odmítne s chybovou hláškou, stejně jako neznámý klíč místnosti (překlep); přejmenujte je podle příkladu.
 
 Místnost se dvěma okny, bez čidla CO₂ a PM2.5, s vlastním obrázkem, odkazem a chladnějším pásmem v zimě (entity jsou jen ukázka):
 
@@ -172,24 +143,19 @@ Vlastní obrázek uložte do složky `www` konfigurace Home Assistantu (`/config
 
 ## Ovládání karty
 
-- Klepnutí na teplotu nebo její mikrotrend otevře popup **Historie místnosti – 24 h** (délka podle `history.hours`) ve stylu aplikace pro topení: křivka teploty, vytápění jako oranžová výplň pod ní, cíl Topení, noc, vlhkost a pod grafem kompaktní pruhy bez popisků v pořadí jako na kartě (Topení, Klimatizace, okna – modrý pruh, kdy bylo otevřené okno), každý s ikonou na začátku. Přejetím prstem po grafu se nahoře ukážou hodnoty v daném čase. Odkaz „Detail teploty“ otevře standardní detail entity.
-- Klepnutí na vlhkost nebo okno otevře standardní detail entity Home Assistantu s grafem historie (u místnosti s více okny popup **Okna**). CO₂ a PM2.5 (hodnoty i mikrotrendy) jsou jedno tlačítko: s oběma čidly otevře popup **Kvalita vzduchu** s odkazem na detail každé veličiny, s jedním rovnou jeho detail. Klepnutí na panel žaluzie otevře standardní ovládání krytu. Každý klikací prvek má dotykovou plochu aspoň 44 × 44 px (i neviditelnou). U otevřeného okna je slabě vidět, jak dlouho je otevřené („Otevřeno · 12 min“); při konfliktu stojí oranžová tečka hned za popiskem místo „·“.
-- Hodnota, která rozhodla o stavu místnosti (vlhkost při Vlhko / Sucho, teplota při Teplo / Chladno), má barvu stavu; ostatní zůstávají neutrální.
-- Text „Bez dat“ pod názvem místnosti uvádí první chybějící údaj, např. „Bez dat · režim domu“ (entita `input_select.house_mode` chybí nebo nemá hodnotu Zima/Léto, případně hodnoty z `house_modes`).
-- Měření, které senzor nenahlásil déle než 30 minut (`thresholds.stale_minutes`, i pro jednu místnost), je šedé a nebarví se; stav místnosti pak ukáže např. „Bez dat · CO₂ (před 2 h)“. Čas hlášení se čte z REST stavu entity (`last_reported`).
-- Nad kartami se ukazují štítky souhrnu domu jen pro odchylky: na prvním místě oranžové **konflikty** („Okno otevřené · topí se: Ložnice“, „Okno otevřené · chladí se: …“, „Chladí se, i když je chladno: …“; u okna místnosti je navíc oranžová tečka), pak otevřená okna, ruční přepis Topení, místnosti, kde se topí, a zapnutá klimatizace.
-- Popupy jsou ve stylu iOS: na mobilu se zavřou i tažením dolů za úchyt.
-- Řádky **Topení** a **Klimatizace** jsou jedno tlačítko. Otevře popup vždy na primárním systému podle režimu domu (Zima Topení, Léto Klimatizace); přepínačem Topení | Klimatizace úplně nahoře přejdete na druhý. Nahoře je kruh s cílovou teplotou po celých stupních (tah po kruhu nebo šipky). Topení nabízí Vypnuto, Plán, Ručně a Boost (čtyři ikony v jedné řadě), Klimatizace Vypnuto, Chlazení, WindFree (jedno klepnutí = chlazení + předvolba `wind_free`), Topení, Větrání, Sušení a Auto, k tomu Sílu větru, Směr proudění a předvolby podle atributů `hvac_modes`, `preset_modes`, `fan_modes` a `swing_modes` entity. **Časovač** je jeden posuvník jako u teplé vody v Tadu (plán vlevo, ∞ vpravo, 15 min až 8 h mezi nimi). U Topení se Ručně, Boost a Vypnuto odešlou až při zavření popupu přes `tado_ce.set_climate_timer`; bez té akce je Boost zašedlý a Ručně nastaví jen teplotu. „Po skončení“ (Plán / Vypnuto, výchozí podle House Mode a naposledy zvolené) u Vypnuto a u Klimatizace („potom se klimatizace vypne“) naplánuje vypnutí v Home Assistantu přes WebSocket `execute_script` (potřebuje uživatele s právem spouštět skripty a nepřežije restart Home Assistantu). **Hromadné nastavení:** štítky v souhrnu domu („Topí 3 místnosti“, „Klimatizace: …“) otevřou stejný popup pro všechny místnosti, které štítek jmenuje; ikona HVAC v místnosti nastavuje jen tu jednu. Odkaz „Detail a historie“ v popupu jedné místnosti otevře standardní detail entity.
-- Tři tlačítka v jednom sloupci vpravo od panelu žaluzie (shora Den 100/100, Stín 0/100, Tma 0/0; poloha/naklopení) mají jen ikonu žaluzie bez rámečku a bez podbarvení; tmavě šedá je každá, tlumeně šampaňskou barvou se jen přebarví ta, která odpovídá stavu žaluzie. Po odeslání ikona cílové předvolby pulzuje, dokud žaluzie nedojede; pulzování skončí i tehdy, když se stav žaluzie 5 s nezmění (`covers.stall_seconds`). Předvolby, jejich počet (1–3), toleranci a skript nastavíte v `covers` a pro jednotlivou žaluzii v `cover_presets`. Odešlou se **dvojitým klepnutím nebo dlouhým stiskem**; jednoduché klepnutí jen ukáže nápovědu „Podržte nebo klepněte dvakrát“. V aplikaci Home Assistant na iPhonu je potvrdí haptika; volají skript `covers.script` (výchozí `script.zaluzie_posun`) s poli `entity`, `pos` a `tilt`. Skript musí v Home Assistantu existovat. Název tlačítka se ukáže jako nápověda při najetí myší a čtečka obrazovky ho přečte.
-- Mikrotrendy teploty, CO₂ a PM2.5 (posledních 120 minut, `trends.minutes`) se obnovují každých 5 minut. Trend CO₂ a PM2.5 navazuje přímo na hodnotu a jednotku (začíná pod jejich koncem a doleva se ztrácí); trend teploty je vedle řádků Topení a Klimatizace. Každá veličina má v celém domě společnou osu (teplota zaokrouhlená na 1 °C, CO₂ na 100 ppm, PM2.5 na 5 µg/m³; `trends.*_step`), takže trendy místností jdou porovnat.
-- Ilustrace v pravém horním rohu karty místnosti se zobrazí sama podle názvu (Ložnice, Pracovna, Maxík, Mikuláš, Obývák). Jinou zvolíte klíčem `image: bedroom | office | kids | living`, vlastní obrázek adresou (`image: /local/…`), vypnete ji `image: none`.
-- Karta má **tmavý a světlý režim**. Výchozí `theme: auto` se řídí Home Assistantem: s motivem „Automaticky“ v profilu (výchozí) tedy nastavením Vzhled na iPhonu a přepne se hned, bez obnovení stránky. `theme: dark` nebo `theme: light` režim vynutí. Tmavý režim je dosavadní paleta.
-- Karta mluví **česky, švédsky a anglicky** podle jazyka Home Assistantu v profilu uživatele: čeština a švédština jak jsou, každý jiný jazyk anglicky. Po změně jazyka se přepne hned. `language: cs`, `sv` nebo `en` jazyk vynutí. Formát čísel, času (12 / 24 h) a pořadí dne a měsíce se řídí profilem Home Assistantu (Profil → Obecné), pokud tam není „Podle jazyka“ (česky a švédsky „20,4 °C“, anglicky „20.4 °C“ a čas s AM / PM). Časové pásmo se neřídí profilem. Texty z konfigurace (nadpis, názvy místností, oken a předvoleb) se nepřekládají; bez nich karta použije výchozí text v jazyce karty (Domov / Hem / Home, Okno 1 / Fönster 1 / Window 1, Den / Dag / Day …). Překlady jsou v [src/translations](./src/translations/), zdrojem je čeština.
-- Na úzkém displeji se u řádků Topení a Klimatizace může skrýt cílová teplota („· 21 °C“), pokud se vedle stavu nevejde; stav zůstane vždy celý.
+Úplný popis chování je v [CURRENT_SPEC.md](./CURRENT_SPEC.md); tady jen to, co potřebuje uživatel.
+
+- **Teplota** (nebo její mikrotrend) otevře popup **Historie místnosti – 24 h**: křivka teploty, vytápění jako oranžová výplň, cíl Topení, noc, vlhkost a pod grafem pruhy Topení, Klimatizace a oken. Přejetím prstem po grafu se nahoře ukážou hodnoty v daném čase.
+- **Vlhkost** a **okno** otevřou standardní detail entity (u více oken popup **Okna**). **CO₂ a PM2.5** jsou jedno tlačítko: s oběma čidly popup **Kvalita vzduchu**, s jedním rovnou jeho detail. Panel žaluzie otevře standardní ovládání krytu. Každý klikací prvek má dotykovou plochu aspoň 44 × 44 px a popupy se na mobilu zavřou i tažením dolů za úchyt.
+- **Žaluzie:** tři ikony vpravo od panelu (Den 100/100, Stín 0/100, Tma 0/0) se odešlou **dvojitým klepnutím nebo dlouhým stiskem**; jedno klepnutí jen ukáže nápovědu. Karta volá skript `covers.script` (výchozí `script.zaluzie_posun`) s poli `entity`, `pos` a `tilt`; skript musí v Home Assistantu existovat. Ikona cílové předvolby pulzuje, dokud žaluzie nedojede (nejdéle `covers.stall_seconds`).
+- **Topení a Klimatizace:** řádek je jedno tlačítko, které otevře popup na primárním systému podle režimu domu (Zima Topení, Léto Klimatizace); přepínač Topení | Klimatizace nahoře přejde na druhý. Topení nabízí Vypnuto, Plán, Ručně a Boost s časovačem; Ručně, Boost a Vypnuto se odešlou při zavření popupu přes `tado_ce.set_climate_timer` (bez té akce je Boost zašedlý). Vypnutí po časovači naplánuje Home Assistant přes WebSocket `execute_script` (potřebuje právo spouštět skripty a nepřežije restart). Štítky v souhrnu domu („Topí 3 místnosti“, „Klimatizace: …“) otevřou stejný popup pro všechny jmenované místnosti.
+- **Stav místnosti:** hodnota, která o něm rozhodla, má barvu stavu; ostatní jsou neutrální. Měření starší než `thresholds.stale_minutes` (30 min) je šedé a stav ukáže např. „Bez dat · CO₂ (před 2 h)“. Nad kartami jsou štítky souhrnu jen pro odchylky: konflikty (oranžové), otevřená okna, ruční přepis, topení, klimatizace.
+- **Vzhled:** `theme: auto` se řídí Home Assistantem a přepne se hned, `dark` / `light` režim vynutí. Karta mluví česky, švédsky a anglicky podle jazyka Home Assistantu (`language` ho vynutí) a formáty čísel, času a data berou profil Home Assistantu; texty z konfigurace se nepřekládají. Překlady jsou v [src/translations](./src/translations/), zdrojem je čeština.
+- Ilustrace místnosti se zvolí podle názvu, klíčem `image` (`bedroom`, `office`, `kids`, `living`, `none`) nebo vlastním obrázkem (`/local/…`). Na úzkém displeji se u řádků Topení a Klimatizace může skrýt cílová teplota, stav zůstane vždy celý.
 
 ## Rozsah prototypu
 
-Implementováno je rozložení karty podle [CURRENT_SPEC.md](./CURRENT_SPEC.md), panel žaluzie s presety, mikrotrendy, popup ovládání Topení a Klimatizace, popup Historie místnosti – 24 h a detail entit s historií. Zatím neřešeno: hlášení „upozornění“ na Domov, slovní hodnocení venkovního vzduchu (dobrý / zhoršený / špatný; chybí hranice PM2.5, viz [AUDIT.md](./AUDIT.md), bod 4.5) a konečné vizuální doladění palety. Entitám, které nejsou v mapě potvrzené, nepřiřazujte odhadnutá ID.
+Implementováno je rozložení karty podle [CURRENT_SPEC.md](./CURRENT_SPEC.md), panel žaluzie s předvolbami, mikrotrendy, popupy ovládání Topení a Klimatizace, popup Historie místnosti – 24 h a detaily entit. Co čeká na vaši odpověď nebo na ověření na iPhonu (například hranice venkovního vzduchu), je v [TODO.md](./TODO.md). Entitám, které nejsou v mapě potvrzené, nepřiřazujte odhadnutá ID.
 
 ## Sestavení
 
@@ -197,8 +163,14 @@ Po změně ve složce `src/` spusťte v kořeni repozitáře `npm install` a `np
 
 ## Testy
 
-`npm test` kartu sestaví a spustí 82 testů v prohlížeči (Playwright). Testují sestavený `ha-klima-dashboard.js` na zkušební stránce [tests/harness.html](./tests/harness.html) s náhradními daty Home Assistantu ([tests/scenarios.js](./tests/scenarios.js)): konfiguraci (chybné hodnoty, příklad YAML s výchozími hodnotami, prahy místnosti, místnost bez CO₂ a PM2.5, dvě okna, vlastní předvolby, obrázek a odkaz), světlý a tmavý režim (přepínání, axe-core i ve světlém režimu), rozložení na šířkách 320–2560 px, jeden až čtyři sloupce včetně telefonu na šířku (852 × 393), zkrácenou místnost, formáty čísel, času a data z profilu, stránku pod popupem, hodiny u zastaralých hodnot, chybu u tlačítka předvolby, ikonu souhrnu Topí, velikost dotykových cílů (44 × 44 px měřená hit-testem), stavy místností, souhrn a konflikty, dobu otevření okna, tloušťku písma CO₂ a PM2.5, `title: ""`, zastaralá data, přístupnost (axe-core), klávesnici, dotyk, předvolby žaluzií (včetně tolerance ±5 %), ovládání Topení (teplota, Boost, doba, odeslání při zavření popupu, tah prstem po posuvníku, bez akce Tado CE, štítky Ručně a Boost, stav podle `climate` entity), historii místnosti, den změny času, osu teploty v historii a překreslování. Scénář „real“ načítá přímo [příklad YAML](./examples/domov_prototyp_loznice.yaml); test hlídá, že v příkladu nechybí žádné nastavení a že jeho hodnoty jsou výchozí. Jazyky: výběr podle Home Assistantu, švédské a anglické texty a čísla, žádný český text ve švédštině ani angličtině (kontrola celé karty, popupů, nápověd a popisů pro čtečku) a delší texty na všech šířkách. Každý scénář má jeden test rozložení, který projde všechny jeho šířky (320–1600 px a telefon na šířku) a na každé změří všechno najednou; axe-core a kontrast barev se kontrolují stejně v tmavém i světlém režimu.
+`npm test` kartu sestaví a spustí 28 testů v prohlížeči (Playwright). Testují sestavený `ha-klima-dashboard.js` na zkušební stránce [tests/harness.html](./tests/harness.html) s náhradními daty Home Assistantu ([tests/scenarios.js](./tests/scenarios.js)). Související kontroly jsou jeden test s kroky (`test.step`), aby se karta nenačítala pro každou zvlášť. Pokrývají:
 
-`npm run coverage` spustí tytéž testy s měřením pokrytí kódu: V8 v Chromiu, přes zdrojovou mapu zpět na `src/*.ts` (knihovna monocart-coverage-reports). Kartu sestaví zvlášť do `coverage/build`, distribuovaný `ha-klima-dashboard.js` se nemění. Vypíše tabulku po souborech a do `coverage/report/coverage-final.json` (formát Istanbul) uloží data pro přesné porovnání před a po změně testů. Pokrytí se bere před každým načtením stránky, protože Chromium hlásí jen stránku, která je právě otevřená. Stav 25. 10.: příkazy 93,2 %, větve 84,5 %, funkce 91,1 %, řádky 93,9 %.
+- konfiguraci (chybné hodnoty, příklad YAML s výchozími hodnotami, prahy místnosti, místnost bez CO₂ a PM2.5, dvě okna, vlastní předvolby, obrázek a odkaz); scénář „real“ načítá přímo [příklad YAML](./examples/domov_prototyp_loznice.yaml) a test hlídá, že v něm nechybí žádné nastavení;
+- rozložení na šířkách 320–2560 px (jeden až čtyři sloupce, telefon na šířku 852 × 393), zkrácenou místnost, stránku pod popupem a dotykové cíle 44 × 44 px měřené hit-testem;
+- stavy místností, souhrn a konflikty, zastaralá data, dobu otevření okna, barvy v tmavém i světlém režimu a přístupnost (axe-core, klávesnice, dotyk);
+- předvolby žaluzií (včetně tolerance ±5 %), ovládání Topení a Klimatizace (teplota, Boost, doba, odeslání při zavření popupu, hromadné nastavení, stav podle `climate` entity), historii místnosti, den změny času a překreslování;
+- jazyky (výběr podle Home Assistantu, švédské a anglické texty a čísla, žádný český text mimo češtinu, delší texty na všech šířkách) a formáty čísel, času a data z profilu.
+
+`npm run coverage` spustí tytéž testy s měřením pokrytí kódu: V8 v Chromiu, přes zdrojovou mapu zpět na `src/*.ts` (knihovna monocart-coverage-reports). Kartu sestaví zvlášť do `coverage/build`, distribuovaný `ha-klima-dashboard.js` se nemění. Vypíše tabulku po souborech a do `coverage/report/coverage-final.json` (formát Istanbul) uloží data pro přesné porovnání před a po změně testů. Stav 28. 10.: příkazy 93,6 %, větve 85,3 %, funkce 91,1 %, řádky 94,0 %.
 
 Poprvé je potřeba stáhnout prohlížeč: `npx playwright install chromium`. Volitelně i WebKit (blíž Safari na iPhonu): `npx playwright install webkit` a pak `PW_WEBKIT=1 npm test`. Zkušební stránku lze otevřít i ručně: `node tests/server.mjs` a v prohlížeči `http://127.0.0.1:4173/tests/harness.html?s=real` (scénáře `real`, `full`, `summer`, `alarm`, `stale`, `rest-error`, `unavailable`, `cover-unavailable`, `moving`, `longnames`, `config`; světlý režim přidáním `&theme=light`, jazyk Home Assistantu `&lang=sv`, `&lang=en` apod.). Testy nic nepřidávají do karty ani do instalace přes HACS.

@@ -127,7 +127,7 @@ export const styles = css`
       display: grid;
       gap: 12px;
       container: dashboard / inline-size;
-      /* Panel view and wide screens: no wider than four rooms side by side (TODO P1.12). */
+      /* Panel view and wide screens: no wider than four rooms side by side. */
       max-width: 2300px;
       margin-inline: auto;
     }
@@ -456,7 +456,7 @@ export const styles = css`
       line-height: 28px;
     }
 
-    /* Invisible touch target of 44 px in height (TODO P1.2). */
+    /* Invisible touch target of 44 px in height. */
     .humidity::after {
       content: "";
       position: absolute;
@@ -468,7 +468,7 @@ export const styles = css`
     }
 
     /*
-     * Small grey clock at a stale value (TODO P2.21): the grey number alone could look like a fault.
+     * Small grey clock at a stale value: the grey number alone could look like a fault.
      * Beside CO₂ / PM2.5 it follows the unit; at temperature and humidity it sits above the end of
      * the text, so the row never changes its width when a value turns stale (the picture keeps its room).
      */
@@ -542,7 +542,7 @@ export const styles = css`
       font-variant-numeric: tabular-nums;
     }
 
-    /* CO₂ and PM2.5: one touch target over both rows (52 px, TODO P1.2). */
+    /* CO₂ and PM2.5: one touch target over both rows (52 px). */
     .air-block {
       grid-column: 1 / -1;
       grid-row: 1 / span 2;
@@ -561,7 +561,7 @@ export const styles = css`
       grid-column: 1 / -1;
       grid-row: 4 / span 2;
       justify-self: start;
-      /* At least the whole left column, so no tap falls into a gap (TODO P1.5). */
+      /* At least the whole left column, so no tap falls into a gap. */
       min-width: calc((100% - var(--info-gap)) / 2);
       max-width: calc((100% - var(--info-gap)) / 2 * 1.4 + var(--info-gap));
     }
@@ -614,7 +614,7 @@ export const styles = css`
     /*
      * CO₂ / PM2.5: icon and value, then the trend. The trend starts at a fixed distance from the
      * left edge (--air-text + gap), under the end of even the shortest value ("2 µg/m³"), so
-     * it always continues right behind the value instead of at a distant column (TODO P1.10.1).
+     * it always continues right behind the value instead of at a distant column.
      */
     .air-row {
       display: grid;
@@ -851,7 +851,7 @@ export const styles = css`
       transition: transform 120ms ease-out;
     }
 
-    /* Invisible touch target of 44 px in width: reaches into the gap to the panel and the card padding (TODO P1.2). */
+    /* Invisible touch target of 44 px in width: reaches into the gap to the panel and the card padding. */
     .preset::before {
       content: "";
       position: absolute;
@@ -918,7 +918,7 @@ export const styles = css`
       pointer-events: none;
     }
 
-    /* Script failed: red ring around the button, a short shake, the reason in a red bubble (TODO P2.18). */
+    /* Script failed: red ring around the button, a short shake, the reason in a red bubble. */
     .preset.failed {
       box-shadow: inset 0 0 0 1.5px var(--kd-alert);
       color: var(--kd-alert);
@@ -1004,7 +1004,7 @@ export const styles = css`
       align-items: flex-end;
       justify-content: center;
       background: rgb(0 0 0 / calc(var(--kd-backdrop) * var(--backdrop-opacity, 1)));
-      /* A drag on the dimmed area must not move the dashboard below (TODO P1.9.3). */
+      /* A drag on the dimmed area must not move the dashboard below. */
       overscroll-behavior: contain;
       touch-action: none;
     }
@@ -1071,7 +1071,7 @@ export const styles = css`
 
     /*
      * Phone on its side (or any short window): the history popup takes the whole width, so the
-     * chart uses the full width of the phone (TODO P1.9.9). The same query is in chartWidth().
+     * chart uses the full width of the phone. The same query is in chartWidth().
      */
     @media (orientation: landscape) and (max-height: 600px) {
       .sheet.history-sheet {
