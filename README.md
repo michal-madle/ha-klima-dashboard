@@ -97,6 +97,10 @@ Tuto možnost použijte, pokud nechcete instalovat kartu přes HACS a máte př�
 
 Při ruční aktualizaci souboru může prohlížeč používat starou uloženou verzi. Pokud se změna neprojeví, změňte URL zdroje například na `/local/ha-klima-dashboard.js?v=2` a stránku znovu obnovte. Při další aktualizaci číslo změňte.
 
+## Společný kit
+
+Co mají karty Klima a Energie společné, je v repozitáři [ha-dashboard-kit](https://github.com/michal-madle/ha-dashboard-kit) a tato karta to používá jako závislost: jazyky a formáty čísel, času a data, čtení entit, pravidla konfigurace, gesto podržení nebo dvojklep (předvolby žaluzií), ovládací prvky (přepínač, segmentový ovladač, posuvník), nastavení TypeScriptu, sestavení a testovací infrastruktura. **Společný kód a společná pravidla se zakládají v kitu, ne tady**; v téhle kartě zůstávají místnosti, žaluzie, topení, historie, texty (`src/translations/`) a vzhled. Kde co hledat a jak se kit mění, říká [README kitu](https://github.com/michal-madle/ha-dashboard-kit#readme) a jeho `CURRENT_SPEC.md` (oddíl Kam co patří); v téhle kartě [CURRENT_SPEC.md](./CURRENT_SPEC.md#společný-kit-ha-dashboard-kit).
+
 ## Dokumentace projektu
 
 - [CURRENT_SPEC.md](./CURRENT_SPEC.md) – aktuální specifikace a zdroj pravdy
@@ -189,7 +193,7 @@ Implementováno je rozložení karty podle [CURRENT_SPEC.md](./CURRENT_SPEC.md),
 
 ## Sestavení
 
-Po změně ve složce `src/` spusťte v kořeni repozitáře `npm install` a `npm run build`. Výsledek se zapíše do `dist/` a zkopíruje do kořenového `ha-klima-dashboard.js`, který používá HACS. Soubor `ha-klima-dashboard.js` ručně neupravujte.
+Po změně ve složce `src/` spusťte v kořeni repozitáře `npm install` a `npm run build`. Výsledek se zapíše do `dist/` a zkopíruje do kořenového `ha-klima-dashboard.js`, který používá HACS. Soubor `ha-klima-dashboard.js` ručně neupravujte. Kit se stahuje z GitHubu při `npm install` (verze je v `package.json`); aktualizace kitu je `npm install git+https://github.com/michal-madle/ha-dashboard-kit.git#<commit>` a nový běh testů.
 
 ## Testy
 

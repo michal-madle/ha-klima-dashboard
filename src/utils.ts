@@ -1,3 +1,4 @@
+import { isNoValue } from "ha-dashboard-kit/entities";
 import type { Texts } from "./i18n";
 import type {
   BlindIcon,
@@ -197,15 +198,11 @@ export function getRoomStatus(
   return { id: "comfortable", label: t.status.comfortable, color: COLORS.label, kind: "normal" };
 }
 
-/** Attribute that should be a list of strings (hvac_modes, preset_modes); anything else is empty. */
-export function stringList(value: unknown): string[] {
-  return Array.isArray(value)
-    ? value.filter((item): item is string => typeof item === "string").map((item) => item.toLowerCase())
-    : [];
-}
+export { stringList } from "ha-dashboard-kit/entities";
 
+/** No value: missing, unknown, unavailable, empty or "none". */
 export function isUnavailable(state: string): boolean {
-  return state === "" || state === "unknown" || state === "unavailable" || state === "none";
+  return isNoValue(state) || state === "none";
 }
 
 export function numberAttribute(value: unknown): number | undefined {

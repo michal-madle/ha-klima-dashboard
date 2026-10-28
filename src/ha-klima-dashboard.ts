@@ -39,6 +39,7 @@ import {
 import type { AfterTimer, HeatingControl, HeatingControlMode, ServiceCall } from "./heating-control";
 import { renderScene, sceneTone } from "./scenes";
 import { HOUR_MS, fetchHistory, normalizeToAxis, sampleNumeric, sharedAxis } from "./history";
+import { HoldOrDoubleTap } from "ha-dashboard-kit/gesture";
 import { cardLanguage, getI18n, hassLanguage } from "./i18n";
 import type { I18n } from "./i18n";
 import { styles } from "./styles";
@@ -235,15 +236,13 @@ export class HaKlimaDashboard extends LitElement {
   private _trendsLoading = false;
   private _trendsStarted = false;
   private _opener?: HTMLElement;
-  private _pressTimer?: number;
+  /** Long press or double tap on a blind preset (ha-dashboard-kit/gesture); a single tap only explains. */
+  private readonly _gesture = new HoldOrDoubleTap(() => ({ holdMs: LONG_PRESS_MS, doubleTapMs: DOUBLE_TAP_MS }));
   private _flashTimer?: number;
   private _hintTimer?: number;
   private _hintHideTimer?: number;
   /** Per room with a preset on its way: last seen blind state and the stall timer. */
   private _movingWatch = new Map<string, { signature: string; timer?: number }>();
-  private _pressing = false;
-  private _pressFired = false;
-  private _lastTap?: { key: string; time: number };
 
   setConfig(config: DashboardConfig): void {
     this._config = normalizeConfig(config);
@@ -273,7 +272,8 @@ export class HaKlimaDashboard extends LitElement {
     this._colorScheme = undefined;
     window.removeEventListener("resize", this.handleResize);
     this.flushHeat();
-    for (const timer of [this._pressTimer, this._flashTimer, this._hintTimer, this._hintHideTimer]) {
+    this._gesture.dispose();
+    for (const timer of [this._flashTimer, this._hintTimer, this._hintHideTimer]) {
       window.clearTimeout(timer);
     }
     for (const roomName of [...this._movingWatch.keys()]) {
@@ -283,7 +283,6 @@ export class HaKlimaDashboard extends LitElement {
     window.clearInterval(this._clockTimer);
     this._trendTimer = undefined;
     this._clockTimer = undefined;
-    this._pressTimer = undefined;
     this._flashTimer = undefined;
     this._hintTimer = undefined;
     this._hintHideTimer = undefined;
@@ -1270,16 +1269,11 @@ export class HaKlimaDashboard extends LitElement {
     if (event.button !== 0 || !available) {
       return;
     }
-    window.clearTimeout(this._pressTimer);
-    this._pressing = true;
-    this._pressFired = false;
-    this._pressTimer = window.setTimeout(() => {
-      this._pressFired = true;
-      this._lastTap = undefined;
+    this._gesture.start(() => {
       window.clearTimeout(this._hintTimer);
       this._hint = undefined;
       void this.applyPreset(room, preset);
-    }, LONG_PRESS_MS);
+    });
   }
 
   private pressEnd(room: Room, preset: BlindPreset, available: boolean): void {
@@ -1288,40 +1282,31 @@ export class HaKlimaDashboard extends LitElement {
       this.showUnavailable(key);
       return;
     }
-    window.clearTimeout(this._pressTimer);
-    const wasPressing = this._pressing;
-    const fired = this._pressFired;
-    this._pressing = false;
-    this._pressFired = false;
-    if (!wasPressing || fired) {
+    const tap = this._gesture.tap(key, performance.now());
+    if (tap === "none") {
       return;
     }
-    const now = performance.now();
     window.clearTimeout(this._hintTimer);
-    if (this._lastTap && this._lastTap.key === key && now - this._lastTap.time <= DOUBLE_TAP_MS) {
-      this._lastTap = undefined;
+    if (tap === "double") {
       this._hint = undefined;
       void this.applyPreset(room, preset);
       return;
     }
     // A single tap: when no second tap follows, explain how to send the preset.
-    this._lastTap = { key, time: now };
     this._hintTimer = window.setTimeout(() => {
-      if (this._lastTap?.key === key) {
-        this._lastTap = undefined;
+      if (this._gesture.pending(key)) {
+        this._gesture.forget();
         this.showHint(key, this._i18n.t.cover.hint, "selection");
       }
     }, DOUBLE_TAP_MS);
   }
 
   private pressCancel(): void {
-    window.clearTimeout(this._pressTimer);
-    this._pressing = false;
-    this._pressFired = false;
+    this._gesture.cancel();
   }
 
   private showUnavailable(key: string): void {
-    this._lastTap = undefined;
+    this._gesture.forget();
     window.clearTimeout(this._hintTimer);
     this.showHint(key, this._i18n.t.cover.unavailable, "warning");
   }

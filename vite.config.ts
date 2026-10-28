@@ -1,14 +1,4 @@
 import { defineConfig } from "vite";
+import { cardBuild } from "ha-dashboard-kit/build/vite.mjs";
 
-export default defineConfig({
-  build: {
-    lib: {
-      entry: "src/index.ts",
-      formats: ["es"],
-      fileName: "ha-klima-dashboard",
-    },
-    outDir: "dist",
-    emptyOutDir: true,
-    sourcemap: false,
-  },
-});
+export default defineConfig(cardBuild("ha-klima-dashboard"));

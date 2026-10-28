@@ -1,4 +1,5 @@
-import { BLIND_ICONS, LANGUAGES, ROOM_SCENES, SCENE_NONE } from "./types";
+import { checkKeys, entityId as kitEntityId, fail, isRecord, languageSetting, section, text, withCardName } from "ha-dashboard-kit/config";
+import { BLIND_ICONS, ROOM_SCENES, SCENE_NONE } from "./types";
 import type {
   BlindIcon,
   BlindPreset,
@@ -6,7 +7,6 @@ import type {
   DashboardConfig,
   DashboardThresholds,
   HistorySettings,
-  LanguageSetting,
   PresetInput,
   Room,
   RoomConfig,
@@ -75,7 +75,6 @@ export const DEFAULT_PRESETS: PresetInput[] = BLIND_ICONS.map((icon) => ({ icon,
 export const DEFAULT_HOUSE_MODES = { winter: "Zima", summer: "Léto" };
 
 const THEMES: readonly ThemeSetting[] = ["auto", "dark", "light"];
-const LANGUAGE_SETTINGS: readonly LanguageSetting[] = ["auto", ...LANGUAGES];
 const MAX_PRESETS = 3;
 
 /** Default illustration by room name (lower case, without diacritics). */
@@ -119,51 +118,9 @@ export function plainText(text: string): string {
     .replace(/\s+/g, " ");
 }
 
-function fail(message: string): never {
-  throw new Error(`Klima Dashboard: ${message}`);
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function checkKeys(value: Record<string, unknown>, allowed: readonly string[], where: string): void {
-  for (const key of Object.keys(value)) {
-    if (!allowed.includes(key)) {
-      fail(`${where}: unknown key "${key}" (allowed: ${allowed.join(", ")}).`);
-    }
-  }
-}
-
-function section(value: unknown, where: string): Record<string, unknown> {
-  if (value === undefined || value === null) {
-    return {};
-  }
-  if (!isRecord(value)) {
-    fail(`"${where}" must be a mapping of keys.`);
-  }
-  return value;
-}
-
+/** Home Assistant entity ID; the error message names a sample entity of this card. */
 function entityId(value: unknown, where: string): string | undefined {
-  if (value === undefined || value === null) {
-    return undefined;
-  }
-  // Home Assistant entity IDs: lower-case domain and object ID of letters, digits and "_".
-  if (typeof value !== "string" || !/^[a-z0-9_]+\.[a-z0-9_]+$/.test(value.trim())) {
-    fail(`${where} must be an entity ID such as sensor.loznice_teplota.`);
-  }
-  return value.trim();
-}
-
-function text(value: unknown, where: string): string | undefined {
-  if (value === undefined || value === null) {
-    return undefined;
-  }
-  if (typeof value !== "string" || !value.trim()) {
-    fail(`${where} must be a non-empty text.`);
-  }
-  return value.trim();
+  return kitEntityId(value, where, { example: "sensor.loznice_teplota" });
 }
 
 /** Numbers of a section over their defaults; each must be finite and within [min, max]. */
@@ -404,6 +361,10 @@ function normalizeRoom(
 }
 
 export function normalizeConfig(config: DashboardConfig): Settings {
+  return withCardName("Klima Dashboard", () => normalize(config));
+}
+
+function normalize(config: DashboardConfig): Settings {
   if (!isRecord(config) || !Array.isArray(config.rooms) || config.rooms.length === 0) {
     fail("the configuration requires a non-empty rooms list.");
   }
@@ -414,10 +375,7 @@ export function normalizeConfig(config: DashboardConfig): Settings {
   if (!THEMES.includes(theme)) {
     fail(`theme must be one of ${THEMES.join(", ")}.`);
   }
-  const language = config.language ?? "auto";
-  if (!LANGUAGE_SETTINGS.includes(language)) {
-    fail(`language must be one of ${LANGUAGE_SETTINGS.join(", ")}.`);
-  }
+  const language = languageSetting(config.language);
   const houseModeEntity = entityId(config.house_mode_entity, "house_mode_entity") ?? HOUSE_MODE_ENTITY;
   const modesInput = section(config.house_modes, "house_modes");
   checkKeys(modesInput, ["winter", "summer"], "house_modes");

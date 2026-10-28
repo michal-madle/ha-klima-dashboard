@@ -1,9 +1,9 @@
 import { readFileSync } from "node:fs";
-import { createRequire } from "node:module";
 import { parse } from "yaml";
 import { cs } from "../src/translations/cs";
 import { en } from "../src/translations/en";
 import { sv } from "../src/translations/sv";
+import { axeViolations as kitAxeViolations } from "ha-dashboard-kit/testing/helpers.mjs";
 import { expect, test } from "./fixtures";
 import type { CDPSession, Locator, Page } from "./fixtures";
 
@@ -11,8 +11,6 @@ import type { CDPSession, Locator, Page } from "./fixtures";
 // Every case names the spec section or TODO item it guards. `npm test` builds the card first;
 // `npm run coverage` shows which code of src/ the tests execute.
 
-const require = createRequire(import.meta.url);
-const AXE = require.resolve("axe-core/axe.min.js");
 const WIDTHS = [320, 360, 375, 393, 430, 768];
 const COVER = "cover.loznice_zaluzie_loznice";
 const CO2 = "sensor.loznice_teplomer_loznice_carbon_dioxide";
@@ -92,19 +90,9 @@ async function settle(page: Page): Promise<void> {
 }
 
 async function axeViolations(page: Page): Promise<string[]> {
-  await page.addScriptTag({ path: AXE });
   // A popup that is still sliding in is partly transparent and fails the contrast check.
   await settle(page);
-  return page.evaluate(async () => {
-    // @ts-expect-error axe is injected above
-    const result = await window.axe.run(document, { resultTypes: ["violations"] });
-    return result.violations.map(
-      (violation: { id: string; nodes: Array<{ target: string[]; any: Array<{ data?: unknown }> }> }) =>
-        `${violation.id}: ${violation.nodes
-          .map((node) => `${node.target.join(" > ")} ${JSON.stringify(node.any[0]?.data ?? {})}`)
-          .join(" | ")}`,
-    );
-  });
+  return kitAxeViolations(page);
 }
 
 async function touch(cdp: CDPSession, type: "touchStart" | "touchMove" | "touchEnd", x = 0, y = 0): Promise<void> {
