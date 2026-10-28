@@ -1624,8 +1624,12 @@ export class HaKlimaDashboard extends LitElement {
     const c = t.sheet.heatControl;
     const timer = this.timerAvailable();
     const manual = this.wholeRange(manualRange(temperatureRange(entity)));
-    const planTarget = numberOf(entity?.attributes.temperature);
-    const tone = heat.mode === "boost" ? COLORS.alert : heat.mode === "manual" ? COLORS.warning : heat.mode === "plan" ? COLORS.plan : COLORS.off;
+    // The plan's target is only known while the entity is in the plan: Off leaves 5 °C (frost protection)
+    // and a manual override its own value in the attribute until Tado reports the plan again.
+    const reported = numberOf(entity?.attributes.temperature);
+    const planTarget =
+      entity?.state.toLowerCase() === "auto" && reported !== undefined && reported > HEATING_OFF_TARGET ? reported : undefined;
+    const tone = heat.mode === "boost" ? COLORS.alert : heat.mode === "manual" ? COLORS.warning : heat.mode === "plan" ? COLORS.warning : COLORS.off;
 
     let hero: TemplateResult;
     if (heat.mode === "off") {

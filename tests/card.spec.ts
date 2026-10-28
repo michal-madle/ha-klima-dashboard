@@ -2186,6 +2186,29 @@ test.describe("Topení: Ručně s teplotou, Boost 25 °C a doba trvání (Ovlád
     await expect(page.locator(".sheet .timer-card")).toHaveClass(/dim/);
   });
 
+  test("Plán nikdy neukáže 5 °C z Vypnuto ani ruční cíl; v plánu je kruh oranžový", async ({ page }) => {
+    await open(page);
+    await openPopup(page, ".hvac");
+    await expect(page.locator(".sheet .dial")).toHaveCSS("--tone", /.+/);
+    const tone = await page.locator(".sheet .dial-value").evaluate((path) => getComputedStyle(path).stroke);
+    const orange = await page.locator(".sheet .option", { hasText: "Ručně" }).evaluate((node) => getComputedStyle(node.querySelector("svg")!).stroke);
+    expect(tone).toBe(orange);
+    await closePopup(page);
+    // Tado reports 5 °C while the heating is off, and the manual value while it is overridden.
+    await push(page, "off", 5, "Off");
+    await openPopup(page, ".hvac");
+    await option(page, "Ručně").click();
+    await option(page, "Plán").click();
+    await expect(page.locator(".dial-big")).toHaveText("––");
+    await option(page, "Vypnuto").click();
+    await option(page, "Plán").click();
+    await expect(page.locator(".dial-big")).toHaveText("––");
+    await closePopup(page);
+    await push(page, "auto", 20, "Schedule");
+    await openPopup(page, ".hvac");
+    await expect(page.locator(".dial-big")).toHaveText("20°");
+  });
+
   test("chyba příkazu po zavření: haptika „failure“ místo hlášky v popupu", async ({ page }) => {
     await open(page);
     await openPopup(page, ".hvac");

@@ -1618,13 +1618,13 @@ export const styles = css`
       border-radius: 8px;
     }
 
-    /* iOS slider: a thick rounded track and a pill-shaped thumb. */
+    /* iOS slider (HIG): the track up to the thumb is filled with colour, the thumb is a narrow lozenge; icons at both ends. */
     .timer-track,
     .timer-fill {
       position: absolute;
-      top: 17px;
-      height: 10px;
-      border-radius: 5px;
+      top: 19px;
+      height: 6px;
+      border-radius: 3px;
     }
 
     .timer-track {
@@ -1640,11 +1640,11 @@ export const styles = css`
 
     .timer-knob {
       position: absolute;
-      top: 6px;
-      width: 40px;
-      height: 32px;
-      margin-left: -20px;
-      border-radius: 16px;
+      top: 10px;
+      width: 36px;
+      height: 24px;
+      margin-left: -18px;
+      border-radius: 12px;
       background: #fff;
       box-shadow: 0 2px 6px rgb(0 0 0 / 35%), 0 0 0 0.5px rgb(0 0 0 / 10%);
     }
