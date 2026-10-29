@@ -5,7 +5,9 @@ Jen to, co čeká na vaši odpověď nebo na ověření na zařízení (iPhone 1
 Pravidla:
 - Čísla C1–C15 jsou trvalá (odkazuje se na ně ze `CURRENT_SPEC.md`). Vyřízený bod se odsud smaže (platné chování je ve specifikaci, nahrazené v `DESIGN_HISTORY.md`) a jeho číslo se nepoužije znovu; nový bod dostane další volné číslo.
 - Do TODO patří jen jasná otázka nebo jasný úkol. Co jste potvrdil, je ve specifikaci; nápady bez vaší žádosti se nevedou.
-- Druh: **Ověření** (na skutečném zařízení), **Rozhodnutí** (čeká na vás), **Návrh** (zlepšení, které jste chtěl nebo odsouhlasil směr).
+- Druh: **Ověření** (na skutečném zařízení), **Rozhodnutí** (čeká na vás), **Návrh** (zlepšení, které jste chtěl nebo odsouhlasil směr). Nápady na zlepšení bez jasného zadání jsou v [IDEAS.md](./IDEAS.md), ne tady.
+
+Konsolidace 29. 10.: C11 (tlačítko historie v popupu) a C12 (zavírací animace) přesunuty do [IDEAS.md](./IDEAS.md) jako KL32 a KL33; čísla C11 a C12 se nepoužijí znovu.
 
 Konsolidace 28. 10.: čísla přepsána od C1. Smazány nepotvrzené vlastní nápady bez vaší žádosti (ilustrace při odchylce, osa trendů odolná proti jedné chybné hodnotě, méně REST dotazů pro zastaralá data), popisné body bez otázky (klíče, konstanty, rozhodnutí o překlepu klíče) a statistiky testů (jsou v README).
 
@@ -23,8 +25,6 @@ Konsolidace 28. 10.: čísla přepsána od C1. Smazány nepotvrzené vlastní n�
 | [C8](#c8) | Rozhodnutí | Hromadné akce pro celý dům |
 | [C9](#c9) | Rozhodnutí | Pátá místnost sama v druhém řádku při čtyřech sloupcích |
 | [C10](#c10) | Rozhodnutí | Písmo: SF Pro a větší písmo |
-| [C11](#c11) | Návrh | Tlačítko historie v popupu Topení / Klimatizace |
-| [C12](#c12) | Návrh | Popup: zavírací animace |
 | [C13](#c13) | Chyba | „WindFree Sleep“: cíl se nevejde ani na velkém iPhonu |
 | [C14](#c14) | Rozhodnutí | Upozornění na Domov: co to je |
 | [C15](#c15) | Rozhodnutí | Soubory jiného projektu v repozitáři |
@@ -101,16 +101,6 @@ Od šířky karty 1400 px jsou čtyři sloupce, pět místností dá řádek se 
 2. Velikosti jsou v px, takže nastavení velikosti textu v iOS se nepropíše. Má karta sledovat zvětšení (rozložení by se muselo umět zalomit)?
 
 <a id="c11"></a>
-## C11 Tlačítko historie v popupu Topení / Klimatizace · Návrh
-
-Graf „Historie místnosti – 24 h“ se dnes otevře jen klepnutím na teplotu nebo její trend. Kdo mění topení v popupu, musí ho zavřít a klepnout na teplotu. Návrh: dole vedle „Detail a historie“ tlačítko „Historie místnosti – 24 h“, které přepne popup přímo na graf. Hotovo, když je historie vytápění jedno klepnutí od ovládání topení.
-
-<a id="c12"></a>
-## C12 Popup: zavírací animace · Návrh
-
-Popup se otevírá s animací, ale zavře se okamžitě (✕, klepnutí mimo i tažení). Návrh: zavření sjetím dolů (200 ms, při „omezit pohyb“ bez animace).
-
-<a id="c13"></a>
 ## C13 „WindFree Sleep“: cíl se nevejde ani na velkém iPhonu · Chyba
 
 Test v Létě: „WindFree Sleep · 22,5 °C“ se nevejde ani s přesahem do trendu na šířce 430 px, cíl se skryje. Návrh: slovo „Sleep“ nahradit malým symbolem měsíce za názvem („WindFree ☾ · 22,5 °C“, u předvolby sleep „Chlazení ☾ · 22 °C“); celý název zůstane v `aria-label`. Ušetří asi 40 px.

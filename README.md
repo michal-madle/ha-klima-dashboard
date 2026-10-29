@@ -109,6 +109,11 @@ Co mají karty Klima a Energie společné, je v repozitáři [ha-dashboard-kit](
 - [MEMORY_SUMMARIZED.md](./MEMORY_SUMMARIZED.md) – stručná projektová paměť
 - [AUDIT.md](./AUDIT.md) – konflikty, chybějící informace a doporučení pro údržbu
 - [TODO.md](./TODO.md) – otevřené otázky a ověření na zařízení (nejsou součástí zadání)
+- [IDEAS.md](./IDEAS.md) – nápady na využití dat, která už máte (KL1–KL33; nejsou součástí zadání)
+- [AI_MCP.md](./AI_MCP.md) – Claude a Home Assistant pro klima: co vystavit, dotazy, denní souhrn
+- [FORECAST.md](./FORECAST.md) – popisky podle normy a předpověď „co když“ (návrh, neměřeno)
+- [TYDEN.md](./TYDEN.md) – týdenní ladění: postup, odpovědi, otázky
+- [tools/export_hodiny_klima.py](./tools/export_hodiny_klima.py) – export hodinových dat do CSV (jen čte; test: `python3 tools/test_export_hodiny_klima.py`)
 
 Pro aktuální chování a návrh má přednost `CURRENT_SPEC.md`, poté `ENTITY_MAP.md`. Historická rozhodnutí nejsou závazná.
 
