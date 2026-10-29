@@ -1215,14 +1215,14 @@ function to(i, t, e, n) {
     (r, a) => ce(Ai(s, t + (a + 1) * o))
   );
 }
-function Qe(i, t, e) {
-  const n = [];
-  for (const s of i ?? []) {
-    const r = ce(s.state);
-    r !== void 0 && s.time <= e && n.push({ t: Math.max(s.time, t), v: r });
+function Qe(i, t, e, n = !1) {
+  const o = [];
+  for (const r of i ?? []) {
+    const a = ce(r.state);
+    a !== void 0 && !(n && a === 0) && r.time <= e && o.push({ t: Math.max(r.time, t), v: a });
   }
-  const o = n[n.length - 1];
-  return o && o.t < e && n.push({ t: e, v: o.v }), n;
+  const s = o[o.length - 1];
+  return s && s.t < e && o.push({ t: e, v: s.v }), o;
 }
 function $t(i, t, e, n) {
   const o = /* @__PURE__ */ new Set([t, e]);
@@ -1468,7 +1468,7 @@ function po(i, t, e) {
   return n;
 }
 function uo(i, t, e, n) {
-  const o = (b) => b ? i[b] : void 0, { startMs: s, endMs: r } = e, a = o(t.heating?.overlay), l = o(t.heating?.climate), c = Qe(o(t.temperature), s, r), d = Qe(o(t.humidity), s, r), p = $t(
+  const o = (b) => b ? i[b] : void 0, { startMs: s, endMs: r } = e, a = o(t.heating?.overlay), l = o(t.heating?.climate), c = Qe(o(t.temperature), s, r, !0), d = Qe(o(t.humidity), s, r, !0), p = $t(
     [a, l, o(t.heating?.target)],
     s,
     r,

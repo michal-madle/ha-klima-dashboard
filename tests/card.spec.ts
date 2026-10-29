@@ -2653,3 +2653,44 @@ test.describe("historie místnosti: pruhy Topení, Klimatizace a okna pod grafem
     });
   });
 });
+
+test.describe("historie místnosti: nuly po zapnutí čidla", () => {
+  test("přesná 0 u teploty a vlhkosti (čidlo se právě zapnulo) se v historii nekreslí a neroztahuje osy", async ({ page }) => {
+    await open(page, "full");
+    await page.evaluate(() => {
+      // @ts-expect-error test hook
+      const test = window.__test;
+      const now = Date.now() / 1000;
+      const room = test.config.rooms[0];
+      const points = (values: Array<[number, number]>) => values.map(([hoursAgo, value]) => ({ s: String(value), lu: now - hoursAgo * 3600 }));
+      test.historyFor = (id: string) =>
+        id === room.temperature
+          ? points([[20, 0], [18, 21], [10, 22], [6, 0], [5, 21.5], [1, 22]])
+          : id === room.humidity
+            ? points([[20, 0], [18, 50], [10, 56], [6, 0], [5, 52], [1, 55]])
+            : undefined;
+    });
+    await rooms(page).first().locator(".temperature").click();
+    await expect(page.locator("svg.chart")).toBeVisible();
+    const chart = await page.evaluate(() => {
+      const svg = document.querySelector("ha-klima-dashboard")!.shadowRoot!.querySelector("svg.chart")!;
+      const ys = (path: Element | undefined) => [...(path?.getAttribute("d") ?? "").matchAll(/[ML]([\d.]+) ([\d.]+)/g)].map((m) => Number(m[2]));
+      const paths = [...svg.querySelectorAll("path")];
+      const plot = svg.querySelector("clipPath#history-plot rect")!;
+      return {
+        curve: ys(paths.find((path) => path.getAttribute("stroke-width") === "2")),
+        humidity: ys(paths.find((path) => path.getAttribute("stroke-dasharray") === "4 3")),
+        labels: [...svg.querySelectorAll("text")].map((text) => text.textContent ?? "").filter((text) => text.endsWith("°")),
+        top: Number(plot.getAttribute("y")),
+        height: Number(plot.getAttribute("height")),
+      };
+    });
+    const bottom = chart.top + chart.height;
+    // The temperature axis follows the real values (21–22 °C), not 0 °C.
+    expect(Math.min(...chart.labels.map((label) => Number.parseFloat(label.replace(",", "."))))).toBeGreaterThan(15);
+    // Neither curve touches the bottom of the plot (where a 0 would be); they start at the first real value, 18 h ago.
+    expect(Math.max(...chart.curve)).toBeLessThan(bottom - 10);
+    expect(chart.humidity.length, "křivka vlhkosti").toBeGreaterThan(1);
+    expect(Math.max(...chart.humidity)).toBeLessThan(bottom - 10);
+  });
+});

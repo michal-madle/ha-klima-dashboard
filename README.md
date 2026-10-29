@@ -163,7 +163,7 @@ Po změně ve složce `src/` spusťte v kořeni repozitáře `npm install` a `np
 
 ## Testy
 
-`npm test` kartu sestaví a spustí 28 testů v prohlížeči (Playwright). Testují sestavený `ha-klima-dashboard.js` na zkušební stránce [tests/harness.html](./tests/harness.html) s náhradními daty Home Assistantu ([tests/scenarios.js](./tests/scenarios.js)). Související kontroly jsou jeden test s kroky (`test.step`), aby se karta nenačítala pro každou zvlášť. Pokrývají:
+`npm test` kartu sestaví a spustí 29 testů v prohlížeči (Playwright). Testují sestavený `ha-klima-dashboard.js` na zkušební stránce [tests/harness.html](./tests/harness.html) s náhradními daty Home Assistantu ([tests/scenarios.js](./tests/scenarios.js)). Související kontroly jsou jeden test s kroky (`test.step`), aby se karta nenačítala pro každou zvlášť. Pokrývají:
 
 - konfiguraci (chybné hodnoty, příklad YAML s výchozími hodnotami, prahy místnosti, místnost bez CO₂ a PM2.5, dvě okna, vlastní předvolby, obrázek a odkaz); scénář „real“ načítá přímo [příklad YAML](./examples/domov_prototyp_loznice.yaml) a test hlídá, že v něm nechybí žádné nastavení;
 - rozložení na šířkách 320–2560 px (jeden až čtyři sloupce, telefon na šířku 852 × 393), zkrácenou místnost, stránku pod popupem a dotykové cíle 44 × 44 px měřené hit-testem;

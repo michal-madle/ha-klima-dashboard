@@ -161,8 +161,9 @@ export function buildRoomChart(
   const overlay = series(room.heating?.overlay);
   const heatingClimate = series(room.heating?.climate);
 
-  const temperature = numericSeries(series(room.temperature), startMs, endMs);
-  const humidity = numericSeries(series(room.humidity), startMs, endMs);
+  // A sensor reports 0 right after it is switched on, before its first measurement: no value (CURRENT_SPEC.md, Historie).
+  const temperature = numericSeries(series(room.temperature), startMs, endMs, true);
+  const humidity = numericSeries(series(room.humidity), startMs, endMs, true);
   const heating = buildSegments(
     [overlay, heatingClimate, series(room.heating?.target)],
     startMs,

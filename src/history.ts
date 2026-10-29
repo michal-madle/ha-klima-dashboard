@@ -121,15 +121,20 @@ export function sampleNumeric(
   );
 }
 
+/**
+ * Numeric points of a history in the window. `ignoreZero` drops an exact 0: a sensor that has just
+ * been switched on reports 0 before its first measurement (temperature, humidity), which is no value.
+ */
 export function numericSeries(
   points: HistoryPoint[] | undefined,
   startMs: number,
   endMs: number,
+  ignoreZero = false,
 ): Array<{ t: number; v: number }> {
   const series: Array<{ t: number; v: number }> = [];
   for (const point of points ?? []) {
     const value = toNumber(point.state);
-    if (value !== undefined && point.time <= endMs) {
+    if (value !== undefined && !(ignoreZero && value === 0) && point.time <= endMs) {
       series.push({ t: Math.max(point.time, startMs), v: value });
     }
   }
