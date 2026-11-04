@@ -575,11 +575,11 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
     const chip = page.locator(".summary .chip").filter({ hasText: "Větrací režim" });
     const popupText = () => page.locator(".sheet").innerText().then((text) => text.replace(/\s+/g, " "));
 
-    await test.step("štítek je hned za štítkem oken, tlačítko s názvem = viditelný text a ikonou ventilátoru", async () => {
+    await test.step("štítek je hned před štítkem oken, tlačítko s názvem = viditelný text a ikonou ventilátoru", async () => {
       const texts = tidy(await page.locator(".summary .chip").allInnerTexts());
       const windows = texts.findIndex((text) => /otevřen/.test(text));
-      expect(windows, "štítek oken").toBeGreaterThanOrEqual(0);
-      expect(texts[windows + 1], "hned za okny").toBe("Větrací režim");
+      expect(windows, "štítek oken").toBeGreaterThan(0);
+      expect(texts[windows - 1], "hned před okny").toBe("Větrací režim");
       const button = chip.locator("button");
       await expect(button).toHaveAttribute("aria-label", "Větrací režim. Zapnutý. Otevře podrobnosti a ukončení.");
       await expect(button).toHaveAttribute("aria-haspopup", "dialog");

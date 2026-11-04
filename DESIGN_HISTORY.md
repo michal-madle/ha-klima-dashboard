@@ -3,6 +3,13 @@
 Jen archiv. Nic z tohoto dokumentu není závazné; platí `CURRENT_SPEC.md`. Pravidla vedení: `AGENTS.md` kitu, oddíl Dokumentace. Nové záznamy (2. 11. 2026 a dál) jsou v oddíle Záznamy, starší jsou níže ve formátu Navrženo → Opuštěno → Nahrazeno. Stav záznamu: **potvrzeno**, **nahrazeno**, **zamítnuto**, **nepotvrzeno** (otázka položena uživateli v chatu, do spec nepatří).
 Formát každého bodu: **Navrženo** → **Opuštěno, protože** → **Nahrazeno**. Kde Memory důvod nezaznamenává, je to uvedeno.
 
+## 2026-11-04 · Větrací dashboard: požadavky a pořadí štítku (částečně potvrzeno, otázky položeny D. M.)
+
+- Uživatel 4. 11. 2026: „Najdi v historii - chtěl jsem větrací dashboard. Že se zaznamená start větrání, pokles CO2, analýza jaké větráky byly spuštěné, efektivita větrání atd.“; „Větrací režim bude první, před oknama.“; „Popup na Větrací režim je dobrý začátek úpravy - chci vidět jak dlouho běží a jaký je pokles v místnostech a zda je možné zavřít okna. a předpověď kolik už hotovo atd.“; „A větrací režim by měl trvat déle. Co když skončí a já zavřu okna? Zatáhnou se žaluzie? Měly by i třeba do 5 min od skončení větracího režimu.“
+- Hledání v historii: původní znění požadavku se v souborech ani v posledních zprávách ostatních relací nenašlo. Nejbližší je koncept větrání v0 z 2. 11. 2026 (`VENTILATION_CONCEPT.md`, odstraněn, v původní historii před přepsáním `main`): ten odkládal „jemnější historii“ (okno `on`, ale CO₂ neklesá) do fáze 2. Účinnost vyvětrání (CO₂ před a po) zamítl `klima-expert` 3. 11. při návrhu popupu jako L4+. Dnešní zadání uživatele obojí přebíjí.
+- Potvrzeno a zapsáno: štítek Větrací režim je první za konflikty, před štítkem oken (změněno z „hned za okny“; `CURRENT_SPEC.md`, Dashboard Domov a Větrací režim, kód a test). `AGENTS.md`: výjimka pro L4+ jen pro větrací režim (pokles CO₂, odhad dokončení, historie větrání).
+- Nepotvrzeno, otázky položeny D. M.: jak dlouho má režim trvat, co přesně má dělat 5minutová lhůta po konci (lamely, okna), kdy je „možné zavřít okna“ (CO₂ ≤ 500 ppm v místnostech s otevřeným oknem?), co je „hotovo“ a odhad, kam se zaznamenávají relace a jak vypadá „větrací dashboard“. Konzultace `klima-expert` a `idea-generator` proběhla 4. 11.; výsledek v dalším záznamu po odpovědích.
+
 ## 2026-11-04 · Příklad YAML: čidla všech místností vyplněna podle Ložnice (potvrzeno uživatelem)
 
 - Uživatel 4. 11. 2026: „Oprav mi ty nevyplnene carbon_dioxide apod. Podle loznice. Ve vsech mistnostech e to same (krome obyvak, ten nema zaluzie).“ a „Koukni na HA_COnfig, jsou tam exportovane entity.“ Práce na `main`.

@@ -6,6 +6,7 @@ Agenti a společná pravidla jsou v [ha-dashboard-kit](https://github.com/michal
 
 - Žádné AI a žádný Forecast. L4+ signály (trend, přítomnost, předpověď) zůstávají zakázané.
 - Hlavní karta místnosti je odsouhlasená a zůstává. Nové věci patří do detailu místnosti, do upozornění a do automatizací.
+- Výjimka jen pro větrací režim (uživatel 4. 11. 2026: „Popup na Větrací režim je dobrý začátek úpravy - chci vidět jak dlouho běží a jaký je pokles v místnostech a zda je možné zavřít okna. a předpověď kolik už hotovo atd.“): pokles CO₂, odhad dokončení a historie větrání (L4+) jsou tam povolené. Zbytek karty zůstává bez L4+.
 
 ## Zdroje specifické pro Klima
 

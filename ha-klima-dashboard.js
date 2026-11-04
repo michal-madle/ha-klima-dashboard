@@ -4325,18 +4325,19 @@ function Yo(i, t, e, n, o = !1) {
       color: g.warning,
       spoken: `${s.conflictSpoken[$]}: ${v(r[$]).join(", ")}`
     });
+  o && k.push({
+    kind: "ventilation",
+    text: s.ventilation,
+    color: g.plan,
+    spoken: s.ventilationSpoken,
+    opensVentilation: !0
+  });
   const x = a.reduce(($, [, M]) => $ + M, 0);
   return x > 0 && k.push({
     kind: "windows",
     text: s.windowsOpen(x),
     color: g.sky,
     spoken: `${s.windowsSpoken}: ${a.map(([$, M]) => M > 1 ? `${p.get($) ?? $} (${M})` : p.get($) ?? $).join(", ")}`
-  }), o && k.push({
-    kind: "ventilation",
-    text: s.ventilation,
-    color: g.plan,
-    spoken: s.ventilationSpoken,
-    opensVentilation: !0
   }), l.length > 0 && k.push({
     kind: "manual",
     text: `${s.manual}: ${Ht(v(l), n)}`,

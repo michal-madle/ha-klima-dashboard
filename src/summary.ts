@@ -79,8 +79,8 @@ export function roomConflicts(
 }
 
 /**
- * Chips only for what differs from a quiet house: conflicts first (orange), then open windows,
- * the ventilation mode when it is on (`ventilationOn`), manual heating overrides and Boost (one chip each), rooms that are heating now (at least one wave) and running air
+ * Chips only for what differs from a quiet house: conflicts first (orange), then the ventilation mode
+ * when it is on (`ventilationOn`), open windows, manual heating overrides and Boost (one chip each), rooms that are heating now (at least one wave) and running air
  * conditioners. Unknown states are never counted. `coldRooms` are the rooms whose status is
  * "Chladno".
  */
@@ -143,6 +143,16 @@ export function houseSummary(
       });
     }
   }
+  // The ventilation mode is the first chip after the conflicts, before the open windows (CURRENT_SPEC.md, Větrací režim).
+  if (ventilationOn) {
+    chips.push({
+      kind: "ventilation",
+      text: texts.ventilation,
+      color: COLORS.plan,
+      spoken: texts.ventilationSpoken,
+      opensVentilation: true,
+    });
+  }
   // Windows are counted, not rooms: a room with two open windows adds two.
   const openTotal = open.reduce((sum, [, count]) => sum + count, 0);
   if (openTotal > 0) {
@@ -151,15 +161,6 @@ export function houseSummary(
       text: texts.windowsOpen(openTotal),
       color: COLORS.sky,
       spoken: `${texts.windowsSpoken}: ${open.map(([name, count]) => (count > 1 ? `${labels.get(name) ?? name} (${count})` : labels.get(name) ?? name)).join(", ")}`,
-    });
-  }
-  if (ventilationOn) {
-    chips.push({
-      kind: "ventilation",
-      text: texts.ventilation,
-      color: COLORS.plan,
-      spoken: texts.ventilationSpoken,
-      opensVentilation: true,
     });
   }
   if (manual.length > 0) {
