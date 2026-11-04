@@ -3803,8 +3803,41 @@ const os = Xn`
       border-top: 1px solid var(--kd-fill-border);
     }
 
+    /* Focus ring inside the row, in the contrast colour of the card, with the group's rounded corners kept. */
     .list-option:focus-visible {
+      outline: 2px solid var(--kd-sky);
       outline-offset: -2px;
+      border-radius: 0;
+    }
+
+    .list-option:first-child:focus-visible {
+      border-radius: 12px 12px 0 0;
+    }
+
+    .list-option:last-child:focus-visible {
+      border-radius: 0 0 12px 12px;
+    }
+
+    .list-option:first-child:last-child:focus-visible {
+      border-radius: 12px;
+    }
+
+    .list-option:active:not(:disabled) {
+      background: rgb(118 118 128 / 18%);
+    }
+
+    /* Chevron: the row opens a detail (kit, Seznam). */
+    .list-chevron {
+      flex: none;
+      margin-left: -4px;
+      color: var(--kd-label);
+      font-size: 22px;
+      line-height: 1;
+    }
+
+    /* A missing value is neutral grey, never the colour of a real value (CURRENT_SPEC.md, Chybějící data). */
+    .no-data {
+      color: var(--kd-label);
     }
 
     .list-option .option-hint,
@@ -5011,6 +5044,7 @@ const ze = class ze extends Et {
             <span class="list-value" style=${`color: ${this.popupColor(this.airColor(h, c, p))}`}>
               ${m ? `${this._i18n.whole(h.value)} ${l}` : u`<span aria-hidden="true">––</span><span class="sr-only">${this._i18n.t.unknownValue}</span>`}
             </span>
+            ${d ? u`<span class="list-chevron" aria-hidden="true">›</span>` : f}
             ${h.stale ? u`<span class="sr-only">${this.staleSpoken(h)}</span>` : f}
           </button>`;
     })}
@@ -5242,6 +5276,7 @@ const ze = class ze extends Et {
             <span class="list-value" style=${`color: ${l}`}>
               ${a ? u`<span aria-hidden="true">––</span><span class="sr-only">${i.unknownValue}</span>` : s === "open" ? i.window.open : i.window.closed}${r === void 0 ? f : u`<span class="list-extra">${Y}·${Y}${le(r)}</span>`}
             </span>
+            <span class="list-chevron" aria-hidden="true">›</span>
           </button>`;
     })}
       </div>
@@ -5333,7 +5368,7 @@ const ze = class ze extends Et {
    * start values come from the history.
    */
   renderVentilationBody(t) {
-    const { t: n } = this._i18n, i = n.ventilation, o = this._config, s = this.ventilationOn(), r = o?.ventilationCo2Target ?? 450, a = this._vent, l = a?.session, d = u`<span aria-hidden="true">––</span><span class="sr-only">${n.unknownValue}</span>`, c = this._sheetError, p = o?.ventilationTimerEntity, h = this.getState(p), m = h?.state.toLowerCase() === "active" ? Date.parse(String(h.attributes.finishes_at ?? "")) : Number.NaN, w = Number.isNaN(m) || m <= t ? void 0 : m, T = Date.parse(this.getState(o?.ventilationEntity)?.last_changed ?? ""), M = Number.isNaN(T) ? void 0 : Math.max(0, (t - T) / 6e4), $ = this.ventilationRooms().flatMap((v) => {
+    const { t: n } = this._i18n, i = n.ventilation, o = this._config, s = this.ventilationOn(), r = o?.ventilationCo2Target ?? 450, a = this._vent, l = a?.session, d = u`<span class="no-data" aria-hidden="true">––</span><span class="sr-only">${n.unknownValue}</span>`, c = this._sheetError, p = o?.ventilationTimerEntity, h = this.getState(p), m = h?.state.toLowerCase() === "active" ? Date.parse(String(h.attributes.finishes_at ?? "")) : Number.NaN, w = Number.isNaN(m) || m <= t ? void 0 : m, T = Date.parse(this.getState(o?.ventilationEntity)?.last_changed ?? ""), M = Number.isNaN(T) ? void 0 : Math.max(0, (t - T) / 6e4), $ = this.ventilationRooms().flatMap((v) => {
       const b = a?.rooms.find((Z) => Z.name === v.name), E = Qt(v, (Z) => this.getState(Z)).length > 0;
       if (s ? !E : !b?.opened)
         return [];

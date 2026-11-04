@@ -1275,8 +1275,41 @@ export const styles = css`
       border-top: 1px solid var(--kd-fill-border);
     }
 
+    /* Focus ring inside the row, in the contrast colour of the card, with the group's rounded corners kept. */
     .list-option:focus-visible {
+      outline: 2px solid var(--kd-sky);
       outline-offset: -2px;
+      border-radius: 0;
+    }
+
+    .list-option:first-child:focus-visible {
+      border-radius: 12px 12px 0 0;
+    }
+
+    .list-option:last-child:focus-visible {
+      border-radius: 0 0 12px 12px;
+    }
+
+    .list-option:first-child:last-child:focus-visible {
+      border-radius: 12px;
+    }
+
+    .list-option:active:not(:disabled) {
+      background: rgb(118 118 128 / 18%);
+    }
+
+    /* Chevron: the row opens a detail (kit, Seznam). */
+    .list-chevron {
+      flex: none;
+      margin-left: -4px;
+      color: var(--kd-label);
+      font-size: 22px;
+      line-height: 1;
+    }
+
+    /* A missing value is neutral grey, never the colour of a real value (CURRENT_SPEC.md, Chybějící data). */
+    .no-data {
+      color: var(--kd-label);
     }
 
     .list-option .option-hint,

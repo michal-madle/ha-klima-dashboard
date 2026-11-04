@@ -882,6 +882,7 @@ export class HaKlimaDashboard extends LitElement {
                 ? `${this._i18n.whole(reading.value as number)} ${unit}`
                 : html`<span aria-hidden="true">––</span><span class="sr-only">${this._i18n.t.unknownValue}</span>`}
             </span>
+            ${entityId ? html`<span class="list-chevron" aria-hidden="true">›</span>` : nothing}
             ${reading.stale ? html`<span class="sr-only">${this.staleSpoken(reading)}</span>` : nothing}
           </button>`;
         })}
@@ -1218,6 +1219,7 @@ export class HaKlimaDashboard extends LitElement {
                 ? nothing
                 : html`<span class="list-extra">${NBSP}·${NBSP}${formatDuration(minutesOpen)}</span>`}
             </span>
+            <span class="list-chevron" aria-hidden="true">›</span>
           </button>`;
         })}
       </div>
@@ -1345,7 +1347,7 @@ export class HaKlimaDashboard extends LitElement {
     const target = config?.ventilationCo2Target ?? 450;
     const data = this._vent;
     const session = data?.session;
-    const unknown = html`<span aria-hidden="true">––</span><span class="sr-only">${t.unknownValue}</span>`;
+    const unknown = html`<span class="no-data" aria-hidden="true">––</span><span class="sr-only">${t.unknownValue}</span>`;
     const error = this._sheetError;
 
     const timerId = config?.ventilationTimerEntity;
