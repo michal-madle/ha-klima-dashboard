@@ -909,22 +909,16 @@ test.describe("rozložení na všech šířkách (Room Card, Dashboard Domov)", 
 test.describe("scénáře: stav místnosti, souhrn, barvy a konflikty (Stavový systém, Chybějící data, Konflikty)", () => {
   test("scénáře: real, full, alarm a summer", async ({ page }) => {
     test.setTimeout(120000);
-    await test.step("real: přímo příklad YAML, Bez dat s důvodem, CO₂ / PM2.5 podle čidel", async () => {
+    await test.step("real: přímo příklad YAML, všechny místnosti mají čidla, Bez dat s důvodem, CO₂ / PM2.5 podle čidel", async () => {
       await open(page, "real");
       expect(await hook(page, "config")).toEqual(example());
       await expect(rooms(page)).toHaveCount(5);
-      expect(tidy(await statuses(page))).toEqual([
-        "Bez dat · režim domu",
-        "Bez dat · CO₂",
-        "Bez dat · teplota",
-        "Bez dat · teplota",
-        "Bez dat · teplota",
-      ]);
-      // Obývák has no CO₂ / PM2.5 sensor (false): no rows; a sensor only missing from the
-      // configuration keeps its rows ("––"), and without any entity the block is inactive.
-      await expect(rooms(page).nth(4).locator(".air-block")).toHaveCount(0);
-      await expect(rooms(page).nth(3).locator(".air-block")).toHaveCount(1);
-      await expect(rooms(page).nth(1).locator(".air-block")).toBeDisabled();
+      // The scenario has no house mode entity, so every room says what is missing.
+      expect(tidy(await statuses(page))).toEqual(Array(5).fill("Bez dat · režim domu"));
+      // Every room (Obývák too) has the CO₂ and PM2.5 sensor of the example: the block is active.
+      for (let index = 0; index < 5; index++) {
+        await expect(rooms(page).nth(index).locator(".air-block")).toBeEnabled();
+      }
       // With a single sensor the block opens its detail at once (no popup).
       await reconfigure(page, {}, { 0: { pm25: undefined } });
       await rooms(page).first().locator(".air-block").click();
