@@ -1464,7 +1464,7 @@ function pe(e) {
     </svg>
   `;
 }
-const U = 4, fo = 32, st = 6, X = 150, Mt = st + X, Ft = 9, Kn = Mt + 10, Yt = 12, go = 12, un = 34, mn = "history-icon-fade", qn = 14, vo = 7, $o = (e) => 2 + (e.windows ? 1 : 0), Yn = (e) => Kn + $o(e) * Yt, wo = (e) => Yn(e) + qn + vo, fn = 11, bo = [0, 0.24, 0.44, 0.68], gn = "history-under-temperature", vn = "history-plot", Oe = {
+const U = 4, fo = 32, st = 6, X = 150, Mt = st + X, Ft = 9, Kn = Mt + 10, Yt = 12, go = 12, un = 34, mn = "history-icon-fade", qn = 14, vo = 7, $o = (e) => 2 + (e.windows ? 1 : 0), Yn = (e) => Kn + $o(e) * Yt, wo = (e) => Yn(e) + qn + vo, fn = 12, bo = [0, 0.24, 0.44, 0.68], gn = "history-under-temperature", vn = "history-plot", Oe = {
   schedule: g.plan,
   manual: g.warning,
   off: g.closed
@@ -1622,7 +1622,7 @@ function Oo(e) {
 }
 function Lo(e, t, n) {
   const i = new Date(e).getHours() === 0;
-  return Le(t) >= 24 || i && t.endMs - t.startMs > 36 * pt ? n.day(e) : n.hour(e);
+  return Le(t) >= 24 || i && t.endMs - t.startMs > 36 * pt ? n.day(e) : n.hour(e).replace(/^(\d{1,2}):00$/, "$1");
 }
 function Po(e, t, n) {
   const { t: i } = n, o = t ?? e.range.endMs, s = ke(e.temperature, o), r = ke(e.humidity, o), a = Ut(e.heating, o, e.range.endMs), l = Number(Ut(e.intensity, o, e.range.endMs) ?? 0), d = Ut(e.target, o, e.range.endMs), c = Ut(e.climate, o, e.range.endMs);

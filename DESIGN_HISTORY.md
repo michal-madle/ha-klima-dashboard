@@ -72,6 +72,11 @@ Formát každého bodu: **Navrženo** → **Opuštěno, protože** → **Nahraze
 - Poznámky revize, neřešeno: štítek větrání odsune „Topí …“ na druhý řádek a karty místností se při startu a konci režimu posunou o řádek štítků; výchozí rozdíl řádků popupů (poloměr 16 px, popisek 15 px, hodnota 17 px) proti `DASHBOARD_UX_SYSTEM.md` platí i pro popupy Okna a Kvalita vzduchu; `last_changed` režimu se po restartu Home Assistantu nastaví na čas restartu, režim se ale po restartu vypíná.
 - Nepotvrzeno, čeká na HA: `timer.ventilation_mode` (atribut `finishes_at`) není v žádném exportu; do `ENTITY_MAP.md` se zapíše po restartu HA a novém exportu, spec ho zatím jmenuje jen jako „časovač režimu“. Kód karty a příklad YAML nové klíče zatím nemají (spec je před kódem).
 
+## 2026-11-04 · Popisky hodnot a hodin grafu jako v Energii (potvrzeno uživatelem)
+
+- Uživatel: „mikrotrendy bez osy jsou spravne. udelej to aby to bylo citelne a vsude stejne.“ Podrobnosti: `DESIGN_HISTORY.md` Energie, záznam z 4. 11.
+- Klima: popisky hodnot už byly vpravo za grafem, zůstávají (12 px místo 11); popisky hodin jsou celé hodiny bez minut („18“). Mikrotrendy zůstávají bez mřížky (potvrzeno).
+
 ## 2026-11-04 · Mřížka grafu historie místnosti (potvrzeno uživatelem)
 
 - Uživatel: „Tyhle grafy bez vodících čar, bez os atd jsou nesmyslné. […] na šířku okna musí být 6-10 dělení. na výšku musí být cca ve stejném rastru. Změň to všude.“ Podrobnosti a ostatní karty: `DESIGN_HISTORY.md` Energie, záznam z 4. 11., pravidlo v kitu (`DASHBOARD_UX_SYSTEM.md`, Grafy).
