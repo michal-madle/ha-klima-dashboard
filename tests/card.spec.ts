@@ -1623,30 +1623,53 @@ test.describe("historie místnosti (Historie a grafy)", () => {
       };
       test.historyFor = (id: string) => data[id];
     });
-    await test.step("CO₂: hranice 1 000 a 1 500 (kritická, protože hodnota přesáhla varování), křivka s tvrdými zarážkami, pásma a pruhy", async () => {
+    await test.step("CO₂: hranice 1 000 (hodnota ji dosáhla, kritická 1 500 ne, proto se nekreslí), křivka s tvrdými zarážkami, pásma a pruhy", async () => {
       await rooms(page).nth(1).locator(".air-block .slot-co2").click();
-      await expect(page.locator(".limit-line")).toHaveCount(2);
-      await expect(page.locator(".limit-label")).toHaveText(["1 000", "1 500"]);
+      await expect(page.locator(".limit-line")).toHaveCount(1);
+      await expect(page.locator(".limit-label")).toHaveText(["1 000"]);
       await expect(page.locator(".temperature-curve")).toHaveAttribute("style", /url\(#history-curve\)/);
-      await expect(page.locator("#history-curve stop")).toHaveCount(6);
+      await expect(page.locator("#history-curve stop")).toHaveCount(4);
+      // Without the second row of states: the windows and the ventilation are in the bands and in the bars.
+      await expect(page.locator(".readout-system")).toHaveCount(0);
       await expect(page.locator(".window-band")).toHaveCount(1);
       await expect(page.locator(".ventilation-band")).toHaveCount(1);
       await expect(page.locator(".strip-row")).toHaveClass([/ventilation/, /windows/]);
     });
-    await test.step("PM2.5: slabší schodová čára (čidlo hlásí jen změnu) pod CO₂, přesná 0 je platná hodnota", async () => {
+    await test.step("PM2.5: slabší vyhlazená čára (průměr za 5 minut) pod CO₂, přesná 0 je platná hodnota", async () => {
       const path = (await page.locator(".pm25-line").getAttribute("d")) ?? "";
-      // Step: every change has a vertical piece (two points with the same x).
-      expect(path.match(/L/g)?.length, "schodová čára").toBeGreaterThan(4);
+      // Smoothed: a point every minute or so, no vertical steps (the changes are slopes).
+      expect(path.match(/L/g)?.length, "vyhlazená čára").toBeGreaterThan(100);
       // "Teď" is the reading of the card (9 µg/m³), not the last recorded value (18).
       await expect(page.locator(".readout-hum.pm25")).toContainText("9 µg/m³");
     });
-    await test.step("prohlížení: hodnota a čas pod prstem, údaje o okně a větrání v tom čase", async () => {
+    await test.step("prohlížení: hodnota a čas pod prstem", async () => {
       const box = await page.locator("svg.chart").boundingBox();
-      // 9.3 h ago of 24 h: the window and the ventilation mode were on.
       await page.mouse.move((box?.x ?? 0) + 4 + (313 * (24 - 9.3)) / 24, (box?.y ?? 0) + 60);
-      await expect(page.locator(".readout-system").nth(0)).toContainText("běží");
-      await expect(page.locator(".readout-system").nth(1)).toContainText("Otevřeno");
       await expect(page.locator(".readout-time")).not.toHaveText("Teď");
+      await expect(page.locator(".readout-temp")).toContainText("ppm");
+    });
+    await test.step("teplota: křivka je oranžová nad horní mezí komfortu (24 °C v zimě) a modrá pod dolní (20 °C), jinak bílá", async () => {
+      await closePopup(page);
+      await page.evaluate(() => {
+        // @ts-expect-error test hook
+        const test = window.__test;
+        const entity = test.config.rooms[1].temperature as string;
+        const now = Date.now() / 1000;
+        const h = 3600;
+        const previous = test.historyFor;
+        test.historyFor = (id: string) =>
+          id === entity ? [{ s: "21", lu: now - 20 * h }, { s: "25", lu: now - 12 * h }, { s: "18.5", lu: now - 5 * h }] : previous(id);
+      });
+      await rooms(page).nth(1).locator(".temperature").click();
+      await expect(page.locator(".temperature-curve")).toHaveAttribute("style", /url\(#history-curve\)/);
+      const stops = await page.locator("#history-curve stop").evaluateAll((items) => items.map((item) => item.getAttribute("style") ?? ""));
+      expect(stops).toHaveLength(6);
+      expect(stops[0]).toContain("--kd-warning");
+      expect(stops[2]).toContain("--kd-text");
+      expect(stops[5]).toContain("--kd-sky");
+      // The plan of Topení is a calm grey under the chart, not the white of an active heating.
+      const plan = await page.locator(".strip-row.heating rect").nth(1).evaluate((rect) => getComputedStyle(rect).fill);
+      expect(plan).not.toBe("rgb(242, 242, 247)");
     });
     await test.step("Obývák není v režimu: bez pásma a pruhu větrání, okno zůstává", async () => {
       await closePopup(page);
@@ -1654,7 +1677,6 @@ test.describe("historie místnosti (Historie a grafy)", () => {
       await expect(page.locator(".ventilation-band")).toHaveCount(0);
       await expect(page.locator(".strip-row.ventilation")).toHaveCount(0);
       await expect(page.locator(".strip-row.windows")).toHaveCount(1);
-      await expect(page.locator(".readout-system")).toHaveCount(1);
     });
   });
 });
@@ -1673,9 +1695,8 @@ test.describe("kvalita vzduchu, okno a hlavička (Room Card, Vizuální pravidla
       await expect(page.locator(".readout-hum.pm25")).toContainText("µg/m³");
       await expect(page.locator(".pm25-line")).toHaveCount(1);
       await expect(page.locator(".chart")).toBeVisible();
-      // The warning limit of the room is a dashed line inside the plot; the critical one only once a value reaches the warning one.
-      await expect(page.locator(".limit-line")).toHaveCount(1);
-      await expect(page.locator(".limit-label")).toHaveText("1 000");
+      // A limit of the room is a dashed line only when a value reaches it: 656 ppm is below 1 000, so there is none.
+      await expect(page.locator(".limit-line")).toHaveCount(0);
       await expect(page.locator(".sheet-link"), "žádný odkaz na detail").toHaveCount(0);
       await closePopup(page);
       // The temperature and its micro trend open the temperature and humidity chart, as before.

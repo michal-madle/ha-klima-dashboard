@@ -225,3 +225,49 @@ export function normalizeToAxis(
       : Math.min(1, Math.max(0, (value - axis.min) / range)),
   );
 }
+
+/**
+ * Smooths a series with a moving average over `windowMs` (5 minutes): the series is held between its samples, averaged on a
+ * one-minute grid (the window shrinks at the ends) and thinned to at most `maxPoints` points. A sensor that reports every
+ * 5 minutes in whole numbers (PM2.5) or flickers by a unit (CO₂) draws a calm line instead of a jagged one.
+ */
+export function smoothSeries(
+  points: Array<{ t: number; v: number }>,
+  windowMs = 5 * 60_000,
+  maxPoints = 720,
+): Array<{ t: number; v: number }> {
+  if (points.length < 2) {
+    return points;
+  }
+  const minute = 60_000;
+  const start = points[0].t;
+  const end = points[points.length - 1].t;
+  const count = Math.max(2, Math.floor((end - start) / minute) + 1);
+  // Hold the last sample on every minute of the grid.
+  const grid: number[] = [];
+  let index = 0;
+  for (let step = 0; step < count; step += 1) {
+    const time = step === count - 1 ? end : start + step * minute;
+    while (index + 1 < points.length && points[index + 1].t <= time) {
+      index += 1;
+    }
+    grid.push(points[index].v);
+  }
+  const half = Math.max(0, Math.floor(windowMs / minute / 2));
+  const prefix = [0];
+  for (const value of grid) {
+    prefix.push(prefix[prefix.length - 1] + value);
+  }
+  const every = Math.max(1, Math.ceil(count / maxPoints));
+  const steps: number[] = [];
+  for (let step = 0; step < count - 1; step += every) {
+    steps.push(step);
+  }
+  steps.push(count - 1);
+  const smoothed = steps.map((step) => {
+    const from = Math.max(0, step - half);
+    const to = Math.min(count - 1, step + half);
+    return { t: step === count - 1 ? end : start + step * minute, v: (prefix[to + 1] - prefix[from]) / (to - from + 1) };
+  });
+  return smoothed;
+}
