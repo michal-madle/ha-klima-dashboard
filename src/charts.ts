@@ -1,7 +1,7 @@
 import { html, nothing, svg } from "lit";
 import type { TemplateResult } from "lit";
 import { HEATING_OFF_TARGET, heatingKindOf } from "./heating-control";
-import { HOUR_MS, buildSegments, numericSeries } from "./history";
+import { HOUR_MS, buildSegments, numericSeries, smoothSeries } from "./history";
 import type { HistoryMap, Segment } from "./history";
 import type { I18n } from "./i18n";
 import { climateShape, heatingWavesShape, renderClimateIcon, renderHeatingWaves, renderWindowIcon, windowShape } from "./icons";
@@ -88,6 +88,12 @@ const HEATING_COLORS: Record<string, string> = {
   off: COLORS.closed,
 };
 type HeatingKind = "schedule" | "manual" | "off";
+/** Bars of Topení under the chart: the plan is grey (white looked like heating), manual orange, off dark grey. */
+const STRIP_HEATING_COLORS: Record<string, string> = {
+  schedule: "color-mix(in srgb, var(--kd-label) 60%, var(--kd-closed))",
+  manual: COLORS.warning,
+  off: COLORS.closed,
+};
 
 /*
  * Colours are CSS custom properties (styles.ts), set through `style`: SVG presentation
@@ -116,6 +122,8 @@ export interface RoomChartModel {
   ventilation?: Segment[];
   /** Limits of the room (orange from `warning`, red from `critical`), drawn as lines in the air charts. */
   limits: Record<"co2" | "pm25", { warning: number; critical: number }>;
+  /** Comfort range of the temperature by House Mode: the curve is orange above `max` and blue below `min`. */
+  comfort: { winter: { min: number; max: number }; summer: { min: number; max: number } };
   tempMin: number;
   tempMax: number;
   tempStep: number;
@@ -194,8 +202,8 @@ export function buildRoomChart(
   const heatingClimate = series(room.heating?.climate);
 
   // A sensor reports 0 right after it is switched on, before its first measurement: no value (CURRENT_SPEC.md, Historie).
-  const temperature = numericSeries(series(room.temperature), startMs, endMs, true);
-  const humidity = numericSeries(series(room.humidity), startMs, endMs, true);
+  const temperature = smoothSeries(numericSeries(series(room.temperature), startMs, endMs, true));
+  const humidity = smoothSeries(numericSeries(series(room.humidity), startMs, endMs, true));
   const heating = buildSegments(
     [overlay, heatingClimate, series(room.heating?.target)],
     startMs,
@@ -241,8 +249,8 @@ export function buildRoomChart(
     ? buildSegments([series(ventilationEntity)], startMs, endMs, ([state]) => (state?.toLowerCase() === "on" ? "on" : undefined))
     : undefined;
   // CO₂ is never 0 ppm (a sensor just switched on says so before it measures); PM2.5 of 0 µg/m³ is a real, clean reading.
-  const co2 = numericSeries(series(room.carbon_dioxide), startMs, endMs, true);
-  const pm25 = numericSeries(series(room.pm25), startMs, endMs);
+  const co2 = smoothSeries(numericSeries(series(room.carbon_dioxide), startMs, endMs, true));
+  const pm25 = smoothSeries(numericSeries(series(room.pm25), startMs, endMs));
   const climate = buildSegments([series(room.air_conditioner)], startMs, endMs, ([state]) => {
     const mode = climateModeFromState(state);
     return mode === "unknown" ? undefined : mode;
@@ -274,6 +282,10 @@ export function buildRoomChart(
       co2: { warning: room.thresholds.co2_warning, critical: room.thresholds.co2_critical },
       pm25: { warning: room.thresholds.pm25_warning, critical: room.thresholds.pm25_critical },
     },
+    comfort: {
+      winter: { min: room.thresholds.winter_min, max: room.thresholds.winter_max },
+      summer: { min: room.thresholds.summer_min, max: room.thresholds.summer_max },
+    },
     tempMin,
     tempMax,
     tempStep,
@@ -295,23 +307,16 @@ export function hasChartData(model: RoomChartModel, metric: ChartMetric = "tempe
 
 /**
  * Axis of CO₂ (ppm) or PM2.5 (µg/m³): CO₂ from 400 ppm (lower readings round down to 100), PM2.5 from 0, up to the highest
- * value with a small margin. The warning limit is always inside (how far the air is from it, and the days stay comparable);
- * the critical limit joins as soon as a value reaches the warning one.
+ * value with a small margin and at least `minSpan` high. A limit is not on the axis unless a value reaches it.
  */
-export function airAxis(
-  values: number[],
-  limits: { warning: number; critical: number },
-  quantity: "co2" | "pm25",
-): { min: number; max: number } {
+export function airAxis(values: number[], quantity: "co2" | "pm25"): { min: number; max: number } {
   const finiteValues = values.filter((value) => Number.isFinite(value));
-  const measuredMax = finiteValues.length > 0 ? Math.max(...finiteValues) : limits.warning;
-  let high = Math.max(measuredMax, limits.warning);
-  if (measuredMax >= limits.warning) {
-    high = Math.max(high, limits.critical);
-  }
   const floor = 400;
   const low =
     quantity === "pm25" ? 0 : Math.min(floor, finiteValues.length > 0 ? Math.floor(Math.min(...finiteValues) / 100) * 100 : floor);
+  const minSpan = quantity === "co2" ? 400 : 10;
+  const measuredMax = finiteValues.length > 0 ? Math.max(...finiteValues) : low + minSpan;
+  const high = Math.max(measuredMax, low + minSpan);
   return { min: low, max: high + (high - low) * AXIS_MARGIN };
 }
 
@@ -528,7 +533,7 @@ function renderReadout(model: RoomChartModel, time: number | undefined, i18n: I1
   `;
 }
 
-/** Readout of CO₂ or PM2.5: the value in the colour of its limits, then the ventilation mode and the windows at that time. */
+/** Readout of CO₂ or PM2.5: one row, the value in the colour of its limits, PM2.5 beside it, the time on the right. */
 function renderAirReadout(
   model: RoomChartModel,
   metric: "co2" | "pm25",
@@ -536,7 +541,6 @@ function renderAirReadout(
   i18n: I18n,
   live?: LiveReading,
 ): TemplateResult {
-  const { t } = i18n;
   const at = time ?? model.range.endMs;
   // "Teď" is the reading of the card (a stale value is grey there, never orange or red), under the finger the recorded value.
   const useLive = time === undefined && live !== undefined;
@@ -546,10 +550,8 @@ function renderAirReadout(
   const secondStale = useLive && live.secondary?.stale === true;
   const limits = model.limits[metric];
   const unit = metric === "co2" ? "ppm" : "µg/m³";
-  const running = model.ventilation ? segmentAt(model.ventilation, at, model.range.endMs) === "on" : undefined;
-  const open = model.windows ? segmentAt(model.windows, at, model.range.endMs) === "open" : undefined;
   return html`
-    <div class="readout" aria-live="polite">
+    <div class="readout single" aria-live="polite">
       <div class="readout-main">
         <span class="readout-values">
           <span class="readout-temp" style=${`color: ${useLive && live.stale ? COLORS.label : airValueColor(value, limits)}`}
@@ -564,20 +566,6 @@ function renderAirReadout(
             : nothing}
         </span>
         <span class="readout-time">${readoutTime(model, time, i18n)}</span>
-      </div>
-      <div class="readout-systems">
-        ${running === undefined
-          ? nothing
-          : html`<span class="readout-system" style=${`color: ${running ? COLORS.fresh : COLORS.off}`}>
-              <span class="readout-icon">${renderClimateIcon("fan", running ? COLORS.fresh : COLORS.off, false)}</span>
-              ${t.ventilation.title} ${running ? t.chart.ventilationOn : t.chart.ventilationOff}
-            </span>`}
-        ${open === undefined
-          ? nothing
-          : html`<span class="readout-system" style=${`color: ${open ? COLORS.sky : COLORS.off}`}>
-              <span class="readout-icon">${renderWindowIcon(open ? COLORS.sky : COLORS.off, false)}</span>
-              ${t.window.popup} ${open ? t.window.open : t.window.closed}
-            </span>`}
       </div>
     </div>
   `;
@@ -608,9 +596,8 @@ export function renderRoomChart(
   // The curve and its scale: temperature, or CO₂ / PM2.5 with its limits.
   const curve = air ? model[air] : model.temperature;
   const limits = air ? model.limits[air] : undefined;
-  const axis = air
-    ? airAxis(curve.map((point) => point.v), model.limits[air], air)
-    : { min: model.tempMin, max: model.tempMax };
+  const axis = air ? airAxis(curve.map((point) => point.v), air) : { min: model.tempMin, max: model.tempMax };
+  const measuredMax = curve.length > 0 ? Math.max(...curve.map((point) => point.v)) : -Infinity;
   const yOf = (value: number): number => PLOT_BOTTOM - ((value - axis.min) / (axis.max - axis.min)) * PLOT_HEIGHT;
   const humidityLow = (model.humidityMin ?? 0) - 3;
   const humidityHigh = Math.max((model.humidityMax ?? 100) + 3, humidityLow + 12);
@@ -620,15 +607,7 @@ export function renderRoomChart(
 
   const line = (points: Point[], y: (value: number) => number): string =>
     points.map((point, index) => `${index === 0 ? "M" : "L"}${x(point.t).toFixed(1)} ${y(point.v).toFixed(1)}`).join(" ");
-  // PM2.5 reports only a change: the value holds until the next report (a step), not a slope that never happened.
-  const stepLine = (points: Point[], y: (value: number) => number): string =>
-    points
-      .map((point, index) => {
-        const previous = points[index - 1];
-        return `${index === 0 ? "M" : `L${x(point.t).toFixed(1)} ${y(previous.v).toFixed(1)} L`}${x(point.t).toFixed(1)} ${y(point.v).toFixed(1)}`;
-      })
-      .join(" ");
-  const curveLine = air === "pm25" ? stepLine(curve, yOf) : line(curve, yOf);
+  const curveLine = line(curve, yOf);
   const first = curve[0];
   const last = curve[curve.length - 1];
   const curveArea =
@@ -657,9 +636,10 @@ export function renderRoomChart(
     ? [
         { value: limits.warning, color: COLORS.warning },
         { value: limits.critical, color: COLORS.alertOnPopup },
-      ].filter((limit) => limit.value > axis.min && limit.value < axis.max)
+      ].filter((limit) => limit.value > axis.min && limit.value <= measuredMax)
     : [];
-  // The curve is white, orange above the warning limit and red above the critical one: one path, hard stops at the limits.
+  // The curve is white; orange above the warning limit of CO₂ (red above the critical one), or above the comfort maximum of
+  // the temperature (blue below its minimum): one path, hard stops at the limits.
   const offset = (value: number): number => Math.min(1, Math.max(0, (yOf(value) - PLOT_TOP) / PLOT_HEIGHT));
   const gradient: Array<[number, string]> = [];
   if (limits && limitLines.length > 0) {
@@ -671,7 +651,14 @@ export function renderRoomChart(
     }
     gradient.push([hasCritical ? critical : 0, COLORS.warning], [warning, COLORS.warning], [warning, COLORS.white], [1, COLORS.white]);
   }
-  const valueColor = (value: number): string => (limits ? airValueColor(value, limits) : COLORS.white);
+  const comfort = isSummer ? model.comfort.summer : model.comfort.winter;
+  if (!air) {
+    const hot = offset(comfort.max);
+    const cold = offset(comfort.min);
+    gradient.push([0, COLORS.warning], [hot, COLORS.warning], [hot, COLORS.white], [cold, COLORS.white], [cold, COLORS.sky], [1, COLORS.sky]);
+  }
+  const valueColor = (value: number): string =>
+    limits ? airValueColor(value, limits) : value > comfort.max ? COLORS.warning : value < comfort.min ? COLORS.sky : COLORS.white;
 
   const strip = (segments: Segment[], y: number, color: (value: string) => string) =>
     segments.map((segment) => {
@@ -701,7 +688,7 @@ export function renderRoomChart(
     });
   const rowBars = (row: StripRow, y: number): TemplateResult =>
     row === "heating"
-      ? svg`${strip(model.heating, y, (value) => HEATING_COLORS[value] ?? COLORS.off)}`
+      ? svg`${strip(model.heating, y, (value) => STRIP_HEATING_COLORS[value] ?? COLORS.off)}`
       : row === "climate"
         ? svg`${strip(model.climate, y, (value) => climateStripColor(value as ClimateMode))}`
         : row === "ventilation"
@@ -714,16 +701,17 @@ export function renderRoomChart(
   const bands = (segments: Segment[] | undefined, color: string, className: string, token: string): TemplateResult[] =>
     (segments ?? []).map(
       (segment) => svg`<rect class=${className} x=${x(segment.start).toFixed(1)} y=${PLOT_TOP}
-        width=${Math.max(x(segment.end) - x(segment.start), 3).toFixed(1)} height=${PLOT_HEIGHT}
+        width=${Math.max(x(segment.end) - x(segment.start), 2).toFixed(1)} height=${PLOT_HEIGHT}
         style=${`${fill(color)}; opacity: var(${token})`}></rect>`,
     );
-  const dotColor = (value: number): string => (air ? valueColor(value) : COLORS.white);
+  const dotColor = (value: number): string => valueColor(value);
 
-  // PM2.5 under the CO₂ curve: a weaker dashed step line on its own scale (no axis), like the humidity under the temperature.
+  // PM2.5 under the CO₂ curve: a weaker dashed line on its own scale (no axis), like the humidity under the temperature;
+  // the scale reaches at least the critical limit, so small values stay low and flat.
   const pm25Max = Math.max(...model.pm25.map((point) => point.v), 0);
-  const pm25High = Math.max(pm25Max + 3, 10);
+  const pm25High = Math.max(pm25Max * (1 + AXIS_MARGIN), model.limits.pm25.critical);
   const yPm25 = (value: number): number => PLOT_BOTTOM - (value / pm25High) * PLOT_HEIGHT;
-  const secondaryLine = air === "co2" && model.pm25.length > 0 ? stepLine(model.pm25, yPm25) : "";
+  const secondaryLine = air === "co2" && model.pm25.length > 0 ? line(model.pm25, yPm25) : "";
 
   // Time labels of the axis: a label that would touch the one to its right is left out (the newest times win), the lines stay.
   const labelWidth = (text: string): number => [...text].reduce((sum, character) => sum + (/\d/.test(character) ? 6.7 : 3.6), 0);
@@ -775,7 +763,7 @@ export function renderRoomChart(
       </g>
       ${grid.map((value) => {
         const y = yOf(value);
-        const nearLimit = limitLines.some((limit) => Math.abs(yOf(limit.value) - y) < 10);
+        const nearLimit = limitLines.some((limit) => Math.abs(yOf(limit.value) - y) < 14);
         return svg`<line x1=${PAD_LEFT} x2=${right} y1=${y.toFixed(1)} y2=${y.toFixed(1)}
             style=${stroke("var(--kd-grid)")} stroke-width="1"></line>
           ${nearLimit

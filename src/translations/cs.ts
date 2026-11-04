@@ -186,8 +186,6 @@ export const cs = {
   chart: {
     now: "Teď",
     yesterday: "včera",
-    ventilationOn: "běží",
-    ventilationOff: "vypnuto",
   },
 
   // House summary chips (Dashboard Domov, Konflikty)

@@ -156,8 +156,6 @@ export const en: Texts = {
   chart: {
     now: "Now",
     yesterday: "yesterday",
-    ventilationOn: "running",
-    ventilationOff: "off",
   },
 
   summaryChips: {

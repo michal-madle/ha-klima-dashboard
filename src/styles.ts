@@ -53,8 +53,8 @@ export const styles = css`
       --kd-grid: rgb(255 255 255 / 8%);
       --kd-grid-soft: rgb(255 255 255 / 6%);
       --kd-area: rgb(255 255 255 / 7%);
-      --kd-band-window: 0.42;
-      --kd-band-ventilation: 0.5;
+      --kd-band-window: 0.14;
+      --kd-band-ventilation: 0.2;
       --kd-scene-bedroom: #a5a1f2;
       --kd-scene-office: #7fc8f8;
       --kd-scene-kids: #ffb36b;
@@ -108,8 +108,8 @@ export const styles = css`
       --kd-grid: rgb(0 0 0 / 8%);
       --kd-grid-soft: rgb(0 0 0 / 6%);
       --kd-area: rgb(0 0 0 / 5%);
-      --kd-band-window: 0.3;
-      --kd-band-ventilation: 0.38;
+      --kd-band-window: 0.1;
+      --kd-band-ventilation: 0.14;
       --kd-scene-bedroom: #6f67d6;
       --kd-scene-office: #2c8bc9;
       --kd-scene-kids: #d9822b;
@@ -1875,6 +1875,10 @@ export const styles = css`
       gap: 2px;
       min-height: 52px;
       margin: 12px 0;
+    }
+
+    .readout.single {
+      min-height: 0;
     }
 
     /* Value (and humidity) on the left, the time on the right: the number does not jump when the time gets longer ("včera 22:15"). */
