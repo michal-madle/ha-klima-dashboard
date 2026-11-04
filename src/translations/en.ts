@@ -184,6 +184,7 @@ export const en: Texts = {
     climateSpoken: "Air conditioning on",
     ventilation: "Ventilation mode",
     ventilationSpoken: "On. Opens the details and lets you end it.",
+    ventilationOffSpoken: "Off. Opens the last ventilation.",
   },
 
   ventilation: {
@@ -194,6 +195,18 @@ export const en: Texts = {
     end: "End",
     ending: "Ending…",
     ended: "Ventilation mode has ended.",
+    last: "Last ventilation",
+    never: "No ventilation yet.",
+    canClose: "Windows can be closed",
+    yes: "Yes",
+    notYet: "Not yet",
+    remaining: "Time to goal (est.)",
+    done: "done",
+    goalShort: (ppm: string) => `CO₂ ${ppm} ppm or less`,
+    goal: (ppm: string) => `Goal: CO₂ ${ppm} ppm or less.`,
+    co2Range: (from: string, to: string) => `CO₂ ${from} → ${to} ppm`,
+    minutes: (count: number) => `${count} min`,
+    roomSpoken: (room: string, from: string, to: string, percent: string) => `${room}: CO₂ from ${from} to ${to} ppm, ${percent} done`,
   },
 
   duration: {

@@ -185,6 +185,7 @@ export const sv: Texts = {
     climateSpoken: "Luftkonditionering på",
     ventilation: "Ventilationsläge",
     ventilationSpoken: "På. Öppnar detaljer och låter dig avsluta.",
+    ventilationOffSpoken: "Av. Öppnar senaste ventilationen.",
   },
 
   ventilation: {
@@ -195,6 +196,18 @@ export const sv: Texts = {
     end: "Avsluta",
     ending: "Avslutar…",
     ended: "Ventilationsläget har avslutats.",
+    last: "Senaste ventilationen",
+    never: "Ingen ventilation än.",
+    canClose: "Fönstren kan stängas",
+    yes: "Ja",
+    notYet: "Inte än",
+    remaining: "Tid till målet (ca)",
+    done: "klart",
+    goalShort: (ppm: string) => `CO₂ ${ppm} ppm eller lägre`,
+    goal: (ppm: string) => `Mål: CO₂ ${ppm} ppm eller lägre.`,
+    co2Range: (from: string, to: string) => `CO₂ ${from} → ${to} ppm`,
+    minutes: (count: number) => `${count} min`,
+    roomSpoken: (room: string, from: string, to: string, percent: string) => `${room}: CO₂ från ${from} till ${to} ppm, ${percent} klart`,
   },
 
   duration: {

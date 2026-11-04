@@ -27,6 +27,8 @@ import { ICON_POSITIONS } from "./utils";
  */
 
 export const HOUSE_MODE_ENTITY = "input_select.house_mode";
+/** CO₂ (ppm) at or below which the windows can be closed after ventilating (CURRENT_SPEC.md, Větrací režim). */
+export const DEFAULT_VENTILATION_CO2_TARGET = 450;
 
 export const DEFAULT_THRESHOLDS: DashboardThresholds = {
   humidity_min: 35,
@@ -382,6 +384,10 @@ function normalize(config: DashboardConfig): Settings {
   const houseModeEntity = entityId(config.house_mode_entity, "house_mode_entity") ?? HOUSE_MODE_ENTITY;
   const ventilationEntity = entityId(config.ventilation_entity, "ventilation_entity");
   const ventilationTimerEntity = entityId(config.ventilation_timer_entity, "ventilation_timer_entity");
+  const ventilationCo2Target = config.ventilation_co2_target ?? DEFAULT_VENTILATION_CO2_TARGET;
+  if (typeof ventilationCo2Target !== "number" || !Number.isFinite(ventilationCo2Target) || ventilationCo2Target < 300 || ventilationCo2Target > 2000) {
+    fail("ventilation_co2_target must be a number of ppm between 300 and 2000.");
+  }
   const modesInput = section(config.house_modes, "house_modes");
   checkKeys(modesInput, ["winter", "summer"], "house_modes");
   const houseModes = {
@@ -452,6 +458,7 @@ function normalize(config: DashboardConfig): Settings {
     houseModes,
     ventilationEntity,
     ventilationTimerEntity,
+    ventilationCo2Target,
     outside: outside as Settings["outside"],
     thresholds,
     trends,

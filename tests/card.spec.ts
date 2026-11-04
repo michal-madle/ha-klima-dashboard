@@ -65,6 +65,27 @@ const cover = (page: Page, value: string, position: number, tilt: number, entity
     [entityId, value, position, tilt] as const,
   );
 
+/** Contrast ratio of the label of a summary chip on its own background (computed styles, sRGB bytes through a canvas). */
+const chipContrast = (chip: Locator) =>
+  chip.evaluate((element) => {
+    const bytes = (css: string) => {
+      const canvas = document.createElement("canvas");
+      canvas.width = canvas.height = 1;
+      const context = canvas.getContext("2d", { willReadFrequently: true })!;
+      context.fillStyle = css;
+      context.fillRect(0, 0, 1, 1);
+      return Array.from(context.getImageData(0, 0, 1, 1).data).slice(0, 3);
+    };
+    const luminance = ([r, g, b]: number[]) => {
+      const [x, y, z] = [r, g, b].map((v) => ((v / 255) <= 0.04045 ? v / 255 / 12.92 : ((v / 255 + 0.055) / 1.055) ** 2.4));
+      return 0.2126 * x + 0.7152 * y + 0.0722 * z;
+    };
+    const background = luminance(bytes(getComputedStyle(element).backgroundColor));
+    const label = luminance(bytes(getComputedStyle(element.querySelector("button")!).color));
+    const [light, dark] = background > label ? [background, label] : [label, background];
+    return (light + 0.05) / (dark + 0.05);
+  });
+
 /** setConfig of the scenario config with `top` over the card keys and `roomPatches` over rooms (by index). */
 const reconfigure = (page: Page, top: Record<string, unknown>, roomPatches: Record<number, Record<string, unknown>> = {}) =>
   page.evaluate(
@@ -351,7 +372,7 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
     // Every key of the configuration contract as a path; "[]" is an item of a list.
     const all = [
       "type", "title", "theme", "language", "house_mode_entity", "house_modes.winter", "house_modes.summer",
-      "ventilation_entity", "ventilation_timer_entity",
+      "ventilation_entity", "ventilation_timer_entity", "ventilation_co2_target",
       ...["temperature", "minimum", "maximum", "rain_probability", "pm25"].map((key) => `outside.${key}`),
       ...["humidity_min", "humidity_max", "co2_warning", "co2_critical", "pm25_warning", "pm25_critical", "winter_min",
         "winter_max", "summer_min", "summer_max", "stale_minutes", "heating_waves_2", "heating_waves_3"].map((key) => `thresholds.${key}`),
@@ -568,14 +589,14 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
     await expect(row).toHaveAccessibleDescription(/stav oken neznámý/);
   });
 
-  test("větrací režim: štítek za okny, popup s dobou a koncem, Ukončit, zánik popupu a nedostupná entita", async ({ page }) => {
+  test("větrací režim: štítek před okny, popup s dobou, poklesem CO₂ a odhadem, výsledek po konci, Ukončit a nedostupná entita", async ({ page }) => {
     const MODE = "input_boolean.ventilation_mode";
     const TIMER = "timer.ventilation_mode";
+    const CO2_PRACOVNA = "sensor.pracovna_teplomer_pracovna_carbon_dioxide";
     await open(page, "vent");
     const chip = page.locator(".summary .chip").filter({ hasText: "Větrací režim" });
-    const popupText = () => page.locator(".sheet").innerText().then((text) => text.replace(/\s+/g, " "));
 
-    await test.step("štítek je hned před štítkem oken, tlačítko s názvem = viditelný text a ikonou ventilátoru", async () => {
+    await test.step("štítek je zelený, hned před štítkem oken, s názvem = viditelný text a ikonou ventilátoru", async () => {
       const texts = tidy(await page.locator(".summary .chip").allInnerTexts());
       const windows = texts.findIndex((text) => /otevřen/.test(text));
       expect(windows, "štítek oken").toBeGreaterThan(0);
@@ -583,47 +604,103 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
       const button = chip.locator("button");
       await expect(button).toHaveAttribute("aria-label", "Větrací režim. Zapnutý. Otevře podrobnosti a ukončení.");
       await expect(button).toHaveAttribute("aria-haspopup", "dialog");
+      await expect(chip).toHaveAttribute("style", /--kd-fresh/);
       await expect(chip.locator(".chip-icon svg")).toHaveCount(1);
-      const box = await button.boundingBox();
-      expect(box?.height ?? 0, "cíl aspoň 44 px").toBeGreaterThanOrEqual(30);
+      await expect(chip.locator('.chip-icon svg g[mask]'), "bez přeškrtnutí").toHaveCount(0);
     });
 
-    await test.step("popup: Běží 4 min, Skončí nejpozději (čas), věta a Ukončit; nic se nehýbe, axe ve tmavém režimu", async () => {
+    await test.step("popup za běhu: Běží, Skončí nejpozději, Pracovna z 1 180 na 820 ppm = 49 %, Lze zavřít okna „Ještě ne“", async () => {
       await chip.locator("button").click();
       await expect(page.locator("#sheet-title")).toHaveText("Větrací režim");
-      await expect(page.locator(".sheet-sub")).toHaveCount(0);
       const rows = page.locator(".sheet .static-row");
-      await expect(rows).toHaveCount(2);
       await expect(rows.nth(0)).toContainText(/Běží\s*4 min/);
       await expect(rows.nth(1)).toContainText(/Skončí nejpozději\s*\d{1,2}:\d{2}/);
+      const pracovna = rows.filter({ hasText: "Pracovna" });
+      await expect(pracovna).toHaveCount(1);
+      await expect(pracovna).toContainText(/CO₂\s*1\s*180\s*→\s*820\s*ppm/);
+      await expect(pracovna).toContainText("49 %");
+      await expect(rows.filter({ hasText: "Lze zavřít okna" })).toContainText("Ještě ne");
+      // Without enough time since the last report there is no estimate.
+      await expect(rows.filter({ hasText: "Do cíle zbývá asi" })).toContainText("––");
       await expect(page.locator(".sheet .timer-foot")).toHaveText("Dřív skončí zavřením posledního okna.");
       const end = page.getByRole("button", { name: "Ukončit" });
-      await expect(end).toBeVisible();
       expect((await end.boundingBox())?.height ?? 0, "Ukončit 48 px").toBeGreaterThanOrEqual(48);
-      // The first control is the close button, never "Ukončit".
       await expect(page.locator(".sheet .close")).toBeFocused();
-      const heightOf = async () => Math.round((await page.locator(".sheet").boundingBox())?.height ?? 0);
-      const before = await heightOf();
-      // The timer does not run: the end row stays, with "––", and the popup keeps its size.
-      await setStates(page, { [TIMER]: "idle" });
-      await expect(rows.nth(1)).toContainText(/Skončí nejpozději\s*––/);
-      expect(await heightOf(), "popup se nezmění").toBe(before);
+    });
+
+    await test.step("čerstvé hlášení: odhad „asi 17 min“ celými minutami; pod 450 ppm lze zavřít okna a procento je 100 %", async () => {
+      await setStates(page, { [CO2_PRACOVNA]: "820" });
+      const rows = page.locator(".sheet .static-row");
+      await expect(rows.filter({ hasText: "Do cíle zbývá asi" })).toContainText("17 min");
+      // Never 100 % before the goal: 451 ppm is 99 % and the windows cannot be closed yet.
+      await setStates(page, { [CO2_PRACOVNA]: "451" });
+      await expect(rows.filter({ hasText: "Pracovna" })).toContainText("99 %");
+      await expect(rows.filter({ hasText: "Pracovna" })).toContainText("hotovo");
+      await expect(rows.filter({ hasText: "Lze zavřít okna" })).toContainText("Ještě ne");
+      await expect(rows.filter({ hasText: "Lze zavřít okna" })).toContainText("CO₂ 450 ppm nebo méně");
+      await setStates(page, { [CO2_PRACOVNA]: "440" });
+      await expect(rows.filter({ hasText: "Pracovna" })).toContainText("100 %");
+      await expect(rows.filter({ hasText: "Lze zavřít okna" })).toContainText("Ano");
+      await expect(rows.filter({ hasText: "Do cíle zbývá asi" }), "při „Ano“ bez odhadu").toHaveCount(0);
       expect(await axeViolations(page), "axe popup").toEqual([]);
     });
 
-    await test.step("Ukončit: odešle turn_off, tlačítko „Ukončuje se…“; po vypnutí režimu se popup zavře, štítek zmizí, čtečka a fokus", async () => {
+    await test.step("Ukončit: odešle turn_off, tlačítko „Ukončuje se…“", async () => {
       await page.getByRole("button", { name: "Ukončit" }).click();
       await expect(page.getByRole("button", { name: "Ukončuje se…" })).toBeDisabled();
       expect(await hook<unknown[][]>(page, "services")).toContainEqual(["input_boolean", "turn_off", { entity_id: MODE }]);
       expect(await hook<string[]>(page, "haptics")).toContain("success");
+    });
+
+    await test.step("po vypnutí režimu popup zůstane a ukáže poslední větrání; štítek je šedý a přeškrtnutý", async () => {
+      await page.evaluate(() => {
+        // @ts-expect-error test hook
+        const test = window.__test;
+        const at = (minutesAgo: number) => (Date.now() - minutesAgo * 60_000) / 1000;
+        const histories: Record<string, Array<{ s: string; lu: number }>> = {
+          "input_boolean.ventilation_mode": [{ s: "off", lu: at(60) }, { s: "on", lu: at(4) }, { s: "off", lu: at(0.2) }],
+          "sensor.pracovna_teplomer_pracovna_carbon_dioxide": [{ s: "1180", lu: at(30) }, { s: "1180", lu: at(4) }, { s: "520", lu: at(1) }],
+          "binary_sensor.pracovna_okno_pracovna": [{ s: "off", lu: at(30) }, { s: "on", lu: at(3) }],
+        };
+        test.historyFor = (id: string) => histories[id];
+      });
       await setStates(page, { [MODE]: "off" });
-      await expect(page.locator(".sheet")).toHaveCount(0);
-      await expect(chip).toHaveCount(0);
+      await expect(page.locator(".sheet")).toHaveCount(1);
+      const rows = page.locator(".sheet .static-row");
+      await expect(rows.nth(0)).toContainText(/Poslední větrání\s*\d{1,2}:\d{2}–\d{1,2}:\d{2}/);
+      const pracovna = rows.filter({ hasText: "Pracovna" });
+      await expect(pracovna).toContainText(/CO₂\s*1\s*180\s*→\s*520\s*ppm/);
+      await expect(pracovna).toContainText("90 %");
+      await expect(page.locator(".sheet .timer-foot")).toHaveText("Cíl: CO₂ 450 ppm nebo méně.");
+      await expect(page.getByRole("button", { name: /Ukončit|Ukončuje/ })).toHaveCount(0);
       await expect(page.locator("[role=status]")).toHaveText("Větrací režim skončil.");
-      expect(await page.evaluate(() => document.querySelector("ha-klima-dashboard")?.shadowRoot?.activeElement?.className)).toContain("summary");
+      const button = chip.locator("button");
+      await expect(button).toHaveAttribute("aria-label", "Větrací režim. Vypnutý. Otevře poslední větrání.");
+      await expect(chip).toHaveAttribute("style", /--kd-label/);
+      await expect(chip.locator('.chip-icon svg g[mask]'), "přeškrtnutá ikona").toHaveCount(1);
+      expect(await axeViolations(page), "axe výsledek").toEqual([]);
+      expect(await chipContrast(chip), "šedý štítek, tmavý režim").toBeGreaterThanOrEqual(4.5);
+    });
+
+    await test.step("poslední větrání starší než dnes: čas má před sebou den", async () => {
+      await page.locator(".sheet .close").click();
+      await page.evaluate(() => {
+        // @ts-expect-error test hook
+        const test = window.__test;
+        const at = (minutesAgo: number) => (Date.now() - minutesAgo * 60_000) / 1000;
+        const histories: Record<string, Array<{ s: string; lu: number }>> = {
+          "input_boolean.ventilation_mode": [{ s: "off", lu: at(8000) }, { s: "on", lu: at(4320) }, { s: "off", lu: at(4296) }],
+          "sensor.pracovna_teplomer_pracovna_carbon_dioxide": [{ s: "1180", lu: at(4330) }, { s: "1180", lu: at(4320) }, { s: "520", lu: at(4297) }],
+          "binary_sensor.pracovna_okno_pracovna": [{ s: "off", lu: at(4330) }, { s: "on", lu: at(4310) }],
+        };
+        test.historyFor = (id: string) => histories[id];
+      });
+      await chip.locator("button").click();
+      await expect(page.locator(".sheet .static-row").first()).toContainText(/Poslední větrání\s*\d{1,2}\. \d{1,2}\.\s*\d{1,2}:\d{2}–\d{1,2}:\d{2}/);
     });
 
     await test.step("chyba příkazu: věta se nahradí hláškou, tlačítko je znovu aktivní, haptika failure", async () => {
+      await page.locator(".sheet .close").click();
       await setStates(page, { [MODE]: "on", [TIMER]: "active" });
       await chip.locator("button").click();
       await page.evaluate(() => {
@@ -637,30 +714,39 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
       expect(await hook<string[]>(page, "haptics")).toContain("failure");
     });
 
-    await test.step("nedostupná entita: popup se zavře, štítek zmizí a nic se nehlásí", async () => {
+    await test.step("nedostupná entita: štítek zmizí a nic se nehlásí; popup bez štítku nejde otevřít", async () => {
+      await page.locator(".sheet .close").click();
       await setStates(page, { [MODE]: "unavailable" });
-      await expect(page.locator(".sheet")).toHaveCount(0);
       await expect(chip).toHaveCount(0);
       await setStates(page, { [MODE]: "unknown" });
       await expect(chip).toHaveCount(0);
-      await expect(page.locator(".summary .chip").filter({ hasText: /Větrací/ })).toHaveCount(0);
     });
 
-    await test.step("světlý režim: štítek a popup bez porušení axe, ikona i text čitelné", async () => {
+    await test.step("světlý režim: štítek (zelený i šedý) a popup bez porušení axe", async () => {
       await open(page, "vent", 393, 852, "light");
       await expect(page.locator("ha-klima-dashboard")).toHaveAttribute("data-theme", "light");
       expect(await axeViolations(page), "axe světlý, karta").toEqual([]);
       await chip.locator("button").click();
-      await expect(page.locator(".sheet .static-row")).toHaveCount(2);
+      await expect(page.locator(".sheet .static-row").first()).toBeVisible();
       expect(await axeViolations(page), "axe světlý, popup").toEqual([]);
+      expect(await chipContrast(chip), "zelený štítek, světlý režim").toBeGreaterThanOrEqual(4.5);
+      await page.locator(".sheet .close").click();
+      await setStates(page, { [MODE]: "off" });
+      expect(await axeViolations(page), "axe světlý, vypnutý štítek").toEqual([]);
+      expect(await chipContrast(chip), "šedý štítek, světlý režim").toBeGreaterThanOrEqual(4.5);
     });
 
-    await test.step("bez klíčů v konfiguraci se štítek nezobrazí; bez časovače chybí řádek konce", async () => {
+    await test.step("cíl CO₂ je konfigurace; bez klíčů se štítek nezobrazí; bez časovače chybí řádek konce", async () => {
       await open(page, "vent");
-      await reconfigure(page, { ventilation_timer_entity: undefined });
+      await reconfigure(page, { ventilation_co2_target: 800 });
       await chip.locator("button").click();
-      await expect(page.locator(".sheet .static-row")).toHaveCount(1);
-      expect(await popupText()).toContain("Běží");
+      // 820 ppm now: with the goal 800 the windows cannot be closed yet; the goal is in the configuration.
+      await expect(page.locator(".sheet .static-row").filter({ hasText: "Pracovna" })).toContainText("94 %");
+      await page.locator(".sheet .close").click();
+      await reconfigure(page, { ventilation_timer_entity: undefined, ventilation_co2_target: undefined });
+      await chip.locator("button").click();
+      await expect(page.locator(".sheet .static-row").filter({ hasText: "Skončí nejpozději" })).toHaveCount(0);
+      await page.locator(".sheet .close").click();
       await reconfigure(page, { ventilation_entity: undefined, ventilation_timer_entity: undefined });
       await expect(chip).toHaveCount(0);
     });
@@ -1597,7 +1683,7 @@ function dictionaryWords(dictionary: object): Set<string> {
 }
 
 /** Words that are the same in Czech and in English or Swedish (checked by hand). */
-const SHARED_WORDS = new Set(["auto", "boost", "ce", "co", "data", "den", "end", "konflikt", "minut", "pm", "tado", "windfree"]);
+const SHARED_WORDS = new Set(["auto", "boost", "ce", "co", "data", "den", "end", "konflikt", "min", "minut", "pm", "ppm", "tado", "windfree"]);
 
 /** Czech words: none of them may appear on a Swedish or English card. */
 const CZECH_ONLY = [...dictionaryWords(cs)].filter((word) => !SHARED_WORDS.has(word));

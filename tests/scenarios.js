@@ -184,6 +184,16 @@ function series(value) {
 
 const test = { services: [], scripts: [], haptics: [], moreInfo: [], actions: [], states, config };
 window.__test = test;
+if (scenario === "vent") {
+  // The run of the mode: on for 4 minutes; Pracovna (open window since 3 minutes) started at 1 180 ppm.
+  const at = (minutesAgo) => (now - minutesAgo * 60_000) / 1000;
+  const histories = {
+    "input_boolean.ventilation_mode": [{ s: "off", lu: at(60) }, { s: "on", lu: at(4) }],
+    "sensor.pracovna_teplomer_pracovna_carbon_dioxide": [{ s: "1180", lu: at(30) }, { s: "1180", lu: at(4) }],
+    "binary_sensor.pracovna_okno_pracovna": [{ s: "off", lu: at(30) }, { s: "on", lu: at(3) }],
+  };
+  test.historyFor = (id) => histories[id];
+}
 window.addEventListener("haptic", (event) => test.haptics.push(event.detail));
 window.addEventListener("hass-more-info", (event) => test.moreInfo.push(event.detail.entityId));
 // Home Assistant handles "hass-action" (navigate, url) in the app root.

@@ -27,6 +27,7 @@ house_modes:
 # Větrací režim: štítek v souhrnu domu a popup s dobou běhu a ukončením. Bez klíče se nezobrazuje.
 ventilation_entity: input_boolean.ventilation_mode    # entita režimu (zapnuto = štítek)
 ventilation_timer_entity: timer.ventilation_mode      # časovač režimu (konec nejpozději); bez klíče řádek konce zmizí
+ventilation_co2_target: 450                         # cíl CO₂ (ppm): při něm nebo pod ním lze zavřít okna
 
 # Venkovní podmínky v hlavičce. Teplota je z OpenWeatherMap; ostatní entity v domě nejsou, proto prázdné.
 outside:
