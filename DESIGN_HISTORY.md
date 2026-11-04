@@ -7,6 +7,7 @@ Formát každého bodu: **Navrženo** → **Opuštěno, protože** → **Nahraze
 
 - `ENTITY_MAP.md` je v `ha-config` jako `klima/ENTITY_MAP.md`, entity ověřuje jeden obraz `ha/entities.json` (místo `klima.json` a šablony). Nový `klima.json` z 4. 11. byl omylem export Energie; místnosti (465 entit s oblastmi) jsou obnoveny z historie `ha-config`. Podrobnosti a slova uživatele: `DESIGN_HISTORY.md` kitu, záznam z 4. 11. (ha-config jako obraz HA).
 - `package.json` a `package-lock.json`: kit připnut na `79c0d626…` místo `e96c781…`, který zmizel při squash `main` kitu.
+- Po prvním skutečném obrazu (4. 11., 1815 entit): v mapě je automatizace pro Ložnici `automation.loznice_obnova_topeni_pri_zavrenem_okne_loznice` (dřív bez předpony `loznice_`). Podrobnosti: `DESIGN_HISTORY.md` kitu, záznam z 4. 11. (práce na `main`).
 
 ## 2026-11-04 · Soukromá data přesunuta do `ha-config` (potvrzeno uživatelem)
 
