@@ -61,6 +61,12 @@ Formát každého bodu: **Navrženo** → **Opuštěno, protože** → **Nahraze
 - Poznámky revize, neřešeno: štítek větrání odsune „Topí …“ na druhý řádek a karty místností se při startu a konci režimu posunou o řádek štítků; výchozí rozdíl řádků popupů (poloměr 16 px, popisek 15 px, hodnota 17 px) proti `DASHBOARD_UX_SYSTEM.md` platí i pro popupy Okna a Kvalita vzduchu; `last_changed` režimu se po restartu Home Assistantu nastaví na čas restartu, režim se ale po restartu vypíná.
 - Nepotvrzeno, čeká na HA: `timer.ventilation_mode` (atribut `finishes_at`) není v žádném exportu; do `ENTITY_MAP.md` se zapíše po restartu HA a novém exportu, spec ho zatím jmenuje jen jako „časovač režimu“. Kód karty a příklad YAML nové klíče zatím nemají (spec je před kódem).
 
+## 2026-11-04 · Mřížka grafu historie místnosti (potvrzeno uživatelem)
+
+- Uživatel: „Tyhle grafy bez vodících čar, bez os atd jsou nesmyslné. […] na šířku okna musí být 6-10 dělení. na výšku musí být cca ve stejném rastru. Změň to všude.“ Podrobnosti a ostatní karty: `DESIGN_HISTORY.md` Energie, záznam z 4. 11., pravidlo v kitu (`DASHBOARD_UX_SYSTEM.md`, Grafy).
+- Nahrazeno: osa času po 6 h (00, 06, 12, 18) → krok podle období (12 h po 2 h, 24 h po 3 h, 48 h po 6 h, 72 h po 12 h, delší po dnech), 6 až 10 dělení, o půlnoci na grafu delším než 36 h datum; vodorovné čáry teploty ve stejném rastru (0,5 / 1 / 2 / 5 °C).
+- Nepotvrzeno, otázka položena D. M.: mikrotrendy v hlavní kartě (odsouhlasená) zůstávají bez mřížky; osa hodnot je vpravo, v Energii vlevo; vlhkost je bez osy.
+
 ## 2026-11-04 · Všechny name a description v příkladu a README vícejazyčně (potvrzeno uživatelem)
 
 - Uživatel: „Předělej všechny name a description na multilanguage.“ „Klidně cokoliv uprav, nebo mi řekni. Pak napiš co mám udělat já.“

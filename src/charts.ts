@@ -302,21 +302,25 @@ function nightBands(range: ChartRange, [startHour, endHour]: [number, number]): 
 }
 
 /**
- * Hours between two clock ticks: every 6 h up to a day (00, 06, 12, 18), then 12 h up to two
- * days and whole days beyond, so a longer history keeps about four to eight labels.
+ * Hours between two clock ticks: the step that divides the width of the plot into 6 to 10 parts (CURRENT_SPEC.md, Grafy;
+ * uživatel 4. 11. 2026), the nearest to 8 (on a tie the larger step): 3 h for a day, 6 h for two days, 12 h for four days,
+ * whole days beyond.
  */
-function tickHours(range: ChartRange): number {
+const TICK_STEPS_H = [1, 2, 3, 4, 6, 12, 24, 48, 72, 120, 168];
+export function tickHours(range: ChartRange): number {
   const hours = (range.endMs - range.startMs) / HOUR_MS;
-  if (hours <= 12) {
-    return 3;
+  let best = TICK_STEPS_H[0];
+  let bestScore = Infinity;
+  for (const step of TICK_STEPS_H) {
+    const parts = hours / step;
+    const outside = parts < 6 ? 6 - parts : parts > 10 ? parts - 10 : 0;
+    const score = outside * 100 + Math.abs(parts - 8) - step / 1e6;
+    if (score < bestScore) {
+      bestScore = score;
+      best = step;
+    }
   }
-  if (hours <= 24) {
-    return 6;
-  }
-  if (hours <= 48) {
-    return 12;
-  }
-  return hours <= 96 ? 24 : 48;
+  return best;
 }
 
 /** Clock ticks on whole multiples of `tickHours` inside the range (local time). */
@@ -368,7 +372,9 @@ function climateStripColor(mode: ClimateMode): string {
 
 /** Label of a tick: the time, or the date for ticks a day or more apart ("24. 10."). */
 function tickLabel(tick: number, range: ChartRange, i18n: I18n): string {
-  return tickHours(range) >= 24 ? i18n.day(tick) : i18n.hour(tick);
+  // A midnight on a chart of more than a day and a half shows the date, so the change of the day is visible between the hours.
+  const midnight = new Date(tick).getHours() === 0;
+  return tickHours(range) >= 24 || (midnight && range.endMs - range.startMs > 36 * HOUR_MS) ? i18n.day(tick) : i18n.hour(tick);
 }
 
 /** Values under the finger (or now): time, temperature, humidity, Topení and Klimatizace. */
@@ -456,7 +462,11 @@ export function renderRoomChart(
     targetPath += ` L${x(segment.end).toFixed(1)} ${y}`;
   });
 
-  const grid = temperatureTicks(model.tempMin, model.tempMax, model.tempStep);
+  // The horizontal lines about as far apart as the vertical ones (6 to 10 parts across): the cells of the grid are about square.
+  const pitch = plotWidth(width) / Math.max(1, (range.endMs - range.startMs) / HOUR_MS / tickHours(range));
+  const rawStep = (model.tempMax - model.tempMin) / Math.max(2, Math.round(PLOT_HEIGHT / pitch));
+  const gridStep = [0.5, 1, 2, 5, 10].find((candidate) => candidate >= rawStep * 0.8) ?? 10;
+  const grid = temperatureTicks(model.tempMin, model.tempMax, gridStep);
   const strip = (segments: Segment[], y: number, color: (value: string) => string) =>
     segments.map((segment) => {
       const left = x(segment.start);
