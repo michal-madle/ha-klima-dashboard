@@ -796,6 +796,22 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
       await expect(page.locator("#sheet-title")).toHaveText("Historie místnosti – 12 h");
       await expect(page.locator(".chart .night")).toHaveCount(1);
       await expect(page.locator(".chart-wrap")).toHaveAccessibleName(/^Graf za 12 hodin\./);
+      // The grid (uživatel 4. 11. 2026): 6 to 10 vertical divisions of the width and horizontal lines about as far apart (square cells).
+      const gridOfChart = await page.locator("svg.chart").evaluate((chart) => {
+        const lines = [...chart.querySelectorAll("line")];
+        const xs = lines.filter((line) => line.getAttribute("x1") === line.getAttribute("x2") && line.getAttribute("style")?.includes("--kd-grid-soft")).map((line) => Number(line.getAttribute("x1")));
+        const ys = lines.filter((line) => line.getAttribute("y1") === line.getAttribute("y2") && line.getAttribute("style")?.includes("--kd-grid")).map((line) => Number(line.getAttribute("y1")));
+        const rect = chart.querySelector("rect")!;
+        const left = Number(rect.getAttribute("x"));
+        const right = left + Number(rect.getAttribute("width"));
+        const edges = [left, ...xs.sort((a, b) => a - b), right];
+        const median = (values: number[]) => values.slice(1).map((value, i) => value - values[i]).sort((a, b) => a - b)[Math.floor((values.length - 1) / 2)];
+        return { divisions: edges.length - 1, cell: [median(edges), median(ys.sort((a, b) => a - b))] };
+      });
+      expect(gridOfChart.divisions).toBeGreaterThanOrEqual(6);
+      expect(gridOfChart.divisions).toBeLessThanOrEqual(10);
+      expect(gridOfChart.cell[1] / gridOfChart.cell[0]).toBeGreaterThan(0.4);
+      expect(gridOfChart.cell[1] / gridOfChart.cell[0]).toBeLessThan(2.2);
       // In the evening the last 12 h hold no night.
       await page.clock.setFixedTime(new Date("2026-10-24T21:00:00+02:00"));
       await open(page, "config");
@@ -820,8 +836,8 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
       };
       const shifted = await measure("2026-10-25T10:00:00+01:00");
       const normal = await measure("2026-10-24T10:00:00+02:00");
-      expect(shifted.ticks).toEqual(["12:00", "18:00", "00:00", "06:00"]);
-      expect(normal.ticks).toEqual(["12:00", "18:00", "00:00", "06:00"]);
+      expect(shifted.ticks).toEqual(["12:00", "15:00", "18:00", "21:00", "00:00", "03:00", "06:00", "09:00"]);
+      expect(normal.ticks).toEqual(["12:00", "15:00", "18:00", "21:00", "00:00", "03:00", "06:00", "09:00"]);
       expect(shifted.nights[0] / normal.nights[0]).toBeCloseTo(9 / 8, 1);
     });
     await test.step("formát času: 12 / 24 h z profilu i z jazyka; osa grafu má celé hodiny", async () => {
@@ -842,20 +858,20 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
       expect(await readout()).toMatch(/^[\p{L}]+ \d{1,2}:\d{2} [AP]M$/u);
       // 24 h from the profile: 18:00 and "yesterday 09:00".
       await setLocale(page, { time_format: "24" });
-      await expect.poll(axis).toEqual(["12:00", "18:00", "00:00", "06:00"]);
+      await expect.poll(axis).toEqual(["09:00", "12:00", "15:00", "18:00", "21:00", "00:00", "03:00", "06:00", "09:00"]);
       // 12 h from the profile in Czech.
       await setLocale(page, { time_format: "12" });
       await expect.poll(async () => (await axis()).some((label) => /:/.test(label))).toBe(false);
       // System: the browser of the test is Czech, i.e. 24 h although the card speaks English.
       await setLocale(page, { time_format: "system" });
-      await expect.poll(axis).toEqual(["12:00", "18:00", "00:00", "06:00"]);
+      await expect.poll(axis).toEqual(["09:00", "12:00", "15:00", "18:00", "21:00", "00:00", "03:00", "06:00", "09:00"]);
       // Language (the default): English → 12 h; the same Czech card → 24 h.
       await setLocale(page, { time_format: "language" });
       await expect.poll(async () => (await axis()).every((label) => /[AP]M$/i.test(label))).toBe(true);
       await page.keyboard.press("Escape");
       await open(page, "full", 393, 852, "dark", "cs");
       await rooms(page).first().locator(".temperature").click();
-      await expect.poll(axis).toEqual(["12:00", "18:00", "00:00", "06:00"]);
+      await expect.poll(axis).toEqual(["09:00", "12:00", "15:00", "18:00", "21:00", "00:00", "03:00", "06:00", "09:00"]);
     });
     await test.step("pořadí dne a měsíce: z jazyka, DMY, MDY, YMD", async () => {
       // Steps share one page: what an earlier step stored in the browser must not leak into this one.
@@ -866,7 +882,8 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
       await reconfigure(page, { history: { hours: 72 } });
       await rooms(page).first().locator(".temperature").click();
       await expect(page.locator(".chart")).toBeVisible();
-      const first = async () => clean((await page.locator(".chart .tick").allTextContents())[0]);
+      // The first date among the labels (the hours between the midnights have the clock).
+      const first = async () => (await page.locator(".chart .tick").allTextContents()).map(clean).find((label) => !label.includes(":")) ?? "";
       // Czech writes the day first ("22. 10."); the month 10 is the second number.
       await expect.poll(first).toMatch(/^\d{1,2}\. 10\.$/);
       for (const [format, monthFirst] of [["MDY", true], ["YMD", true], ["DMY", false], ["language", false]] as const) {
