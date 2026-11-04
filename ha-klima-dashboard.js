@@ -3846,6 +3846,12 @@ const os = Xn`
       line-height: 18px;
     }
 
+    /* Okna: state and duration under the name ("Otevřeno · 12 min"), in the colour of the state. */
+    .list-option .window-state {
+      font-size: 15px;
+      line-height: 20px;
+    }
+
     .option-text {
       flex: 1;
     }
@@ -3855,12 +3861,6 @@ const os = Xn`
       font-size: 17px;
       font-variant-numeric: tabular-nums;
       white-space: nowrap;
-    }
-
-    /* How long a window has been open, faintly after its state. */
-    .list-extra {
-      color: var(--kd-label);
-      font-size: 15px;
     }
 
     /* Větrací režim: fakta bez ovládání jako jedna skupina s oddělovačem (kit, Seznam), ne dlaždice jako klikací řádky. */
@@ -5271,10 +5271,9 @@ const ze = class ze extends Et {
             <span class="option-icon" aria-hidden="true">${he(a ? g.off : l, a)}</span>
             <span class="option-text">
               <span>${this.windowName(t, o)}</span>
-              <span class="option-hint">${i.detailsAndHistory}</span>
-            </span>
-            <span class="list-value" style=${`color: ${l}`}>
-              ${a ? u`<span aria-hidden="true">––</span><span class="sr-only">${i.unknownValue}</span>` : s === "open" ? i.window.open : i.window.closed}${r === void 0 ? f : u`<span class="list-extra">${Y}·${Y}${le(r)}</span>`}
+              <span class="option-hint window-state" style=${`color: ${l}`}>
+                ${a ? u`<span aria-hidden="true">––</span><span class="sr-only">${i.unknownValue}</span>` : s === "open" ? i.window.open : i.window.closed}${r === void 0 ? f : u`${Y}·${Y}${le(r)}`}
+              </span>
             </span>
             <span class="list-chevron" aria-hidden="true">›</span>
           </button>`;
