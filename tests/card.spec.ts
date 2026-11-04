@@ -409,7 +409,7 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
     test.setTimeout(150000);
     await test.step("příklad YAML projde kontrolou a vypisuje přesně výchozí hodnoty", async () => {
       await open(page, "full");
-      const [explicit, implicit] = await page.evaluate((config) => {
+      const [explicit, implicit, presetLanguages] = await page.evaluate((config) => {
         const normalized = (value: unknown) => {
           const card = document.createElement("ha-klima-dashboard") as unknown as { setConfig(value: unknown): void; _config: unknown };
           card.setConfig(value);
@@ -419,9 +419,18 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
         const bare = structuredClone(config);
         for (const key of ["theme", "language", "house_modes", "thresholds", "trends", "history", "covers"]) delete bare[key];
         for (const room of bare.rooms) delete room.image;
-        return [normalized(config), normalized(bare)];
+        // The names and descriptions of the presets are in the example in all three languages (uživatel 3. 11. 2026); without them
+        // the card names the presets by their icons, so they are compared apart from the rest.
+        const plain = structuredClone(config);
+        const languages = (plain.covers?.presets ?? []).map((preset: { name?: object; description?: object }) => [Object.keys(preset.name ?? {}), Object.keys(preset.description ?? {})]);
+        for (const preset of plain.covers?.presets ?? []) {
+          delete preset.name;
+          delete preset.description;
+        }
+        return [normalized(plain), normalized(bare), languages];
       }, example());
       expect(explicit).toEqual(implicit);
+      expect(presetLanguages).toEqual([[["cs", "en", "sv"], ["cs", "en", "sv"]], [["cs", "en", "sv"], ["cs", "en", "sv"]], [["cs", "en", "sv"], ["cs", "en", "sv"]]]);
     });
     await test.step("chybná hodnota zastaví kartu srozumitelnou chybou s názvem klíče; dosavadní konfigurace projde", async () => {
       // Steps share one page: what an earlier step stored in the browser must not leak into this one.
