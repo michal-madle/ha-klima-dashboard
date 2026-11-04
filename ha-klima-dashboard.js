@@ -2708,9 +2708,12 @@ const os = Xn`
       padding: 0 16px 0 11px;
     }
 
+    /* Idle: the grey of the "Ukončit" button (24 %), opaque like the running state, so the circle stays visible on a
+       light page and the icon contrast does not depend on the page behind the card. */
     .vent-trigger.off {
       --vent-color: var(--kd-label);
       padding: 0;
+      background: color-mix(in srgb, rgb(118 118 128) 24%, var(--kd-card-bg));
     }
 
     /* The touch area is 44 px (the button itself 36 px). */
@@ -2720,15 +2723,16 @@ const os = Xn`
       inset: -4px;
     }
 
+    /* The blades fill about 70 % of the 24 px frame, so 26 px gives a glyph of about 18 px. */
     .vent-icon {
       display: flex;
-      width: 22px;
-      height: 22px;
+      width: 26px;
+      height: 26px;
     }
 
     .vent-icon svg {
-      width: 22px;
-      height: 22px;
+      width: 26px;
+      height: 26px;
     }
 
     .outside {
@@ -3961,13 +3965,14 @@ const os = Xn`
       background: color-mix(in srgb, var(--kd-sky) 18%, transparent);
     }
 
-    /* Summary chip that opens the popup for the rooms it names: 44 px high touch target, the chip stays 30 px. */
+    /* Summary chip that opens the popup for the rooms it names: 44 px high touch target, the chip stays 30 px
+       (44 px button - 2 x 13 px margin = the 18 px line; the chip's own 6 px padding makes the 30 px). */
     .chip-open {
       display: inline-flex;
       align-items: center;
       gap: 6px;
       min-height: 44px;
-      margin: -7px -12px -7px -9px;
+      margin: -13px -12px -13px -9px;
       padding: 13px 12px 13px 9px;
       border-radius: 22px;
       color: inherit;
