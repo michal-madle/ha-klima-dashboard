@@ -28,9 +28,9 @@ house_modes:
 ventilation_entity: input_boolean.ventilation_mode    # entita režimu (zapnuto = štítek)
 ventilation_timer_entity: timer.ventilation_mode      # časovač režimu (konec nejpozději); bez klíče řádek konce zmizí
 
-# Venkovní podmínky v hlavičce. ID entit zatím nejsou potvrzená (ENTITY_MAP.md), proto prázdné.
+# Venkovní podmínky v hlavičce. Teplota je z OpenWeatherMap; ostatní entity v domě nejsou, proto prázdné.
 outside:
-  temperature:                  # aktuální venkovní teplota
+  temperature: sensor.openweathermap_temperature   # aktuální venkovní teplota
   minimum:                      # denní minimum
   maximum:                      # denní maximum
   rain_probability:             # pravděpodobnost deště (%)
