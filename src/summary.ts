@@ -3,7 +3,7 @@ import type { EntityId, HassEntity, Room } from "./types";
 import { climateView, heatingView } from "./systems";
 import { COLORS, roomLabel } from "./utils";
 
-export type SummaryKind = "windows" | "ventilation" | "manual" | "boost" | "heating" | "climate" | "conflict-window" | "conflict-cooling";
+export type SummaryKind = "windows" | "manual" | "boost" | "heating" | "climate" | "conflict-window" | "conflict-cooling";
 
 /** One status chip in the Domov header (CURRENT_SPEC.md, Dashboard Domov), in the card language. */
 export interface SummaryChip {
@@ -16,10 +16,6 @@ export interface SummaryChip {
   waves?: number;
   /** Heating and air-conditioning chips open the popup for exactly these rooms (in card order). */
   opens?: { system: "heating" | "climate"; rooms: string[] };
-  /** Ventilation chip: opens the house-wide popup "Větrací režim". */
-  opensVentilation?: true;
-  /** Ventilation chip while the mode is off: grey with a slashed fan. */
-  inactive?: true;
 }
 
 /** Up to two room names, otherwise a count ("Ložnice, Pracovna" / "3 místnosti"). */
@@ -81,8 +77,7 @@ export function roomConflicts(
 }
 
 /**
- * Chips only for what differs from a quiet house: conflicts first (orange), then the ventilation mode
- * (always, when it is configured and known: green while it runs, grey and slashed when it is off), open windows, manual heating overrides and Boost (one chip each), rooms that are heating now (at least one wave) and running air
+ * Chips only for what differs from a quiet house: conflicts first (orange), then open windows, manual heating overrides and Boost (one chip each), rooms that are heating now (at least one wave) and running air
  * conditioners. Unknown states are never counted. `coldRooms` are the rooms whose status is
  * "Chladno".
  */
@@ -91,7 +86,6 @@ export function houseSummary(
   get: (entityId: EntityId | undefined) => HassEntity | undefined,
   coldRooms: ReadonlySet<string>,
   i18n: I18n,
-  ventilation: "on" | "off" | undefined = undefined,
 ): SummaryChip[] {
   const texts = i18n.t.summaryChips;
   const conflicts: Record<RoomConflict, string[]> = { "window-heating": [], "window-cooling": [], "cooling-cold": [] };
@@ -144,18 +138,6 @@ export function houseSummary(
         spoken: `${texts.conflictSpoken[conflict]}: ${show(conflicts[conflict]).join(", ")}`,
       });
     }
-  }
-  // The ventilation mode is the first chip after the conflicts, before the open windows, also while it is off (CURRENT_SPEC.md, Větrací režim).
-  if (ventilation !== undefined) {
-    const running = ventilation === "on";
-    chips.push({
-      kind: "ventilation",
-      text: texts.ventilation,
-      color: running ? COLORS.fresh : COLORS.label,
-      spoken: running ? texts.ventilationSpoken : texts.ventilationOffSpoken,
-      opensVentilation: true,
-      ...(running ? {} : { inactive: true as const }),
-    });
   }
   // Windows are counted, not rooms: a room with two open windows adds two.
   const openTotal = open.reduce((sum, [, count]) => sum + count, 0);

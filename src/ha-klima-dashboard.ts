@@ -440,16 +440,21 @@ export class HaKlimaDashboard extends LitElement {
       (entityId) => this.getState(entityId),
       this.coldRooms(isSummer, modeKnown, now),
       this._i18n,
-      this.ventilationState(),
     );
-    const hasHeader = title !== "" || outside !== nothing || chips.length > 0;
+    // The ventilation button sits in the title row (also without a title); a card with its key always has the header.
+    const hasVentilation = this._config.ventilationEntity !== undefined;
+    const hasHeader = title !== "" || outside !== nothing || chips.length > 0 || hasVentilation;
 
     return html`
       <ha-card>
         <div class="dashboard">
           ${hasHeader
             ? html`<header class="dashboard-header">
-                ${title === "" ? nothing : html`<h1>${title}</h1>`}
+                ${hasVentilation
+                  ? html`<div class="title-row">${title === "" ? nothing : html`<h1>${title}</h1>`}${this.renderVentilationButton()}</div>`
+                  : title === ""
+                    ? nothing
+                    : html`<h1>${title}</h1>`}
                 ${outside} ${this.renderSummary(chips)}
               </header>`
             : nothing}
@@ -566,20 +571,6 @@ export class HaKlimaDashboard extends LitElement {
     return html`<ul class="summary" aria-label=${this._i18n.t.summary}>
       ${chips.map((chip) => {
         const icon = this.summaryIcon(chip);
-        if (chip.opensVentilation) {
-          return html`<li class="chip" style=${`--chip-color: ${chip.color}`}>
-            <button
-              type="button"
-              class="plain-button chip-open"
-              title=${chip.spoken}
-              aria-label=${`${chip.text}. ${chip.spoken}`}
-              aria-haspopup="dialog"
-              @click=${(event: Event) => this.openVentilationSheet(event)}
-            >
-              <span class="chip-icon" aria-hidden="true">${icon}</span>${chip.text}
-            </button>
-          </li>`;
-        }
         const opens = chip.opens;
         if (opens && opens.rooms.length > 0) {
           // The chip sets exactly the rooms it names (CURRENT_SPEC.md, Hromadné nastavení).
@@ -603,13 +594,10 @@ export class HaKlimaDashboard extends LitElement {
     </ul>`;
   }
 
-  /** The icon of a summary chip (window, fan, air conditioner, heating option or waves). */
+  /** The icon of a summary chip (window, air conditioner, heating option or waves). */
   private summaryIcon(chip: SummaryChip): TemplateResult {
     if (chip.kind === "windows" || chip.kind === "conflict-window") {
       return renderWindowIcon(chip.color, false);
-    }
-    if (chip.kind === "ventilation") {
-      return renderClimateIcon("fan", chip.color, false, chip.inactive === true);
     }
     if (chip.kind === "climate" || chip.kind === "conflict-cooling") {
       return renderClimateIcon("cool", chip.color, false);
@@ -1253,7 +1241,32 @@ export class HaKlimaDashboard extends LitElement {
     return (this._config?.rooms ?? []).filter((room) => room.cover && room.windows.length > 0 && room.carbon_dioxide);
   }
 
-  /** Summary chip: the house-wide ventilation popup (it has no room; the first one stands in). */
+  /**
+   * The ventilation mode in the title row, on the right: a green pill with the text while it runs,
+   * a grey icon while it does not (CURRENT_SPEC.md, Větrací režim). Nothing when its state is unknown.
+   */
+  private renderVentilationButton(): TemplateResult | typeof nothing {
+    const state = this.ventilationState();
+    if (state === undefined) {
+      return nothing;
+    }
+    const { t } = this._i18n;
+    const running = state === "on";
+    const spoken = `${t.ventilation.title}. ${running ? t.summaryChips.ventilationSpoken : t.summaryChips.ventilationOffSpoken}`;
+    return html`<button
+      type="button"
+      class="plain-button vent-trigger ${running ? "on" : "off"}"
+      title=${spoken}
+      aria-label=${spoken}
+      aria-haspopup="dialog"
+      @click=${(event: Event) => this.openVentilationSheet(event)}
+    >
+      <span class="vent-icon" aria-hidden="true">${renderClimateIcon("fan", running ? COLORS.fresh : COLORS.label, false)}</span>
+      ${running ? html`<span>${t.ventilation.title}</span>` : nothing}
+    </button>`;
+  }
+
+  /** The popup of the ventilation mode (it has no room; the first one stands in). */
   private openVentilationSheet(event: Event): void {
     const room = this._config?.rooms[0];
     if (!room) {
