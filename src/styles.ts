@@ -1250,14 +1250,39 @@ export const styles = css`
       color: var(--tone);
     }
 
-    /* One option per row: Kvalita vzduchu (CO₂, PM2.5) and Okna. */
+    /* Lists in popups (Kvalita vzduchu, Okna, Větrací režim) follow the kit, Seznam: one group of rows with a 12 px
+       radius and a separator between rows; the name is 17 px, the secondary text 13 px, the value 17 px. */
     .list-options {
       grid-template-columns: minmax(0, 1fr);
+      gap: 0;
+      border-radius: 12px;
+      background: var(--kd-fill);
+      overflow: hidden;
     }
 
     .list-option {
       width: 100%;
+      min-height: 56px;
+      padding: 8px 16px;
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      font-size: 17px;
       text-align: left;
+    }
+
+    .list-option + .list-option {
+      border-top: 1px solid var(--kd-fill-border);
+    }
+
+    .list-option:focus-visible {
+      outline-offset: -2px;
+    }
+
+    .list-option .option-hint,
+    .static-row .vent-co2 {
+      font-size: 13px;
+      line-height: 18px;
     }
 
     .option-text {
@@ -1291,7 +1316,7 @@ export const styles = css`
       min-height: 56px;
       padding: 8px 16px;
       color: var(--kd-text);
-      font-size: 15px;
+      font-size: 17px;
     }
 
     .static-row + .static-row {
