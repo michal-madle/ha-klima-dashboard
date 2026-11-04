@@ -138,7 +138,7 @@ export function climateShape(mode: ClimateMode): TemplateResult {
   return shape;
 }
 
-export function renderClimateIcon(mode: ClimateMode, color: string, dashed: boolean, slashed = false): TemplateResult {
+export function renderClimateIcon(mode: ClimateMode, color: string, dashed: boolean): TemplateResult {
   return html`
     <svg
       viewBox="0 0 24 24"
@@ -150,9 +150,7 @@ export function renderClimateIcon(mode: ClimateMode, color: string, dashed: bool
       stroke-dasharray=${dashed ? "2 2.4" : nothing}
       aria-hidden="true"
     >
-      ${slashed
-        ? svg`<defs><mask id="hdk-slash" maskUnits="userSpaceOnUse" x="0" y="0" width="24" height="24"><rect width="24" height="24" fill="white" stroke="none"></rect><path d="M4 4 20 20" stroke="black" stroke-width="4.8"></path></mask></defs><g mask="url(#hdk-slash)">${climateShape(mode)}</g><path d="M4 4 20 20"></path>`
-        : climateShape(mode)}
+      ${climateShape(mode)}
     </svg>
   `;
 }

@@ -145,6 +145,64 @@ export const styles = css`
       line-height: 1.2;
     }
 
+    /* Title row of a card with the ventilation mode: the title on the left, the button on the right
+       (above the blind buttons); the row keeps its height whatever the button shows. */
+    .title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 36px;
+    }
+
+    .plain-button.vent-trigger {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      flex: none;
+      min-width: 36px;
+      height: 36px;
+      margin-left: auto;
+      box-sizing: border-box;
+      justify-content: center;
+      border-radius: 18px;
+      color: var(--vent-color);
+      font-size: 15px;
+      font-weight: 500;
+      line-height: 20px;
+      white-space: nowrap;
+      background: color-mix(in srgb, var(--vent-color) var(--kd-chip-tint), var(--kd-card-bg));
+    }
+
+    .vent-trigger.on {
+      --vent-color: var(--kd-fresh);
+      padding: 0 16px 0 11px;
+    }
+
+    .vent-trigger.off {
+      --vent-color: var(--kd-label);
+      padding: 0;
+    }
+
+    /* The touch area is 44 px (the button itself 36 px). */
+    .vent-trigger::after {
+      content: "";
+      position: absolute;
+      inset: -4px;
+    }
+
+    .vent-icon {
+      display: flex;
+      width: 22px;
+      height: 22px;
+    }
+
+    .vent-icon svg {
+      width: 22px;
+      height: 22px;
+    }
+
     .outside {
       display: grid;
       gap: 2px;

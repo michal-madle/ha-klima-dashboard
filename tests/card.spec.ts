@@ -81,7 +81,7 @@ const chipContrast = (chip: Locator) =>
       return 0.2126 * x + 0.7152 * y + 0.0722 * z;
     };
     const background = luminance(bytes(getComputedStyle(element).backgroundColor));
-    const label = luminance(bytes(getComputedStyle(element.querySelector("button")!).color));
+    const label = luminance(bytes(getComputedStyle(element.querySelector("button") ?? element).color));
     const [light, dark] = background > label ? [background, label] : [label, background];
     return (light + 0.05) / (dark + 0.05);
   });
@@ -598,28 +598,37 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
     await expect(row).toHaveAccessibleDescription(/stav oken neznámý/);
   });
 
-  test("větrací režim: štítek před okny, popup s dobou, poklesem CO₂ a odhadem, výsledek po konci, Ukončit a nedostupná entita", async ({ page }) => {
+  test("větrací režim: tlačítko v řádku nadpisu vpravo, popup s dobou, poklesem CO₂ a odhadem, výsledek po konci, Ukončit a nedostupná entita", async ({ page }) => {
     const MODE = "input_boolean.ventilation_mode";
     const TIMER = "timer.ventilation_mode";
     const CO2_PRACOVNA = "sensor.pracovna_teplomer_pracovna_carbon_dioxide";
     await open(page, "vent");
-    const chip = page.locator(".summary .chip").filter({ hasText: "Větrací režim" });
+    const trigger = page.locator(".title-row .vent-trigger");
+    const titleRow = page.locator(".title-row");
 
-    await test.step("štítek je zelený, hned před štítkem oken, s názvem = viditelný text a ikonou ventilátoru", async () => {
-      const texts = tidy(await page.locator(".summary .chip").allInnerTexts());
-      const windows = texts.findIndex((text) => /otevřen/.test(text));
-      expect(windows, "štítek oken").toBeGreaterThan(0);
-      expect(texts[windows - 1], "hned před okny").toBe("Větrací režim");
-      const button = chip.locator("button");
-      await expect(button).toHaveAttribute("aria-label", "Větrací režim. Zapnutý. Otevře podrobnosti a ukončení.");
-      await expect(button).toHaveAttribute("aria-haspopup", "dialog");
-      await expect(chip).toHaveAttribute("style", /--kd-fresh/);
-      await expect(chip.locator(".chip-icon svg")).toHaveCount(1);
-      await expect(chip.locator('.chip-icon svg g[mask]'), "bez přeškrtnutí").toHaveCount(0);
+    await test.step("tlačítko je zelená kapsle s textem v řádku nadpisu vpravo; souhrn domu už větrací režim nemá", async () => {
+      await expect(page.locator(".summary .chip").filter({ hasText: "Větrací" }), "štítek v souhrnu").toHaveCount(0);
+      await expect(trigger).toHaveClass(/\bon\b/);
+      await expect(trigger).toHaveText("Větrací režim");
+      await expect(trigger).toHaveAttribute("aria-label", "Větrací režim. Zapnutý. Otevře podrobnosti a ukončení.");
+      await expect(trigger).toHaveAttribute("aria-haspopup", "dialog");
+      await expect(trigger.locator(".vent-icon svg")).toHaveCount(1);
+      const row = (await titleRow.boundingBox())!;
+      const box = (await trigger.boundingBox())!;
+      const title = (await page.locator(".title-row h1").boundingBox())!;
+      expect(row.x + row.width - (box.x + box.width), "vpravo, nad tlačítky žaluzií").toBeLessThanOrEqual(8);
+      expect(Math.abs(box.y + box.height / 2 - (title.y + title.height / 2)), "na úrovni nadpisu").toBeLessThanOrEqual(6);
+      expect(box.height, "tlačítko 36 px").toBeGreaterThanOrEqual(36);
+      // The touch area is 44 px: a point 3 px beyond the edge still hits the button.
+      const hit = await page.evaluate(([x, y]) => {
+        const root = document.querySelector("ha-klima-dashboard")!.shadowRoot!;
+        return root.elementFromPoint(x, y)?.closest(".vent-trigger") !== null;
+      }, [box.x - 3, box.y + box.height / 2]);
+      expect(hit, "dotyková plocha 44 px").toBe(true);
     });
 
     await test.step("popup za běhu: Běží, Skončí nejpozději, Pracovna z 1 180 na 820 ppm = 49 %, Lze zavřít okna „Ještě ne“", async () => {
-      await chip.locator("button").click();
+      await trigger.click();
       await expect(page.locator("#sheet-title")).toHaveText("Větrací režim");
       const rows = page.locator(".sheet .static-row");
       await expect(rows.nth(0)).toContainText(/Běží\s*4 min/);
@@ -683,12 +692,11 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
       await expect(page.locator(".sheet .timer-foot")).toHaveText("Cíl: CO₂ 450 ppm nebo méně.");
       await expect(page.getByRole("button", { name: /Ukončit|Ukončuje/ })).toHaveCount(0);
       await expect(page.locator("[role=status]")).toHaveText("Větrací režim skončil.");
-      const button = chip.locator("button");
-      await expect(button).toHaveAttribute("aria-label", "Větrací režim. Vypnutý. Otevře poslední větrání.");
-      await expect(chip).toHaveAttribute("style", /--kd-label/);
-      await expect(chip.locator('.chip-icon svg g[mask]'), "přeškrtnutá ikona").toHaveCount(1);
+      await expect(trigger).toHaveClass(/\boff\b/);
+      await expect(trigger).toHaveText("");
+      await expect(trigger).toHaveAttribute("aria-label", "Větrací režim. Vypnutý. Otevře poslední větrání.");
       expect(await axeViolations(page), "axe výsledek").toEqual([]);
-      expect(await chipContrast(chip), "šedý štítek, tmavý režim").toBeGreaterThanOrEqual(4.5);
+      expect(await chipContrast(trigger), "šedé tlačítko, tmavý režim").toBeGreaterThanOrEqual(3);
     });
 
     await test.step("poslední větrání starší než dnes: čas má před sebou den", async () => {
@@ -704,14 +712,14 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
         };
         test.historyFor = (id: string) => histories[id];
       });
-      await chip.locator("button").click();
+      await trigger.click();
       await expect(page.locator(".sheet .static-row").first()).toContainText(/Poslední větrání\s*\d{1,2}\. \d{1,2}\.\s*\d{1,2}:\d{2}–\d{1,2}:\d{2}/);
     });
 
     await test.step("chyba příkazu: věta se nahradí hláškou, tlačítko je znovu aktivní, haptika failure", async () => {
       await page.locator(".sheet .close").click();
       await setStates(page, { [MODE]: "on", [TIMER]: "active" });
-      await chip.locator("button").click();
+      await trigger.click();
       await page.evaluate(() => {
         // @ts-expect-error test hook
         window.__test.failNext = true;
@@ -723,41 +731,55 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
       expect(await hook<string[]>(page, "haptics")).toContain("failure");
     });
 
-    await test.step("nedostupná entita: štítek zmizí a nic se nehlásí; popup bez štítku nejde otevřít", async () => {
+    await test.step("nedostupná entita: tlačítko zmizí, nic se nehlásí a řádek nadpisu drží výšku", async () => {
       await page.locator(".sheet .close").click();
+      const before = (await titleRow.boundingBox())!.height;
       await setStates(page, { [MODE]: "unavailable" });
-      await expect(chip).toHaveCount(0);
+      await expect(trigger).toHaveCount(0);
+      expect((await titleRow.boundingBox())!.height, "výška řádku").toBe(before);
       await setStates(page, { [MODE]: "unknown" });
-      await expect(chip).toHaveCount(0);
+      await expect(trigger).toHaveCount(0);
+      await setStates(page, { [MODE]: "on" });
+      await expect(trigger).toHaveClass(/\bon\b/);
+      expect((await titleRow.boundingBox())!.height, "výška řádku za běhu").toBe(before);
     });
 
-    await test.step("světlý režim: štítek (zelený i šedý) a popup bez porušení axe", async () => {
+    await test.step("světlý režim: tlačítko (zelené i šedé) a popup bez porušení axe", async () => {
       await open(page, "vent", 393, 852, "light");
       await expect(page.locator("ha-klima-dashboard")).toHaveAttribute("data-theme", "light");
       expect(await axeViolations(page), "axe světlý, karta").toEqual([]);
-      await chip.locator("button").click();
+      await trigger.click();
       await expect(page.locator(".sheet .static-row").first()).toBeVisible();
       expect(await axeViolations(page), "axe světlý, popup").toEqual([]);
-      expect(await chipContrast(chip), "zelený štítek, světlý režim").toBeGreaterThanOrEqual(4.5);
+      expect(await chipContrast(trigger), "zelené tlačítko, světlý režim").toBeGreaterThanOrEqual(4.5);
       await page.locator(".sheet .close").click();
       await setStates(page, { [MODE]: "off" });
-      expect(await axeViolations(page), "axe světlý, vypnutý štítek").toEqual([]);
-      expect(await chipContrast(chip), "šedý štítek, světlý režim").toBeGreaterThanOrEqual(4.5);
+      expect(await axeViolations(page), "axe světlý, vypnuté tlačítko").toEqual([]);
+      expect(await chipContrast(trigger), "šedé tlačítko, světlý režim").toBeGreaterThanOrEqual(3);
     });
 
-    await test.step("cíl CO₂ je konfigurace; bez klíčů se štítek nezobrazí; bez časovače chybí řádek konce", async () => {
+    await test.step("cíl CO₂ je konfigurace; bez časovače chybí řádek konce; bez nadpisu zůstane jen tlačítko; bez klíče není tlačítko ani řádek", async () => {
       await open(page, "vent");
       await reconfigure(page, { ventilation_co2_target: 800 });
-      await chip.locator("button").click();
+      await trigger.click();
       // 820 ppm now: with the goal 800 the windows cannot be closed yet; the goal is in the configuration.
       await expect(page.locator(".sheet .static-row").filter({ hasText: "Pracovna" })).toContainText("94 %");
       await page.locator(".sheet .close").click();
       await reconfigure(page, { ventilation_timer_entity: undefined, ventilation_co2_target: undefined });
-      await chip.locator("button").click();
+      await trigger.click();
       await expect(page.locator(".sheet .static-row").filter({ hasText: "Skončí nejpozději" })).toHaveCount(0);
       await page.locator(".sheet .close").click();
-      await reconfigure(page, { ventilation_entity: undefined, ventilation_timer_entity: undefined });
-      await expect(chip).toHaveCount(0);
+      // Without a title the row keeps only the button, on the right.
+      await reconfigure(page, { title: "" });
+      await expect(page.locator(".title-row h1")).toHaveCount(0);
+      const alone = (await trigger.boundingBox())!;
+      const aloneRow = (await titleRow.boundingBox())!;
+      expect(aloneRow.x + aloneRow.width - (alone.x + alone.width), "bez nadpisu vpravo").toBeLessThanOrEqual(8);
+      // Without the key there is neither the button nor the row.
+      await reconfigure(page, { ventilation_entity: undefined, ventilation_timer_entity: undefined, title: undefined });
+      await expect(trigger).toHaveCount(0);
+      await expect(titleRow).toHaveCount(0);
+      await expect(page.locator("h1")).toHaveCount(1);
     });
   });
 
