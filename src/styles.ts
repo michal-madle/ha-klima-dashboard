@@ -53,6 +53,8 @@ export const styles = css`
       --kd-grid: rgb(255 255 255 / 8%);
       --kd-grid-soft: rgb(255 255 255 / 6%);
       --kd-area: rgb(255 255 255 / 7%);
+      --kd-band-window: 0.42;
+      --kd-band-ventilation: 0.5;
       --kd-scene-bedroom: #a5a1f2;
       --kd-scene-office: #7fc8f8;
       --kd-scene-kids: #ffb36b;
@@ -106,6 +108,8 @@ export const styles = css`
       --kd-grid: rgb(0 0 0 / 8%);
       --kd-grid-soft: rgb(0 0 0 / 6%);
       --kd-area: rgb(0 0 0 / 5%);
+      --kd-band-window: 0.3;
+      --kd-band-ventilation: 0.38;
       --kd-scene-bedroom: #6f67d6;
       --kd-scene-office: #2c8bc9;
       --kd-scene-kids: #d9822b;
@@ -425,7 +429,7 @@ export const styles = css`
     }
 
     .plain-button:focus-visible {
-      outline: 2px solid var(--primary-color, #64b5f6);
+      outline: 2px solid var(--kd-sky);
       outline-offset: 2px;
       border-radius: 6px;
     }
@@ -1091,6 +1095,10 @@ export const styles = css`
       transition: transform 220ms ease-out;
     }
 
+    .sheet:focus {
+      outline: none;
+    }
+
     .sheet.dragging {
       transition: none;
     }
@@ -1195,14 +1203,41 @@ export const styles = css`
       line-height: 20px;
     }
 
+    /* A 30 px circle (normal button of the kit) inside a 44 px touch area. */
     .close {
+      display: flex;
+      align-items: center;
+      justify-content: center;
       width: 44px;
       height: 44px;
       flex: 0 0 44px;
       margin: -8px -8px 0 0;
       color: var(--kd-label);
-      font-size: 18px;
-      text-align: center;
+    }
+
+    .close-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: var(--kd-segmented-bg);
+    }
+
+    .close:active .close-icon {
+      background: rgb(118 118 128 / 36%);
+    }
+
+    .close:focus-visible {
+      border-radius: 50%;
+      outline: 2px solid var(--kd-sky);
+      outline-offset: -2px;
+    }
+
+    .close svg {
+      width: 12px;
+      height: 12px;
     }
 
     .sheet-message {
@@ -1831,38 +1866,70 @@ export const styles = css`
     }
 
     .chart-wrap:focus-visible {
-      outline: 2px solid var(--primary-color, #64b5f6);
+      outline: 2px solid var(--kd-sky);
       outline-offset: 2px;
     }
 
     .readout {
       display: grid;
       gap: 2px;
-      min-height: 46px;
-      margin-bottom: 8px;
+      min-height: 52px;
+      margin: 12px 0;
     }
 
+    /* Value (and humidity) on the left, the time on the right: the number does not jump when the time gets longer ("včera 22:15"). */
     .readout-main {
       display: flex;
       align-items: baseline;
-      gap: 10px;
+      justify-content: space-between;
+      gap: 12px;
       font-variant-numeric: tabular-nums;
     }
 
+    .readout-values {
+      display: flex;
+      align-items: baseline;
+      gap: 14px;
+      min-width: 0;
+    }
+
     .readout-time {
-      min-width: 3.4em;
+      flex: none;
       color: var(--kd-label);
       font-size: 15px;
+      text-align: right;
     }
 
     .readout-temp {
       font-size: 22px;
       font-weight: 600;
+      line-height: 28px;
+      white-space: nowrap;
     }
 
+    .readout-unit {
+      color: var(--kd-label);
+      font-size: 15px;
+      font-weight: 400;
+    }
+
+    /* Humidity is the dashed blue line of the chart: a sample of that line stands for the missing label. */
     .readout-hum {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
       color: var(--kd-sky);
       font-size: 15px;
+      white-space: nowrap;
+    }
+
+    .readout-swatch {
+      width: 14px;
+      border-top: 2px dashed currentColor;
+    }
+
+    .readout-hum.pm25 {
+      color: var(--kd-pm25);
     }
 
     .readout-systems {
@@ -1888,6 +1955,7 @@ export const styles = css`
 
     .chart {
       display: block;
+      overflow: visible;
       max-width: 100%;
       height: auto;
       font-family: inherit;

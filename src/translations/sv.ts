@@ -36,10 +36,9 @@ export const sv: Texts = {
     `${room}: temperaturen${direction ? ` ${direction}` : ""} under ${period}, rumshistorik för ${history}`,
   link: { page: "Öppnar rummets sida.", web: "Öppnar länken." },
 
-  air: "Luftkvalitet",
   airSensor: (label, value, trend, stale) => `${label} ${value ?? "okänt"}${trend ? `, ${trend}` : ""}${stale}`,
-  airDescription: (room, sensors, popup) =>
-    `${room}: luftkvalitet, ${sensors || "ingen sensor"}. ${popup ? "Öppnar detaljer." : "Öppnar detaljer och historik."}`,
+  airDescription: (room, sensors, period) =>
+    `${room}: luftkvalitet, ${sensors || "ingen sensor"}. Öppnar diagrammet för ${period}.`,
   detailsAndHistory: "Detaljer och historik",
   unknownValue: "okänt",
   trend: { rising: "stiger", falling: "sjunker", stable: "stabil" },
@@ -153,12 +152,13 @@ export const sv: Texts = {
     noHistory: (hours) => `Inga data för ${hours === 1 ? "den senaste timmen" : `de senaste ${hours} timmarna`}.`,
     chart: (period) =>
       `Diagram över ${period}. Vänster- och högerpilen flyttar i tiden, End-tangenten går tillbaka till nu.`,
-    temperatureDetails: "Temperaturdetaljer",
   },
 
   chart: {
     now: "Nu",
     yesterday: "igår",
+    ventilationOn: "igång",
+    ventilationOff: "av",
   },
 
   summaryChips: {

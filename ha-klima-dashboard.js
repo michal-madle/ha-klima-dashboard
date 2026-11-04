@@ -1,15 +1,15 @@
-const Wt = globalThis, Se = Wt.ShadowRoot && (Wt.ShadyCSS === void 0 || Wt.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype, Te = /* @__PURE__ */ Symbol(), Ne = /* @__PURE__ */ new WeakMap();
-let xn = class {
+const te = globalThis, Ie = te.ShadowRoot && (te.ShadyCSS === void 0 || te.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype, He = /* @__PURE__ */ Symbol(), sn = /* @__PURE__ */ new WeakMap();
+let jn = class {
   constructor(t, n, i) {
-    if (this._$cssResult$ = !0, i !== Te) throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");
+    if (this._$cssResult$ = !0, i !== He) throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");
     this.cssText = t, this.t = n;
   }
   get styleSheet() {
     let t = this.o;
     const n = this.t;
-    if (Se && t === void 0) {
+    if (Ie && t === void 0) {
       const i = n !== void 0 && n.length === 1;
-      i && (t = Ne.get(n)), t === void 0 && ((this.o = t = new CSSStyleSheet()).replaceSync(this.cssText), i && Ne.set(n, t));
+      i && (t = sn.get(n)), t === void 0 && ((this.o = t = new CSSStyleSheet()).replaceSync(this.cssText), i && sn.set(n, t));
     }
     return t;
   }
@@ -17,28 +17,28 @@ let xn = class {
     return this.cssText;
   }
 };
-const Zn = (e) => new xn(typeof e == "string" ? e : e + "", void 0, Te), Xn = (e, ...t) => {
-  const n = e.length === 1 ? e[0] : t.reduce((i, o, s) => i + ((r) => {
-    if (r._$cssResult$ === !0) return r.cssText;
-    if (typeof r == "number") return r;
-    throw Error("Value passed to 'css' function must be a 'css' function result: " + r + ". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.");
+const _i = (e) => new jn(typeof e == "string" ? e : e + "", void 0, He), Si = (e, ...t) => {
+  const n = e.length === 1 ? e[0] : t.reduce((i, o, s) => i + ((a) => {
+    if (a._$cssResult$ === !0) return a.cssText;
+    if (typeof a == "number") return a;
+    throw Error("Value passed to 'css' function must be a 'css' function result: " + a + ". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.");
   })(o) + e[s + 1], e[0]);
-  return new xn(n, e, Te);
-}, Jn = (e, t) => {
-  if (Se) e.adoptedStyleSheets = t.map((n) => n instanceof CSSStyleSheet ? n : n.styleSheet);
+  return new jn(n, e, He);
+}, Mi = (e, t) => {
+  if (Ie) e.adoptedStyleSheets = t.map((n) => n instanceof CSSStyleSheet ? n : n.styleSheet);
   else for (const n of t) {
-    const i = document.createElement("style"), o = Wt.litNonce;
+    const i = document.createElement("style"), o = te.litNonce;
     o !== void 0 && i.setAttribute("nonce", o), i.textContent = n.cssText, e.appendChild(i);
   }
-}, Ie = Se ? (e) => e : (e) => e instanceof CSSStyleSheet ? ((t) => {
+}, an = Ie ? (e) => e : (e) => e instanceof CSSStyleSheet ? ((t) => {
   let n = "";
   for (const i of t.cssRules) n += i.cssText;
-  return Zn(n);
+  return _i(n);
 })(e) : e;
-const { is: Qn, defineProperty: ti, getOwnPropertyDescriptor: ei, getOwnPropertyNames: ni, getOwnPropertySymbols: ii, getPrototypeOf: oi } = Object, te = globalThis, He = te.trustedTypes, si = He ? He.emptyScript : "", ri = te.reactiveElementPolyfillSupport, Ct = (e, t) => e, Gt = { toAttribute(e, t) {
+const { is: Ti, defineProperty: Ci, getOwnPropertyDescriptor: Ei, getOwnPropertyNames: Ai, getOwnPropertySymbols: Oi, getPrototypeOf: Li } = Object, ce = globalThis, rn = ce.trustedTypes, Pi = rn ? rn.emptyScript : "", Ri = ce.reactiveElementPolyfillSupport, zt = (e, t) => e, se = { toAttribute(e, t) {
   switch (t) {
     case Boolean:
-      e = e ? si : null;
+      e = e ? Pi : null;
       break;
     case Object:
     case Array:
@@ -63,44 +63,44 @@ const { is: Qn, defineProperty: ti, getOwnPropertyDescriptor: ei, getOwnProperty
       }
   }
   return n;
-} }, Me = (e, t) => !Qn(e, t), Fe = { attribute: !0, type: String, converter: Gt, reflect: !1, useDefault: !1, hasChanged: Me };
-Symbol.metadata ??= /* @__PURE__ */ Symbol("metadata"), te.litPropertyMetadata ??= /* @__PURE__ */ new WeakMap();
-let ft = class extends HTMLElement {
+} }, Fe = (e, t) => !Ti(e, t), ln = { attribute: !0, type: String, converter: se, reflect: !1, useDefault: !1, hasChanged: Fe };
+Symbol.metadata ??= /* @__PURE__ */ Symbol("metadata"), ce.litPropertyMetadata ??= /* @__PURE__ */ new WeakMap();
+let kt = class extends HTMLElement {
   static addInitializer(t) {
     this._$Ei(), (this.l ??= []).push(t);
   }
   static get observedAttributes() {
     return this.finalize(), this._$Eh && [...this._$Eh.keys()];
   }
-  static createProperty(t, n = Fe) {
+  static createProperty(t, n = ln) {
     if (n.state && (n.attribute = !1), this._$Ei(), this.prototype.hasOwnProperty(t) && ((n = Object.create(n)).wrapped = !0), this.elementProperties.set(t, n), !n.noAccessor) {
       const i = /* @__PURE__ */ Symbol(), o = this.getPropertyDescriptor(t, i, n);
-      o !== void 0 && ti(this.prototype, t, o);
+      o !== void 0 && Ci(this.prototype, t, o);
     }
   }
   static getPropertyDescriptor(t, n, i) {
-    const { get: o, set: s } = ei(this.prototype, t) ?? { get() {
+    const { get: o, set: s } = Ei(this.prototype, t) ?? { get() {
       return this[n];
-    }, set(r) {
-      this[n] = r;
+    }, set(a) {
+      this[n] = a;
     } };
-    return { get: o, set(r) {
-      const a = o?.call(this);
-      s?.call(this, r), this.requestUpdate(t, a, i);
+    return { get: o, set(a) {
+      const r = o?.call(this);
+      s?.call(this, a), this.requestUpdate(t, r, i);
     }, configurable: !0, enumerable: !0 };
   }
   static getPropertyOptions(t) {
-    return this.elementProperties.get(t) ?? Fe;
+    return this.elementProperties.get(t) ?? ln;
   }
   static _$Ei() {
-    if (this.hasOwnProperty(Ct("elementProperties"))) return;
-    const t = oi(this);
+    if (this.hasOwnProperty(zt("elementProperties"))) return;
+    const t = Li(this);
     t.finalize(), t.l !== void 0 && (this.l = [...t.l]), this.elementProperties = new Map(t.elementProperties);
   }
   static finalize() {
-    if (this.hasOwnProperty(Ct("finalized"))) return;
-    if (this.finalized = !0, this._$Ei(), this.hasOwnProperty(Ct("properties"))) {
-      const n = this.properties, i = [...ni(n), ...ii(n)];
+    if (this.hasOwnProperty(zt("finalized"))) return;
+    if (this.finalized = !0, this._$Ei(), this.hasOwnProperty(zt("properties"))) {
+      const n = this.properties, i = [...Ai(n), ...Oi(n)];
       for (const o of i) this.createProperty(o, n[o]);
     }
     const t = this[Symbol.metadata];
@@ -119,8 +119,8 @@ let ft = class extends HTMLElement {
     const n = [];
     if (Array.isArray(t)) {
       const i = new Set(t.flat(1 / 0).reverse());
-      for (const o of i) n.unshift(Ie(o));
-    } else t !== void 0 && n.push(Ie(t));
+      for (const o of i) n.unshift(an(o));
+    } else t !== void 0 && n.push(an(t));
     return n;
   }
   static _$Eu(t, n) {
@@ -146,7 +146,7 @@ let ft = class extends HTMLElement {
   }
   createRenderRoot() {
     const t = this.shadowRoot ?? this.attachShadow(this.constructor.shadowRootOptions);
-    return Jn(t, this.constructor.elementStyles), t;
+    return Mi(t, this.constructor.elementStyles), t;
   }
   connectedCallback() {
     this.renderRoot ??= this.createRenderRoot(), this.enableUpdating(!0), this._$EO?.forEach((t) => t.hostConnected?.());
@@ -162,29 +162,29 @@ let ft = class extends HTMLElement {
   _$ET(t, n) {
     const i = this.constructor.elementProperties.get(t), o = this.constructor._$Eu(t, i);
     if (o !== void 0 && i.reflect === !0) {
-      const s = (i.converter?.toAttribute !== void 0 ? i.converter : Gt).toAttribute(n, i.type);
+      const s = (i.converter?.toAttribute !== void 0 ? i.converter : se).toAttribute(n, i.type);
       this._$Em = t, s == null ? this.removeAttribute(o) : this.setAttribute(o, s), this._$Em = null;
     }
   }
   _$AK(t, n) {
     const i = this.constructor, o = i._$Eh.get(t);
     if (o !== void 0 && this._$Em !== o) {
-      const s = i.getPropertyOptions(o), r = typeof s.converter == "function" ? { fromAttribute: s.converter } : s.converter?.fromAttribute !== void 0 ? s.converter : Gt;
+      const s = i.getPropertyOptions(o), a = typeof s.converter == "function" ? { fromAttribute: s.converter } : s.converter?.fromAttribute !== void 0 ? s.converter : se;
       this._$Em = o;
-      const a = r.fromAttribute(n, s.type);
-      this[o] = a ?? this._$Ej?.get(o) ?? a, this._$Em = null;
+      const r = a.fromAttribute(n, s.type);
+      this[o] = r ?? this._$Ej?.get(o) ?? r, this._$Em = null;
     }
   }
   requestUpdate(t, n, i, o = !1, s) {
     if (t !== void 0) {
-      const r = this.constructor;
-      if (o === !1 && (s = this[t]), i ??= r.getPropertyOptions(t), !((i.hasChanged ?? Me)(s, n) || i.useDefault && i.reflect && s === this._$Ej?.get(t) && !this.hasAttribute(r._$Eu(t, i)))) return;
+      const a = this.constructor;
+      if (o === !1 && (s = this[t]), i ??= a.getPropertyOptions(t), !((i.hasChanged ?? Fe)(s, n) || i.useDefault && i.reflect && s === this._$Ej?.get(t) && !this.hasAttribute(a._$Eu(t, i)))) return;
       this.C(t, n, i);
     }
     this.isUpdatePending === !1 && (this._$ES = this._$EP());
   }
-  C(t, n, { useDefault: i, reflect: o, wrapped: s }, r) {
-    i && !(this._$Ej ??= /* @__PURE__ */ new Map()).has(t) && (this._$Ej.set(t, r ?? n ?? this[t]), s !== !0 || r !== void 0) || (this._$AL.has(t) || (this.hasUpdated || i || (n = void 0), this._$AL.set(t, n)), o === !0 && this._$Em !== t && (this._$Eq ??= /* @__PURE__ */ new Set()).add(t));
+  C(t, n, { useDefault: i, reflect: o, wrapped: s }, a) {
+    i && !(this._$Ej ??= /* @__PURE__ */ new Map()).has(t) && (this._$Ej.set(t, a ?? n ?? this[t]), s !== !0 || a !== void 0) || (this._$AL.has(t) || (this.hasUpdated || i || (n = void 0), this._$AL.set(t, n)), o === !0 && this._$Em !== t && (this._$Eq ??= /* @__PURE__ */ new Set()).add(t));
   }
   async _$EP() {
     this.isUpdatePending = !0;
@@ -208,8 +208,8 @@ let ft = class extends HTMLElement {
       }
       const i = this.constructor.elementProperties;
       if (i.size > 0) for (const [o, s] of i) {
-        const { wrapped: r } = s, a = this[o];
-        r !== !0 || this._$AL.has(o) || a === void 0 || this.C(o, void 0, s, a);
+        const { wrapped: a } = s, r = this[o];
+        a !== !0 || this._$AL.has(o) || r === void 0 || this.C(o, void 0, s, r);
       }
     }
     let t = !1;
@@ -246,70 +246,70 @@ let ft = class extends HTMLElement {
   firstUpdated(t) {
   }
 };
-ft.elementStyles = [], ft.shadowRootOptions = { mode: "open" }, ft[Ct("elementProperties")] = /* @__PURE__ */ new Map(), ft[Ct("finalized")] = /* @__PURE__ */ new Map(), ri?.({ ReactiveElement: ft }), (te.reactiveElementVersions ??= []).push("2.1.2");
-const Ce = globalThis, je = (e) => e, Zt = Ce.trustedTypes, Ue = Zt ? Zt.createPolicy("lit-html", { createHTML: (e) => e }) : void 0, Sn = "$lit$", Q = `lit$${Math.random().toFixed(9).slice(2)}$`, Tn = "?" + Q, ai = `<${Tn}>`, lt = document, At = () => lt.createComment(""), Ot = (e) => e === null || typeof e != "object" && typeof e != "function", Ee = Array.isArray, li = (e) => Ee(e) || typeof e?.[Symbol.iterator] == "function", oe = `[ 	
-\f\r]`, $t = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, Ve = /-->/g, Be = />/g, nt = RegExp(`>|${oe}(?:([^\\s"'>=/]+)(${oe}*=${oe}*(?:[^ 	
-\f\r"'\`<>=]|("|')|))|$)`, "g"), We = /'/g, Ke = /"/g, Mn = /^(?:script|style|textarea|title)$/i, Cn = (e) => (t, ...n) => ({ _$litType$: e, strings: t, values: n }), u = Cn(1), _ = Cn(2), gt = /* @__PURE__ */ Symbol.for("lit-noChange"), f = /* @__PURE__ */ Symbol.for("lit-nothing"), qe = /* @__PURE__ */ new WeakMap(), at = lt.createTreeWalker(lt, 129);
-function En(e, t) {
-  if (!Ee(e) || !e.hasOwnProperty("raw")) throw Error("invalid template strings array");
-  return Ue !== void 0 ? Ue.createHTML(t) : t;
+kt.elementStyles = [], kt.shadowRootOptions = { mode: "open" }, kt[zt("elementProperties")] = /* @__PURE__ */ new Map(), kt[zt("finalized")] = /* @__PURE__ */ new Map(), Ri?.({ ReactiveElement: kt }), (ce.reactiveElementVersions ??= []).push("2.1.2");
+const je = globalThis, dn = (e) => e, ae = je.trustedTypes, cn = ae ? ae.createPolicy("lit-html", { createHTML: (e) => e }) : void 0, Un = "$lit$", ot = `lit$${Math.random().toFixed(9).slice(2)}$`, Vn = "?" + ot, zi = `<${Vn}>`, pt = document, Nt = () => pt.createComment(""), It = (e) => e === null || typeof e != "object" && typeof e != "function", Ue = Array.isArray, Di = (e) => Ue(e) || typeof e?.[Symbol.iterator] == "function", ge = `[ 	
+\f\r]`, Ct = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g, hn = /-->/g, pn = />/g, rt = RegExp(`>|${ge}(?:([^\\s"'>=/]+)(${ge}*=${ge}*(?:[^ 	
+\f\r"'\`<>=]|("|')|))|$)`, "g"), un = /'/g, mn = /"/g, Bn = /^(?:script|style|textarea|title)$/i, Wn = (e) => (t, ...n) => ({ _$litType$: e, strings: t, values: n }), m = Wn(1), y = Wn(2), St = /* @__PURE__ */ Symbol.for("lit-noChange"), g = /* @__PURE__ */ Symbol.for("lit-nothing"), fn = /* @__PURE__ */ new WeakMap(), ht = pt.createTreeWalker(pt, 129);
+function Kn(e, t) {
+  if (!Ue(e) || !e.hasOwnProperty("raw")) throw Error("invalid template strings array");
+  return cn !== void 0 ? cn.createHTML(t) : t;
 }
-const di = (e, t) => {
+const Ni = (e, t) => {
   const n = e.length - 1, i = [];
-  let o, s = t === 2 ? "<svg>" : t === 3 ? "<math>" : "", r = $t;
-  for (let a = 0; a < n; a++) {
-    const l = e[a];
+  let o, s = t === 2 ? "<svg>" : t === 3 ? "<math>" : "", a = Ct;
+  for (let r = 0; r < n; r++) {
+    const l = e[r];
     let d, c, p = -1, h = 0;
-    for (; h < l.length && (r.lastIndex = h, c = r.exec(l), c !== null); ) h = r.lastIndex, r === $t ? c[1] === "!--" ? r = Ve : c[1] !== void 0 ? r = Be : c[2] !== void 0 ? (Mn.test(c[2]) && (o = RegExp("</" + c[2], "g")), r = nt) : c[3] !== void 0 && (r = nt) : r === nt ? c[0] === ">" ? (r = o ?? $t, p = -1) : c[1] === void 0 ? p = -2 : (p = r.lastIndex - c[2].length, d = c[1], r = c[3] === void 0 ? nt : c[3] === '"' ? Ke : We) : r === Ke || r === We ? r = nt : r === Ve || r === Be ? r = $t : (r = nt, o = void 0);
-    const m = r === nt && e[a + 1].startsWith("/>") ? " " : "";
-    s += r === $t ? l + ai : p >= 0 ? (i.push(d), l.slice(0, p) + Sn + l.slice(p) + Q + m) : l + Q + (p === -2 ? a : m);
+    for (; h < l.length && (a.lastIndex = h, c = a.exec(l), c !== null); ) h = a.lastIndex, a === Ct ? c[1] === "!--" ? a = hn : c[1] !== void 0 ? a = pn : c[2] !== void 0 ? (Bn.test(c[2]) && (o = RegExp("</" + c[2], "g")), a = rt) : c[3] !== void 0 && (a = rt) : a === rt ? c[0] === ">" ? (a = o ?? Ct, p = -1) : c[1] === void 0 ? p = -2 : (p = a.lastIndex - c[2].length, d = c[1], a = c[3] === void 0 ? rt : c[3] === '"' ? mn : un) : a === mn || a === un ? a = rt : a === hn || a === pn ? a = Ct : (a = rt, o = void 0);
+    const u = a === rt && e[r + 1].startsWith("/>") ? " " : "";
+    s += a === Ct ? l + zi : p >= 0 ? (i.push(d), l.slice(0, p) + Un + l.slice(p) + ot + u) : l + ot + (p === -2 ? r : u);
   }
-  return [En(e, s + (e[n] || "<?>") + (t === 2 ? "</svg>" : t === 3 ? "</math>" : "")), i];
+  return [Kn(e, s + (e[n] || "<?>") + (t === 2 ? "</svg>" : t === 3 ? "</math>" : "")), i];
 };
-class Lt {
+class Ht {
   constructor({ strings: t, _$litType$: n }, i) {
     let o;
     this.parts = [];
-    let s = 0, r = 0;
-    const a = t.length - 1, l = this.parts, [d, c] = di(t, n);
-    if (this.el = Lt.createElement(d, i), at.currentNode = this.el.content, n === 2 || n === 3) {
+    let s = 0, a = 0;
+    const r = t.length - 1, l = this.parts, [d, c] = Ni(t, n);
+    if (this.el = Ht.createElement(d, i), ht.currentNode = this.el.content, n === 2 || n === 3) {
       const p = this.el.content.firstChild;
       p.replaceWith(...p.childNodes);
     }
-    for (; (o = at.nextNode()) !== null && l.length < a; ) {
+    for (; (o = ht.nextNode()) !== null && l.length < r; ) {
       if (o.nodeType === 1) {
-        if (o.hasAttributes()) for (const p of o.getAttributeNames()) if (p.endsWith(Sn)) {
-          const h = c[r++], m = o.getAttribute(p).split(Q), w = /([.?@])?(.*)/.exec(h);
-          l.push({ type: 1, index: s, name: w[2], strings: m, ctor: w[1] === "." ? hi : w[1] === "?" ? pi : w[1] === "@" ? ui : ee }), o.removeAttribute(p);
-        } else p.startsWith(Q) && (l.push({ type: 6, index: s }), o.removeAttribute(p));
-        if (Mn.test(o.tagName)) {
-          const p = o.textContent.split(Q), h = p.length - 1;
+        if (o.hasAttributes()) for (const p of o.getAttributeNames()) if (p.endsWith(Un)) {
+          const h = c[a++], u = o.getAttribute(p).split(ot), w = /([.?@])?(.*)/.exec(h);
+          l.push({ type: 1, index: s, name: w[2], strings: u, ctor: w[1] === "." ? Hi : w[1] === "?" ? Fi : w[1] === "@" ? ji : he }), o.removeAttribute(p);
+        } else p.startsWith(ot) && (l.push({ type: 6, index: s }), o.removeAttribute(p));
+        if (Bn.test(o.tagName)) {
+          const p = o.textContent.split(ot), h = p.length - 1;
           if (h > 0) {
-            o.textContent = Zt ? Zt.emptyScript : "";
-            for (let m = 0; m < h; m++) o.append(p[m], At()), at.nextNode(), l.push({ type: 2, index: ++s });
-            o.append(p[h], At());
+            o.textContent = ae ? ae.emptyScript : "";
+            for (let u = 0; u < h; u++) o.append(p[u], Nt()), ht.nextNode(), l.push({ type: 2, index: ++s });
+            o.append(p[h], Nt());
           }
         }
-      } else if (o.nodeType === 8) if (o.data === Tn) l.push({ type: 2, index: s });
+      } else if (o.nodeType === 8) if (o.data === Vn) l.push({ type: 2, index: s });
       else {
         let p = -1;
-        for (; (p = o.data.indexOf(Q, p + 1)) !== -1; ) l.push({ type: 7, index: s }), p += Q.length - 1;
+        for (; (p = o.data.indexOf(ot, p + 1)) !== -1; ) l.push({ type: 7, index: s }), p += ot.length - 1;
       }
       s++;
     }
   }
   static createElement(t, n) {
-    const i = lt.createElement("template");
+    const i = pt.createElement("template");
     return i.innerHTML = t, i;
   }
 }
-function vt(e, t, n = e, i) {
-  if (t === gt) return t;
+function Mt(e, t, n = e, i) {
+  if (t === St) return t;
   let o = i !== void 0 ? n._$Co?.[i] : n._$Cl;
-  const s = Ot(t) ? void 0 : t._$litDirective$;
-  return o?.constructor !== s && (o?._$AO?.(!1), s === void 0 ? o = void 0 : (o = new s(e), o._$AT(e, n, i)), i !== void 0 ? (n._$Co ??= [])[i] = o : n._$Cl = o), o !== void 0 && (t = vt(e, o._$AS(e, t.values), o, i)), t;
+  const s = It(t) ? void 0 : t._$litDirective$;
+  return o?.constructor !== s && (o?._$AO?.(!1), s === void 0 ? o = void 0 : (o = new s(e), o._$AT(e, n, i)), i !== void 0 ? (n._$Co ??= [])[i] = o : n._$Cl = o), o !== void 0 && (t = Mt(e, o._$AS(e, t.values), o, i)), t;
 }
-class ci {
+class Ii {
   constructor(t, n) {
     this._$AV = [], this._$AN = void 0, this._$AD = t, this._$AM = n;
   }
@@ -320,29 +320,29 @@ class ci {
     return this._$AM._$AU;
   }
   u(t) {
-    const { el: { content: n }, parts: i } = this._$AD, o = (t?.creationScope ?? lt).importNode(n, !0);
-    at.currentNode = o;
-    let s = at.nextNode(), r = 0, a = 0, l = i[0];
+    const { el: { content: n }, parts: i } = this._$AD, o = (t?.creationScope ?? pt).importNode(n, !0);
+    ht.currentNode = o;
+    let s = ht.nextNode(), a = 0, r = 0, l = i[0];
     for (; l !== void 0; ) {
-      if (r === l.index) {
+      if (a === l.index) {
         let d;
-        l.type === 2 ? d = new Nt(s, s.nextSibling, this, t) : l.type === 1 ? d = new l.ctor(s, l.name, l.strings, this, t) : l.type === 6 && (d = new mi(s, this, t)), this._$AV.push(d), l = i[++a];
+        l.type === 2 ? d = new Wt(s, s.nextSibling, this, t) : l.type === 1 ? d = new l.ctor(s, l.name, l.strings, this, t) : l.type === 6 && (d = new Ui(s, this, t)), this._$AV.push(d), l = i[++r];
       }
-      r !== l?.index && (s = at.nextNode(), r++);
+      a !== l?.index && (s = ht.nextNode(), a++);
     }
-    return at.currentNode = lt, o;
+    return ht.currentNode = pt, o;
   }
   p(t) {
     let n = 0;
     for (const i of this._$AV) i !== void 0 && (i.strings !== void 0 ? (i._$AI(t, i, n), n += i.strings.length - 2) : i._$AI(t[n])), n++;
   }
 }
-class Nt {
+class Wt {
   get _$AU() {
     return this._$AM?._$AU ?? this._$Cv;
   }
   constructor(t, n, i, o) {
-    this.type = 2, this._$AH = f, this._$AN = void 0, this._$AA = t, this._$AB = n, this._$AM = i, this.options = o, this._$Cv = o?.isConnected ?? !0;
+    this.type = 2, this._$AH = g, this._$AN = void 0, this._$AA = t, this._$AB = n, this._$AM = i, this.options = o, this._$Cv = o?.isConnected ?? !0;
   }
   get parentNode() {
     let t = this._$AA.parentNode;
@@ -356,7 +356,7 @@ class Nt {
     return this._$AB;
   }
   _$AI(t, n = this) {
-    t = vt(this, t, n), Ot(t) ? t === f || t == null || t === "" ? (this._$AH !== f && this._$AR(), this._$AH = f) : t !== this._$AH && t !== gt && this._(t) : t._$litType$ !== void 0 ? this.$(t) : t.nodeType !== void 0 ? this.T(t) : li(t) ? this.k(t) : this._(t);
+    t = Mt(this, t, n), It(t) ? t === g || t == null || t === "" ? (this._$AH !== g && this._$AR(), this._$AH = g) : t !== this._$AH && t !== St && this._(t) : t._$litType$ !== void 0 ? this.$(t) : t.nodeType !== void 0 ? this.T(t) : Di(t) ? this.k(t) : this._(t);
   }
   O(t) {
     return this._$AA.parentNode.insertBefore(t, this._$AB);
@@ -365,38 +365,38 @@ class Nt {
     this._$AH !== t && (this._$AR(), this._$AH = this.O(t));
   }
   _(t) {
-    this._$AH !== f && Ot(this._$AH) ? this._$AA.nextSibling.data = t : this.T(lt.createTextNode(t)), this._$AH = t;
+    this._$AH !== g && It(this._$AH) ? this._$AA.nextSibling.data = t : this.T(pt.createTextNode(t)), this._$AH = t;
   }
   $(t) {
-    const { values: n, _$litType$: i } = t, o = typeof i == "number" ? this._$AC(t) : (i.el === void 0 && (i.el = Lt.createElement(En(i.h, i.h[0]), this.options)), i);
+    const { values: n, _$litType$: i } = t, o = typeof i == "number" ? this._$AC(t) : (i.el === void 0 && (i.el = Ht.createElement(Kn(i.h, i.h[0]), this.options)), i);
     if (this._$AH?._$AD === o) this._$AH.p(n);
     else {
-      const s = new ci(o, this), r = s.u(this.options);
-      s.p(n), this.T(r), this._$AH = s;
+      const s = new Ii(o, this), a = s.u(this.options);
+      s.p(n), this.T(a), this._$AH = s;
     }
   }
   _$AC(t) {
-    let n = qe.get(t.strings);
-    return n === void 0 && qe.set(t.strings, n = new Lt(t)), n;
+    let n = fn.get(t.strings);
+    return n === void 0 && fn.set(t.strings, n = new Ht(t)), n;
   }
   k(t) {
-    Ee(this._$AH) || (this._$AH = [], this._$AR());
+    Ue(this._$AH) || (this._$AH = [], this._$AR());
     const n = this._$AH;
     let i, o = 0;
-    for (const s of t) o === n.length ? n.push(i = new Nt(this.O(At()), this.O(At()), this, this.options)) : i = n[o], i._$AI(s), o++;
+    for (const s of t) o === n.length ? n.push(i = new Wt(this.O(Nt()), this.O(Nt()), this, this.options)) : i = n[o], i._$AI(s), o++;
     o < n.length && (this._$AR(i && i._$AB.nextSibling, o), n.length = o);
   }
   _$AR(t = this._$AA.nextSibling, n) {
     for (this._$AP?.(!1, !0, n); t !== this._$AB; ) {
-      const i = je(t).nextSibling;
-      je(t).remove(), t = i;
+      const i = dn(t).nextSibling;
+      dn(t).remove(), t = i;
     }
   }
   setConnected(t) {
     this._$AM === void 0 && (this._$Cv = t, this._$AP?.(t));
   }
 }
-class ee {
+class he {
   get tagName() {
     return this.element.tagName;
   }
@@ -404,53 +404,53 @@ class ee {
     return this._$AM._$AU;
   }
   constructor(t, n, i, o, s) {
-    this.type = 1, this._$AH = f, this._$AN = void 0, this.element = t, this.name = n, this._$AM = o, this.options = s, i.length > 2 || i[0] !== "" || i[1] !== "" ? (this._$AH = Array(i.length - 1).fill(new String()), this.strings = i) : this._$AH = f;
+    this.type = 1, this._$AH = g, this._$AN = void 0, this.element = t, this.name = n, this._$AM = o, this.options = s, i.length > 2 || i[0] !== "" || i[1] !== "" ? (this._$AH = Array(i.length - 1).fill(new String()), this.strings = i) : this._$AH = g;
   }
   _$AI(t, n = this, i, o) {
     const s = this.strings;
-    let r = !1;
-    if (s === void 0) t = vt(this, t, n, 0), r = !Ot(t) || t !== this._$AH && t !== gt, r && (this._$AH = t);
+    let a = !1;
+    if (s === void 0) t = Mt(this, t, n, 0), a = !It(t) || t !== this._$AH && t !== St, a && (this._$AH = t);
     else {
-      const a = t;
+      const r = t;
       let l, d;
-      for (t = s[0], l = 0; l < s.length - 1; l++) d = vt(this, a[i + l], n, l), d === gt && (d = this._$AH[l]), r ||= !Ot(d) || d !== this._$AH[l], d === f ? t = f : t !== f && (t += (d ?? "") + s[l + 1]), this._$AH[l] = d;
+      for (t = s[0], l = 0; l < s.length - 1; l++) d = Mt(this, r[i + l], n, l), d === St && (d = this._$AH[l]), a ||= !It(d) || d !== this._$AH[l], d === g ? t = g : t !== g && (t += (d ?? "") + s[l + 1]), this._$AH[l] = d;
     }
-    r && !o && this.j(t);
+    a && !o && this.j(t);
   }
   j(t) {
-    t === f ? this.element.removeAttribute(this.name) : this.element.setAttribute(this.name, t ?? "");
+    t === g ? this.element.removeAttribute(this.name) : this.element.setAttribute(this.name, t ?? "");
   }
 }
-class hi extends ee {
+class Hi extends he {
   constructor() {
     super(...arguments), this.type = 3;
   }
   j(t) {
-    this.element[this.name] = t === f ? void 0 : t;
+    this.element[this.name] = t === g ? void 0 : t;
   }
 }
-class pi extends ee {
+class Fi extends he {
   constructor() {
     super(...arguments), this.type = 4;
   }
   j(t) {
-    this.element.toggleAttribute(this.name, !!t && t !== f);
+    this.element.toggleAttribute(this.name, !!t && t !== g);
   }
 }
-class ui extends ee {
+class ji extends he {
   constructor(t, n, i, o, s) {
     super(t, n, i, o, s), this.type = 5;
   }
   _$AI(t, n = this) {
-    if ((t = vt(this, t, n, 0) ?? f) === gt) return;
-    const i = this._$AH, o = t === f && i !== f || t.capture !== i.capture || t.once !== i.once || t.passive !== i.passive, s = t !== f && (i === f || o);
+    if ((t = Mt(this, t, n, 0) ?? g) === St) return;
+    const i = this._$AH, o = t === g && i !== g || t.capture !== i.capture || t.once !== i.once || t.passive !== i.passive, s = t !== g && (i === g || o);
     o && this.element.removeEventListener(this.name, this, i), s && this.element.addEventListener(this.name, this, t), this._$AH = t;
   }
   handleEvent(t) {
     typeof this._$AH == "function" ? this._$AH.call(this.options?.host ?? this.element, t) : this._$AH.handleEvent(t);
   }
 }
-class mi {
+class Ui {
   constructor(t, n, i) {
     this.element = t, this.type = 6, this._$AN = void 0, this._$AM = n, this.options = i;
   }
@@ -458,22 +458,22 @@ class mi {
     return this._$AM._$AU;
   }
   _$AI(t) {
-    vt(this, t);
+    Mt(this, t);
   }
 }
-const fi = Ce.litHtmlPolyfillSupport;
-fi?.(Lt, Nt), (Ce.litHtmlVersions ??= []).push("3.3.3");
-const gi = (e, t, n) => {
+const Vi = je.litHtmlPolyfillSupport;
+Vi?.(Ht, Wt), (je.litHtmlVersions ??= []).push("3.3.3");
+const Bi = (e, t, n) => {
   const i = n?.renderBefore ?? t;
   let o = i._$litPart$;
   if (o === void 0) {
     const s = n?.renderBefore ?? null;
-    i._$litPart$ = o = new Nt(t.insertBefore(At(), s), s, void 0, n ?? {});
+    i._$litPart$ = o = new Wt(t.insertBefore(Nt(), s), s, void 0, n ?? {});
   }
   return o._$AI(e), o;
 };
-const Ae = globalThis;
-class Et extends ft {
+const Ve = globalThis;
+class Dt extends kt {
   constructor() {
     super(...arguments), this.renderOptions = { host: this }, this._$Do = void 0;
   }
@@ -483,7 +483,7 @@ class Et extends ft {
   }
   update(t) {
     const n = this.render();
-    this.hasUpdated || (this.renderOptions.isConnected = this.isConnected), super.update(t), this._$Do = gi(n, this.renderRoot, this.renderOptions);
+    this.hasUpdated || (this.renderOptions.isConnected = this.isConnected), super.update(t), this._$Do = Bi(n, this.renderRoot, this.renderOptions);
   }
   connectedCallback() {
     super.connectedCallback(), this._$Do?.setConnected(!0);
@@ -492,156 +492,156 @@ class Et extends ft {
     super.disconnectedCallback(), this._$Do?.setConnected(!1);
   }
   render() {
-    return gt;
+    return St;
   }
 }
-Et._$litElement$ = !0, Et.finalized = !0, Ae.litElementHydrateSupport?.({ LitElement: Et });
-const vi = Ae.litElementPolyfillSupport;
-vi?.({ LitElement: Et });
-(Ae.litElementVersions ??= []).push("4.2.2");
-const $i = { attribute: !0, type: String, converter: Gt, reflect: !1, hasChanged: Me }, wi = (e = $i, t, n) => {
+Dt._$litElement$ = !0, Dt.finalized = !0, Ve.litElementHydrateSupport?.({ LitElement: Dt });
+const Wi = Ve.litElementPolyfillSupport;
+Wi?.({ LitElement: Dt });
+(Ve.litElementVersions ??= []).push("4.2.2");
+const Ki = { attribute: !0, type: String, converter: se, reflect: !1, hasChanged: Fe }, qi = (e = Ki, t, n) => {
   const { kind: i, metadata: o } = n;
   let s = globalThis.litPropertyMetadata.get(o);
   if (s === void 0 && globalThis.litPropertyMetadata.set(o, s = /* @__PURE__ */ new Map()), i === "setter" && ((e = Object.create(e)).wrapped = !0), s.set(n.name, e), i === "accessor") {
-    const { name: r } = n;
-    return { set(a) {
+    const { name: a } = n;
+    return { set(r) {
       const l = t.get.call(this);
-      t.set.call(this, a), this.requestUpdate(r, l, e, !0, a);
-    }, init(a) {
-      return a !== void 0 && this.C(r, void 0, e, a), a;
+      t.set.call(this, r), this.requestUpdate(a, l, e, !0, r);
+    }, init(r) {
+      return r !== void 0 && this.C(a, void 0, e, r), r;
     } };
   }
   if (i === "setter") {
-    const { name: r } = n;
-    return function(a) {
-      const l = this[r];
-      t.call(this, a), this.requestUpdate(r, l, e, !0, a);
+    const { name: a } = n;
+    return function(r) {
+      const l = this[a];
+      t.call(this, r), this.requestUpdate(a, l, e, !0, r);
     };
   }
   throw Error("Unsupported decorator location: " + i);
 };
-function An(e) {
-  return (t, n) => typeof n == "object" ? wi(e, t, n) : ((i, o, s) => {
-    const r = o.hasOwnProperty(s);
-    return o.constructor.createProperty(s, i), r ? Object.getOwnPropertyDescriptor(o, s) : void 0;
+function qn(e) {
+  return (t, n) => typeof n == "object" ? qi(e, t, n) : ((i, o, s) => {
+    const a = o.hasOwnProperty(s);
+    return o.constructor.createProperty(s, i), a ? Object.getOwnPropertyDescriptor(o, s) : void 0;
   })(e, t, n);
 }
-function R(e) {
-  return An({ ...e, state: !0, attribute: !1 });
+function j(e) {
+  return qn({ ...e, state: !0, attribute: !1 });
 }
-const Kt = 60, ge = 142, Ye = 11, It = 3, bi = 0.8, Ge = 2, yi = "fill: var(--kd-blind); opacity: var(--kd-blind-opacity)", ki = "fill: var(--kd-sky); opacity: var(--kd-window-opacity)", _i = "fill: var(--kd-blind); opacity: var(--kd-rail-opacity)";
-function xi(e, t) {
+const ee = 60, Ce = 142, gn = 11, qt = 3, Yi = 0.8, vn = 2, Gi = "fill: var(--kd-blind); opacity: var(--kd-blind-opacity)", Zi = "fill: var(--kd-sky); opacity: var(--kd-window-opacity)", Xi = "fill: var(--kd-blind); opacity: var(--kd-rail-opacity)";
+function Ji(e, t) {
   if (e === void 0 || t === void 0)
-    return _`<rect
+    return y`<rect
       x="0.75"
       y="0.75"
-      width=${Kt - 1.5}
-      height=${ge - 1.5}
+      width=${ee - 1.5}
+      height=${Ce - 1.5}
       rx="6"
       fill="none"
       style="stroke: var(--kd-off)"
       stroke-width="1.5"
       stroke-dasharray="3 3"
     ></rect>`;
-  const n = ge - It - 1, i = n / Ye, o = i - bi, s = o - t / 100 * (o - Ge), r = It + 1 + (100 - e) / 100 * n, a = Array.from({ length: Ye }, (l, d) => {
-    const c = It + 1 + d * i + i / 2, p = c <= r, h = p ? s : Ge;
-    return _`<rect
+  const n = Ce - qt - 1, i = n / gn, o = i - Yi, s = o - t / 100 * (o - vn), a = qt + 1 + (100 - e) / 100 * n, r = Array.from({ length: gn }, (l, d) => {
+    const c = qt + 1 + d * i + i / 2, p = c <= a, h = p ? s : vn;
+    return y`<rect
       x="0"
       y=${(c - h / 2).toFixed(2)}
-      width=${Kt}
+      width=${ee}
       height=${h.toFixed(2)}
       rx=${Math.min(1.5, h / 2).toFixed(2)}
-      style=${p ? yi : ki}
+      style=${p ? Gi : Zi}
     ></rect>`;
   });
-  return _`<rect
+  return y`<rect
       class="rail"
       x="0"
       y="0"
-      width=${Kt}
-      height=${It}
+      width=${ee}
+      height=${qt}
       rx="1.5"
-      style=${_i}
-    ></rect>${a}`;
+      style=${Xi}
+    ></rect>${r}`;
 }
-const Si = ["cs", "en", "sv"];
-class On extends Error {
+const Qi = ["cs", "en", "sv"];
+class Yn extends Error {
 }
-function O(e) {
-  throw new On(e);
+function P(e) {
+  throw new Yn(e);
 }
-function Ti(e, t) {
+function to(e, t) {
   try {
     return t();
   } catch (n) {
-    throw n instanceof On ? new Error(`${e}: ${n.message}`) : n;
+    throw n instanceof Yn ? new Error(`${e}: ${n.message}`) : n;
   }
 }
-function dt(e) {
+function ut(e) {
   return typeof e == "object" && e !== null && !Array.isArray(e);
 }
-function J(e, t) {
-  return e == null ? {} : (dt(e) || O(`"${t}" must be a mapping of keys.`), e);
+function nt(e, t) {
+  return e == null ? {} : (ut(e) || P(`"${t}" must be a mapping of keys.`), e);
 }
-function ct(e, t, n) {
+function mt(e, t, n) {
   for (const i of Object.keys(e))
-    t.includes(i) || O(`${n}: unknown key "${i}" (allowed: ${t.join(", ")}).`);
+    t.includes(i) || P(`${n}: unknown key "${i}" (allowed: ${t.join(", ")}).`);
 }
-function Mi(e, t, n = {}) {
+function eo(e, t, n = {}) {
   if (e == null)
     return;
   const i = typeof e == "string" ? e.trim() : "";
-  return /^[a-z0-9_]+\.[a-z0-9_]+$/.test(i) || O(`${t} must be an entity ID such as ${n.example ?? `${n.domain ?? "sensor"}.example`}.`), n.domain && !i.startsWith(`${n.domain}.`) && O(`${t} must be a ${n.domain} entity (${n.domain}.…), not ${i}.`), i;
+  return /^[a-z0-9_]+\.[a-z0-9_]+$/.test(i) || P(`${t} must be an entity ID such as ${n.example ?? `${n.domain ?? "sensor"}.example`}.`), n.domain && !i.startsWith(`${n.domain}.`) && P(`${t} must be a ${n.domain} entity (${n.domain}.…), not ${i}.`), i;
 }
-function ve(e, t) {
+function Ee(e, t) {
   if (e != null)
-    return (typeof e != "string" || !e.trim()) && O(`${t} must be a non-empty text.`), e.trim();
+    return (typeof e != "string" || !e.trim()) && P(`${t} must be a non-empty text.`), e.trim();
 }
-function Pt(e, t) {
+function Ft(e, t) {
   if (e != null) {
     if (typeof e == "string" && e.trim())
       return e.trim();
-    if (dt(e) && Object.keys(e).length > 0) {
+    if (ut(e) && Object.keys(e).length > 0) {
       const n = Object.entries(e);
       if (n.every(([i, o]) => /^[a-z]{2}(-[A-Za-z]+)?$/.test(i) && typeof o == "string" && o.trim()))
         return Object.fromEntries(n.map(([i, o]) => [i, o.trim()]));
     }
-    return O(`${t} must be a text or a mapping of the language to the text, like {cs: Vaření, en: Cooking}.`);
+    return P(`${t} must be a text or a mapping of the language to the text, like {cs: Vaření, en: Cooking}.`);
   }
 }
-function Dt(e, t) {
+function jt(e, t) {
   if (e === void 0 || typeof e == "string")
     return e;
   const n = t.toLowerCase();
   return e[n] ?? e[n.split("-")[0]] ?? e.en ?? Object.values(e)[0];
 }
-function Ln(e) {
+function Gn(e) {
   return e === void 0 ? [] : typeof e == "string" ? [e] : Object.values(e);
 }
-const Ze = ["auto", ...Si];
-function Ci(e) {
+const $n = ["auto", ...Qi];
+function no(e) {
   const t = e ?? "auto";
-  return Ze.includes(t) || O(`language must be one of ${Ze.join(", ")}.`), t;
+  return $n.includes(t) || P(`language must be one of ${$n.join(", ")}.`), t;
 }
-const se = ["bedroom", "office", "kids", "living"], re = "none", $e = ["open", "shade", "dark"], Ei = /* @__PURE__ */ new Set(["unavailable", "unknown", ""]);
-function Ai(e) {
-  return Ei.has(e);
+const ve = ["bedroom", "office", "kids", "living"], $e = "none", Ae = ["open", "shade", "dark"], io = /* @__PURE__ */ new Set(["unavailable", "unknown", ""]);
+function oo(e) {
+  return io.has(e);
 }
-function wt(e) {
+function Et(e) {
   return Array.isArray(e) ? e.filter((t) => typeof t == "string").map((t) => t.toLowerCase()) : [];
 }
-const Pn = {
+const Zn = {
   open: { position: 100, tilt: 100 },
   shade: { position: 0, tilt: 100 },
   dark: { position: 0, tilt: 0 }
 };
-function ae(e, t, n, i) {
+function we(e, t, n, i) {
   return e !== void 0 && t !== void 0 && Math.abs(e - n.position) <= i && Math.abs(t - n.tilt) <= i;
 }
-function bt(e, t) {
+function At(e, t) {
   return t === "temperature" ? e.temperature_step : t === "co2" ? e.co2_step : e.pm25_step;
 }
-const g = {
+const f = {
   /** Main text and the temperature curve. */
   white: "var(--kd-text)",
   /** Topení "Vypnuto" strip in the history chart. */
@@ -672,29 +672,29 @@ const g = {
   dry: "var(--kd-dry)",
   heat: "var(--kd-warning)",
   auto: "var(--kd-auto)"
-}, zt = {
-  off: g.off,
-  cool: g.cool,
-  wind_free: g.cool,
-  dry: g.dry,
-  fan: g.plan,
-  heat: g.heat,
-  auto: g.auto,
-  unknown: g.off
-}, Oi = {
+}, Ut = {
+  off: f.off,
+  cool: f.cool,
+  wind_free: f.cool,
+  dry: f.dry,
+  fan: f.plan,
+  heat: f.heat,
+  auto: f.auto,
+  unknown: f.off
+}, so = {
   sleep: "Sleep",
   boost: "Boost",
   wind_free: "WindFree",
   wind_free_sleep: "WindFree Sleep"
 };
-function qt(e) {
-  const t = Oi[e];
+function ne(e) {
+  const t = so[e];
   if (t)
     return t;
   const n = e.replace(/_/g, " ");
   return n.charAt(0).toUpperCase() + n.slice(1);
 }
-function Li(e) {
+function ao(e) {
   switch (e?.toLowerCase()) {
     case "off":
       return "off";
@@ -713,49 +713,49 @@ function Li(e) {
       return "unknown";
   }
 }
-function Xe(e, t, n, i, o) {
-  const { thresholds: s } = i, r = [
+function wn(e, t, n, i, o) {
+  const { thresholds: s } = i, a = [
     [o.required.temperature, e.temperature],
     [o.required.humidity, e.humidity],
     ...i.hasCo2 ? [[o.required.co2, e.co2]] : [],
     ...i.hasPm25 ? [[o.required.pm25, e.pm25]] : [],
     [o.required.houseMode, n ? { value: 1 } : void 0]
   ];
-  for (const [m, w] of r) {
+  for (const [u, w] of a) {
     if (w?.value === void 0)
-      return { id: "noData", label: o.noData(m), color: g.label, kind: "unknown" };
+      return { id: "noData", label: o.noData(u), color: f.label, kind: "unknown" };
     if (w.stale) {
-      const T = w.ageMinutes === void 0 ? void 0 : zn(w.ageMinutes);
-      return { id: "noData", label: o.noData(m, T), color: g.label, kind: "unknown" };
+      const T = w.ageMinutes === void 0 ? void 0 : Jn(w.ageMinutes);
+      return { id: "noData", label: o.noData(u, T), color: f.label, kind: "unknown" };
     }
   }
-  const a = e.temperature.value, l = e.humidity.value, d = i.hasCo2 ? e.co2.value : Number.NEGATIVE_INFINITY;
+  const r = e.temperature.value, l = e.humidity.value, d = i.hasCo2 ? e.co2.value : Number.NEGATIVE_INFINITY;
   if ((i.hasPm25 ? e.pm25.value : Number.NEGATIVE_INFINITY) >= s.pm25_critical)
-    return { id: "polluted", label: o.status.polluted, color: g.alert, kind: "critical", cause: "pm25" };
+    return { id: "polluted", label: o.status.polluted, color: f.alert, kind: "critical", cause: "pm25" };
   if (d >= s.co2_critical)
-    return { id: "veryStuffy", label: o.status.veryStuffy, color: g.alert, kind: "critical", cause: "co2" };
+    return { id: "veryStuffy", label: o.status.veryStuffy, color: f.alert, kind: "critical", cause: "co2" };
   if (d >= s.co2_warning)
-    return { id: "stuffy", label: o.status.stuffy, color: g.warning, kind: "warning", cause: "co2" };
+    return { id: "stuffy", label: o.status.stuffy, color: f.warning, kind: "warning", cause: "co2" };
   if (l > s.humidity_max)
-    return { id: "humid", label: o.status.humid, color: g.warning, kind: "warning", cause: "humidity" };
+    return { id: "humid", label: o.status.humid, color: f.warning, kind: "warning", cause: "humidity" };
   if (l < s.humidity_min)
-    return { id: "dry", label: o.status.dry, color: g.warning, kind: "warning", cause: "humidity" };
+    return { id: "dry", label: o.status.dry, color: f.warning, kind: "warning", cause: "humidity" };
   const p = t ? s.summer_min : s.winter_min, h = t ? s.summer_max : s.winter_max;
-  return a > h ? { id: "warm", label: o.status.warm, color: g.warning, kind: "warning", cause: "temperature" } : a < p ? { id: "cold", label: o.status.cold, color: g.cold, kind: "warning", cause: "temperature" } : { id: "comfortable", label: o.status.comfortable, color: g.label, kind: "normal" };
+  return r > h ? { id: "warm", label: o.status.warm, color: f.warning, kind: "warning", cause: "temperature" } : r < p ? { id: "cold", label: o.status.cold, color: f.cold, kind: "warning", cause: "temperature" } : { id: "comfortable", label: o.status.comfortable, color: f.label, kind: "normal" };
 }
-function W(e) {
-  return Ai(e) || e === "none";
+function q(e) {
+  return oo(e) || e === "none";
 }
-function ot(e) {
+function dt(e) {
   if (e == null || e === "")
     return;
   const t = typeof e == "number" ? e : Number.parseFloat(String(e));
   return Number.isFinite(t) && t >= 0 && t <= 100 ? t : void 0;
 }
-function Dn(e, t) {
+function Xn(e, t) {
   return e === void 0 || e <= 0 ? 0 : e >= t.heating_waves_3 ? 3 : e >= t.heating_waves_2 ? 2 : 1;
 }
-function Pi(e) {
+function ro(e) {
   const t = /* @__PURE__ */ new Set(), n = (i) => {
     i && t.add(i);
   };
@@ -764,14 +764,14 @@ function Pi(e) {
     n(i.temperature), n(i.humidity), n(i.carbon_dioxide), n(i.pm25), i.windows.forEach((o) => n(o.entity)), n(i.cover), n(i.heating?.climate), n(i.heating?.overlay), n(i.heating?.target), n(i.heating?.intensity), n(i.air_conditioner);
   return t;
 }
-function Di(e) {
+function lo(e) {
   const t = /* @__PURE__ */ new Set();
   for (const n of e.rooms)
     for (const i of [n.temperature, n.carbon_dioxide, n.pm25])
       i && t.add(i);
   return [...t];
 }
-function zi(e, t) {
+function co(e, t) {
   if (e === t)
     return !0;
   if (!e || !t)
@@ -779,17 +779,17 @@ function zi(e, t) {
   const n = Object.keys(e), i = Object.keys(t);
   return n.length === i.length && n.every((o) => Object.hasOwn(t, o) && e[o] === t[o]);
 }
-function zn(e) {
+function Jn(e) {
   return e < 60 ? `${Math.max(1, Math.round(e))} min` : e < 2880 ? `${Math.floor(e / 60)} h` : `${Math.floor(e / 1440)} d`;
 }
-function Je(e, t) {
+function bn(e, t) {
   const n = (e ?? []).filter((o) => o !== void 0);
   if (n.length < 2)
     return;
   const i = n[n.length - 1] - n[0];
   return i >= t / 2 ? "rising" : i <= -t / 2 ? "falling" : "stable";
 }
-function le(e) {
+function be(e) {
   const t = Math.max(0, Math.floor(e));
   if (t < 1)
     return "< 1 min";
@@ -802,43 +802,43 @@ function le(e) {
   const [n, i] = [Math.floor(t / 1440), Math.floor(t % 1440 / 60)];
   return i === 0 ? `${n} d` : `${n} d ${i} h`;
 }
-function Qe(e, t) {
+function yn(e, t) {
   const n = Math.max(0, Math.floor(e));
   if (n < 1)
     return t.duration.lessThanMinute;
   if (n < 60)
     return t.duration.minute(n);
   if (n < 1440) {
-    const [r, a] = [Math.floor(n / 60), n % 60], l = t.duration.hour(r);
-    return a === 0 ? l : `${l} ${t.duration.minute(a)}`;
+    const [a, r] = [Math.floor(n / 60), n % 60], l = t.duration.hour(a);
+    return r === 0 ? l : `${l} ${t.duration.minute(r)}`;
   }
   const [i, o] = [Math.floor(n / 1440), Math.floor(n % 1440 / 60)], s = t.duration.day(i);
   return o === 0 ? s : `${s} ${t.duration.hour(o)}`;
 }
-function tn(e, t) {
+function kn(e, t) {
   const n = Math.max(1, Math.round(e));
   return n % 60 === 0 ? t.period.hour(n / 60) : t.period.minute(n);
 }
-function Rn(e, t) {
-  return Dt(e.label, t) ?? e.name;
+function Qn(e, t) {
+  return jt(e.label, t) ?? e.name;
 }
-function Ri(e, t, n) {
-  return Dt(e.label, n) ?? t.cover.presetName[e.icon];
+function ho(e, t, n) {
+  return jt(e.label, n) ?? t.cover.presetName[e.icon];
 }
-function en(e, t, n) {
+function xn(e, t, n) {
   if (e.description !== void 0)
-    return Dt(e.description, n) ?? "";
-  const i = Pn[e.icon];
+    return jt(e.description, n) ?? "";
+  const i = Zn[e.icon];
   return e.label === void 0 && i.position === e.position && i.tilt === e.tilt ? t.cover.presetDescription[e.icon] : t.cover.position(Math.round(e.position), Math.round(e.tilt));
 }
-function Ni(e) {
+function po(e) {
   const t = /* @__PURE__ */ new Set();
   for (const n of e.rooms)
     for (const i of [n.temperature, n.humidity, n.carbon_dioxide, n.pm25])
       i && t.add(i);
   return [...t];
 }
-const Ii = "input_select.house_mode", Hi = 450, Fi = {
+const uo = "input_select.house_mode", mo = 450, fo = {
   humidity_min: 35,
   humidity_max: 70,
   co2_warning: 1e3,
@@ -852,29 +852,29 @@ const Ii = "input_select.house_mode", Hi = 450, Fi = {
   stale_minutes: 30,
   heating_waves_2: 35,
   heating_waves_3: 68
-}, ji = {
+}, go = {
   minutes: 120,
   samples: 12,
   temperature_step: 1,
   co2_step: 100,
   pm25_step: 5
-}, Ui = {
+}, vo = {
   hours: 24,
   night_start: 22,
   night_end: 6,
   min_temperature_span: 1.5
-}, de = {
+}, ye = {
   script: "script.zaluzie_posun",
   tolerance: 5,
   stall_seconds: 5
-}, Vi = $e.map((e) => ({ icon: e, ...Pn[e] })), nn = { winter: "Zima", summer: "Léto" }, on = ["auto", "dark", "light"], sn = 3, Bi = {
+}, $o = Ae.map((e) => ({ icon: e, ...Zn[e] })), _n = { winter: "Zima", summer: "Léto" }, Sn = ["auto", "dark", "light"], Mn = 3, wo = {
   loznice: "bedroom",
   pracovna: "office",
   maxik: "kids",
   mikulas: "kids",
   obyvak: "living",
   "obyvaci pokoj": "living"
-}, Wi = [
+}, bo = [
   "name",
   "temperature",
   "humidity",
@@ -889,30 +889,30 @@ const Ii = "input_select.house_mode", Hi = 450, Fi = {
   "image",
   "scene",
   "link"
-], Ki = ["climate", "overlay", "target", "intensity"], rn = ["temperature", "minimum", "maximum", "rain_probability", "pm25"], qi = ["name", "position", "tilt", "icon", "description"], Yi = ["entity", "name"];
-function tt(e) {
+], yo = ["climate", "overlay", "target", "intensity"], Tn = ["temperature", "minimum", "maximum", "rain_probability", "pm25"], ko = ["name", "position", "tilt", "icon", "description"], xo = ["entity", "name"];
+function st(e) {
   return e.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase().trim().replace(/\s+/g, " ");
 }
-function F(e, t) {
-  return Mi(e, t, { example: "sensor.loznice_teplota" });
+function U(e, t) {
+  return eo(e, t, { example: "sensor.loznice_teplota" });
 }
-function xt(e, t, n, i = {}) {
-  ct(e, Object.keys(t), n);
+function Pt(e, t, n, i = {}) {
+  mt(e, Object.keys(t), n);
   const o = { ...t };
-  for (const [s, r] of Object.entries(e)) {
-    if (r === null)
+  for (const [s, a] of Object.entries(e)) {
+    if (a === null)
       continue;
-    (typeof r != "number" || !Number.isFinite(r)) && O(`${n}.${s} must be a number.`);
-    const a = i[s];
-    if (a) {
-      const [l, d, c] = a;
-      (r < l || r > d || c && !Number.isInteger(r)) && O(`${n}.${s} must be ${c ? "a whole number " : ""}from ${l} to ${d}.`);
+    (typeof a != "number" || !Number.isFinite(a)) && P(`${n}.${s} must be a number.`);
+    const r = i[s];
+    if (r) {
+      const [l, d, c] = r;
+      (a < l || a > d || c && !Number.isInteger(a)) && P(`${n}.${s} must be ${c ? "a whole number " : ""}from ${l} to ${d}.`);
     }
-    o[s] = r;
+    o[s] = a;
   }
   return o;
 }
-function Nn(e, t) {
+function ti(e, t) {
   const n = [
     ["humidity_min", "humidity_max", !0],
     ["co2_warning", "co2_critical", !0],
@@ -922,162 +922,162 @@ function Nn(e, t) {
     ["heating_waves_2", "heating_waves_3", !0]
   ];
   for (const [i, o, s] of n)
-    (s ? e[i] >= e[o] : e[i] > e[o]) && O(`${t}: ${i} (${e[i]}) must be ${s ? "below" : "at most"} ${o} (${e[o]}).`);
-  e.stale_minutes <= 0 && O(`${t}.stale_minutes must be greater than 0.`), (e.heating_waves_2 < 1 || e.heating_waves_3 > 100) && O(`${t}: heating_waves_2 and heating_waves_3 must be from 1 to 100 %.`);
+    (s ? e[i] >= e[o] : e[i] > e[o]) && P(`${t}: ${i} (${e[i]}) must be ${s ? "below" : "at most"} ${o} (${e[o]}).`);
+  e.stale_minutes <= 0 && P(`${t}.stale_minutes must be greater than 0.`), (e.heating_waves_2 < 1 || e.heating_waves_3 > 100) && P(`${t}: heating_waves_2 and heating_waves_3 must be from 1 to 100 %.`);
 }
-function Gi(e, t) {
+function _o(e, t) {
   return e > 50 ? "open" : t > 50 ? "shade" : "dark";
 }
-function we(e, t) {
-  return (!Array.isArray(e) || e.length === 0 || e.length > sn) && O(`${t} must be a list of 1 to ${sn} presets.`), e.map((n, i) => {
+function Oe(e, t) {
+  return (!Array.isArray(e) || e.length === 0 || e.length > Mn) && P(`${t} must be a list of 1 to ${Mn} presets.`), e.map((n, i) => {
     const o = `${t}[${i + 1}]`;
-    dt(n) || O(`${o} must have a position and a tilt.`), ct(n, qi, o);
-    const s = Pt(n.name, `${o}.name`), r = (p) => {
+    ut(n) || P(`${o} must have a position and a tilt.`), mt(n, ko, o);
+    const s = Ft(n.name, `${o}.name`), a = (p) => {
       const h = n[p];
-      return (typeof h != "number" || !Number.isFinite(h) || h < 0 || h > 100) && O(`${o}.${p} must be a number from 0 to 100.`), h;
-    }, a = r("position"), l = r("tilt");
-    let d = Gi(a, l);
-    n.icon != null && ($e.includes(n.icon) || O(`${o}.icon must be one of ${$e.join(", ")}.`), d = n.icon);
-    const c = Pt(n.description, `${o}.description`);
-    return { id: `p${i}`, icon: d, label: s, description: c, position: a, tilt: l };
+      return (typeof h != "number" || !Number.isFinite(h) || h < 0 || h > 100) && P(`${o}.${p} must be a number from 0 to 100.`), h;
+    }, r = a("position"), l = a("tilt");
+    let d = _o(r, l);
+    n.icon != null && (Ae.includes(n.icon) || P(`${o}.icon must be one of ${Ae.join(", ")}.`), d = n.icon);
+    const c = Ft(n.description, `${o}.description`);
+    return { id: `p${i}`, icon: d, label: s, description: c, position: r, tilt: l };
   });
 }
-function Zi(e, t) {
+function So(e, t) {
   const n = e.window;
   if (n == null)
     return [];
   const i = Array.isArray(n) ? n : [n];
-  i.length === 0 && O(`${t}.window must not be an empty list.`);
-  const o = i.map((r, a) => {
-    const l = `${t}.window${Array.isArray(n) ? `[${a + 1}]` : ""}`;
-    if (dt(r)) {
-      ct(r, Yi, l);
-      const c = F(r.entity, `${l}.entity`);
-      return c || O(`${l}.entity is required.`), { entity: c, name: Pt(r.name, `${l}.name`) };
+  i.length === 0 && P(`${t}.window must not be an empty list.`);
+  const o = i.map((a, r) => {
+    const l = `${t}.window${Array.isArray(n) ? `[${r + 1}]` : ""}`;
+    if (ut(a)) {
+      mt(a, xo, l);
+      const c = U(a.entity, `${l}.entity`);
+      return c || P(`${l}.entity is required.`), { entity: c, name: Ft(a.name, `${l}.name`) };
     }
-    const d = F(r, l);
-    return d || O(`${l} must be an entity ID.`), { entity: d };
+    const d = U(a, l);
+    return d || P(`${l} must be an entity ID.`), { entity: d };
   }), s = /* @__PURE__ */ new Set();
-  for (const r of o)
-    s.has(r.entity) && O(`${t}.window lists ${r.entity} twice.`), s.add(r.entity);
+  for (const a of o)
+    s.has(a.entity) && P(`${t}.window lists ${a.entity} twice.`), s.add(a.entity);
   return o;
 }
-function an(e, t) {
-  return e === !1 ? { present: !1 } : { entity: F(e, t), present: !0 };
+function Cn(e, t) {
+  return e === !1 ? { present: !1 } : { entity: U(e, t), present: !0 };
 }
-function Xi(e, t) {
-  e.image != null && e.scene != null && O(`${t}: use either image or scene (older name), not both.`);
+function Mo(e, t) {
+  e.image != null && e.scene != null && P(`${t}: use either image or scene (older name), not both.`);
   const n = e.image != null ? "image" : "scene", i = e.image ?? e.scene;
   if (i == null) {
-    const s = Ln(e.name).map((r) => Bi[tt(r)]).find((r) => r !== void 0);
+    const s = Gn(e.name).map((a) => wo[st(a)]).find((a) => a !== void 0);
     return s ? { kind: "scene", scene: s } : void 0;
   }
-  (typeof i != "string" || !i.trim()) && O(`${t}.${n} must be ${[...se, re].join(", ")} or the address of an image.`);
+  (typeof i != "string" || !i.trim()) && P(`${t}.${n} must be ${[...ve, $e].join(", ")} or the address of an image.`);
   const o = i.trim();
-  if (o !== re) {
-    if (se.includes(o))
+  if (o !== $e) {
+    if (ve.includes(o))
       return { kind: "scene", scene: o };
     if (n === "image" && /^(\/|https?:\/\/|data:image\/)/i.test(o))
       return { kind: "url", url: o };
-    O(
-      `${t}.${n} must be one of ${[...se, re].join(", ")}${n === "image" ? " or an image address starting with /, http:// or https://" : ""}.`
+    P(
+      `${t}.${n} must be one of ${[...ve, $e].join(", ")}${n === "image" ? " or an image address starting with /, http:// or https://" : ""}.`
     );
   }
 }
-function Ji(e, t) {
-  const n = ve(e, `${t}.link`);
-  return n !== void 0 && !/^(\/|https?:\/\/)/i.test(n) && O(`${t}.link must be a Home Assistant path (/lovelace/…) or a web address (https://…).`), n;
+function To(e, t) {
+  const n = Ee(e, `${t}.link`);
+  return n !== void 0 && !/^(\/|https?:\/\/)/i.test(n) && P(`${t}.link must be a Home Assistant path (/lovelace/…) or a web address (https://…).`), n;
 }
-function Qi(e, t, n) {
-  dt(e) || O(`room ${t + 1} must be a mapping with at least a name.`);
-  const i = dt(e) && e.name != null ? Pt(e.name, `room ${t + 1} name`) : void 0, o = i === void 0 ? "" : Ln(i)[0];
-  (!o || i === void 0) && O(`room ${t + 1} requires a name.`);
-  const s = `room "${o}"`, r = e;
-  for (const [h, m] of [
+function Co(e, t, n) {
+  ut(e) || P(`room ${t + 1} must be a mapping with at least a name.`);
+  const i = ut(e) && e.name != null ? Ft(e.name, `room ${t + 1} name`) : void 0, o = i === void 0 ? "" : Gn(i)[0];
+  (!o || i === void 0) && P(`room ${t + 1} requires a name.`);
+  const s = `room "${o}"`, a = e;
+  for (const [h, u] of [
     ["tado", "heating"],
     ["samsung", "air_conditioner"]
   ])
-    h in r && O(`${s}: key "${h}" was renamed to "${m}".`);
-  "windows" in r && O(`${s}: the key is "window" (one entity or a list of them), not "windows".`), ct(r, Wi, s);
-  const a = J(e.heating, `${s}.heating`);
-  "heating" in a && O(`${s}: key "heating.heating" was renamed to "heating.intensity".`), ct(a, Ki, `${s}.heating`);
+    h in a && P(`${s}: key "${h}" was renamed to "${u}".`);
+  "windows" in a && P(`${s}: the key is "window" (one entity or a list of them), not "windows".`), mt(a, bo, s);
+  const r = nt(e.heating, `${s}.heating`);
+  "heating" in r && P(`${s}: key "heating.heating" was renamed to "heating.intensity".`), mt(r, yo, `${s}.heating`);
   const l = e.heating == null ? void 0 : {
-    climate: F(a.climate, `${s}.heating.climate`),
-    overlay: F(a.overlay, `${s}.heating.overlay`),
-    target: F(a.target, `${s}.heating.target`),
-    intensity: F(a.intensity, `${s}.heating.intensity`)
-  }, d = xt(J(e.thresholds, `${s}.thresholds`), n.thresholds, `${s}.thresholds`);
-  Nn(d, `${s}.thresholds`);
-  const c = an(e.carbon_dioxide, `${s}.carbon_dioxide`), p = an(e.pm25, `${s}.pm25`);
+    climate: U(r.climate, `${s}.heating.climate`),
+    overlay: U(r.overlay, `${s}.heating.overlay`),
+    target: U(r.target, `${s}.heating.target`),
+    intensity: U(r.intensity, `${s}.heating.intensity`)
+  }, d = Pt(nt(e.thresholds, `${s}.thresholds`), n.thresholds, `${s}.thresholds`);
+  ti(d, `${s}.thresholds`);
+  const c = Cn(e.carbon_dioxide, `${s}.carbon_dioxide`), p = Cn(e.pm25, `${s}.pm25`);
   return {
     name: o,
     label: i,
-    temperature: F(e.temperature, `${s}.temperature`),
-    humidity: F(e.humidity, `${s}.humidity`),
+    temperature: U(e.temperature, `${s}.temperature`),
+    humidity: U(e.humidity, `${s}.humidity`),
     carbon_dioxide: c.entity,
     hasCo2: c.present,
     pm25: p.entity,
     hasPm25: p.present,
-    windows: Zi(e, s),
-    cover: F(e.cover, `${s}.cover`),
-    presets: e.cover_presets == null ? n.presets : we(e.cover_presets, `${s}.cover_presets`),
+    windows: So(e, s),
+    cover: U(e.cover, `${s}.cover`),
+    presets: e.cover_presets == null ? n.presets : Oe(e.cover_presets, `${s}.cover_presets`),
     thresholds: d,
     heating: l,
-    air_conditioner: F(e.air_conditioner, `${s}.air_conditioner`),
-    image: Xi(e, s),
-    link: Ji(e.link, s)
+    air_conditioner: U(e.air_conditioner, `${s}.air_conditioner`),
+    image: Mo(e, s),
+    link: To(e.link, s)
   };
 }
-function to(e) {
-  return Ti("Klima Dashboard", () => eo(e));
+function Eo(e) {
+  return to("Klima Dashboard", () => Ao(e));
 }
-function eo(e) {
-  (!dt(e) || !Array.isArray(e.rooms) || e.rooms.length === 0) && O("the configuration requires a non-empty rooms list.");
-  const t = e.title === "" ? "" : Pt(e.title, "title"), n = e.theme ?? "auto";
-  on.includes(n) || O(`theme must be one of ${on.join(", ")}.`);
-  const i = Ci(e.language), o = F(e.house_mode_entity, "house_mode_entity") ?? Ii, s = F(e.ventilation_entity, "ventilation_entity"), r = F(e.ventilation_timer_entity, "ventilation_timer_entity"), a = e.ventilation_co2_target ?? Hi;
-  (typeof a != "number" || !Number.isFinite(a) || a < 300 || a > 2e3) && O("ventilation_co2_target must be a number of ppm between 300 and 2000.");
-  const l = J(e.house_modes, "house_modes");
-  ct(l, ["winter", "summer"], "house_modes");
+function Ao(e) {
+  (!ut(e) || !Array.isArray(e.rooms) || e.rooms.length === 0) && P("the configuration requires a non-empty rooms list.");
+  const t = e.title === "" ? "" : Ft(e.title, "title"), n = e.theme ?? "auto";
+  Sn.includes(n) || P(`theme must be one of ${Sn.join(", ")}.`);
+  const i = no(e.language), o = U(e.house_mode_entity, "house_mode_entity") ?? uo, s = U(e.ventilation_entity, "ventilation_entity"), a = U(e.ventilation_timer_entity, "ventilation_timer_entity"), r = e.ventilation_co2_target ?? mo;
+  (typeof r != "number" || !Number.isFinite(r) || r < 300 || r > 2e3) && P("ventilation_co2_target must be a number of ppm between 300 and 2000.");
+  const l = nt(e.house_modes, "house_modes");
+  mt(l, ["winter", "summer"], "house_modes");
   const d = {
-    winter: ve(l.winter, "house_modes.winter") ?? nn.winter,
-    summer: ve(l.summer, "house_modes.summer") ?? nn.summer
+    winter: Ee(l.winter, "house_modes.winter") ?? _n.winter,
+    summer: Ee(l.summer, "house_modes.summer") ?? _n.summer
   };
-  tt(d.winter) === tt(d.summer) && O("house_modes.winter and house_modes.summer must differ.");
-  const c = e.outside == null ? void 0 : J(e.outside, "outside");
+  st(d.winter) === st(d.summer) && P("house_modes.winter and house_modes.summer must differ.");
+  const c = e.outside == null ? void 0 : nt(e.outside, "outside");
   if (c) {
-    ct(c, rn, "outside");
-    for (const v of rn)
-      F(c[v], `outside.${v}`);
+    mt(c, Tn, "outside");
+    for (const b of Tn)
+      U(c[b], `outside.${b}`);
   }
-  const p = xt(J(e.thresholds, "thresholds"), Fi, "thresholds");
-  Nn(p, "thresholds");
-  const h = xt(J(e.trends, "trends"), ji, "trends", {
+  const p = Pt(nt(e.thresholds, "thresholds"), fo, "thresholds");
+  ti(p, "thresholds");
+  const h = Pt(nt(e.trends, "trends"), go, "trends", {
     minutes: [10, 1440, "integer"],
     samples: [2, 120, "integer"],
     temperature_step: [0.1, 10],
     co2_step: [1, 1e3],
     pm25_step: [0.5, 100]
-  }), m = xt(J(e.history, "history"), Ui, "history", {
+  }), u = Pt(nt(e.history, "history"), vo, "history", {
     hours: [1, 168, "integer"],
     night_start: [0, 23, "integer"],
     night_end: [0, 23, "integer"],
     min_temperature_span: [0.5, 20]
-  }), w = { ...J(e.covers, "covers") }, T = w.presets;
+  }), w = { ...nt(e.covers, "covers") }, T = w.presets;
   delete w.presets;
-  const M = w.script;
+  const C = w.script;
   delete w.script;
   const $ = {
-    ...xt(w, { tolerance: de.tolerance, stall_seconds: de.stall_seconds }, "covers", {
+    ...Pt(w, { tolerance: ye.tolerance, stall_seconds: ye.stall_seconds }, "covers", {
       tolerance: [0, 25],
       stall_seconds: [1, 120]
     }),
-    script: de.script
+    script: ye.script
   };
-  M != null && ((typeof M != "string" || !/^script\.[a-z0-9_]+$/.test(M.trim())) && O("covers.script must be a script entity such as script.zaluzie_posun."), $.script = M.trim());
-  const S = T == null ? we(Vi, "covers.presets") : we(T, "covers.presets"), C = e.rooms.map((v, b) => Qi(v, b, { thresholds: p, presets: S })), x = /* @__PURE__ */ new Set();
-  for (const v of C)
-    x.has(v.name) && O(`room name "${v.name}" is used twice; room names must be unique.`), x.add(v.name);
+  C != null && ((typeof C != "string" || !/^script\.[a-z0-9_]+$/.test(C.trim())) && P("covers.script must be a script entity such as script.zaluzie_posun."), $.script = C.trim());
+  const _ = T == null ? Oe($o, "covers.presets") : Oe(T, "covers.presets"), A = e.rooms.map((b, k) => Co(b, k, { thresholds: p, presets: _ })), S = /* @__PURE__ */ new Set();
+  for (const b of A)
+    S.has(b.name) && P(`room name "${b.name}" is used twice; room names must be unique.`), S.add(b.name);
   return {
     // Without a title the heading is "Domov" in the card language (i18n.ts).
     title: t,
@@ -1086,110 +1086,110 @@ function eo(e) {
     houseModeEntity: o,
     houseModes: d,
     ventilationEntity: s,
-    ventilationTimerEntity: r,
-    ventilationCo2Target: a,
+    ventilationTimerEntity: a,
+    ventilationCo2Target: r,
     outside: c,
     thresholds: p,
     trends: h,
-    history: m,
+    history: u,
     covers: $,
-    rooms: C
+    rooms: A
   };
 }
-const et = 5, ne = 25, V = [15, 30, 45, 60, 90, 120, 180, 240, 360, 480], ht = V.length, ut = V.length + 1;
-function no(e) {
-  return e === ht ? 0 : e === ut ? V.length + 1 : e + 1;
+const at = 5, pe = 25, K = [15, 30, 45, 60, 90, 120, 180, 240, 360, 480], ft = K.length, vt = K.length + 1;
+function Oo(e) {
+  return e === ft ? 0 : e === vt ? K.length + 1 : e + 1;
 }
-function io(e) {
-  const t = V.length + 1, n = Math.min(t, Math.max(0, Math.round(e)));
-  return n === 0 ? ht : n === t ? ut : n - 1;
+function Lo(e) {
+  const t = K.length + 1, n = Math.min(t, Math.max(0, Math.round(e)));
+  return n === 0 ? ft : n === t ? vt : n - 1;
 }
-function oo(e) {
-  return e === ut || e === ht ? V.length : e;
+function Po(e) {
+  return e === vt || e === ft ? K.length : e;
 }
-function so(e) {
-  const t = Math.min(V.length, Math.max(0, Math.round(e)));
-  return t === V.length ? ut : t;
+function Ro(e) {
+  const t = Math.min(K.length, Math.max(0, Math.round(e)));
+  return t === K.length ? vt : t;
 }
-function ln(e, t, n, i = 0) {
+function En(e, t, n, i = 0) {
   const o = Math.round(t * 60) + i, s = [
     { delay: { hours: Math.floor(o / 3600), minutes: Math.floor(o % 3600 / 60), seconds: o % 60 } }
   ];
   return n !== void 0 && s.push({ condition: "state", entity_id: e, state: n }), s.push({ action: "climate.set_hvac_mode", target: { entity_id: e }, data: { hvac_mode: "off" } }), { sequence: s };
 }
-function In(e) {
-  return e === "boost" ? 1 : e === "off" ? ut : ht;
+function ei(e) {
+  return e === "boost" ? 1 : e === "off" ? vt : ft;
 }
-function dn(e, t, n) {
-  const i = jn(n);
+function An(e, t, n) {
+  const i = oi(n);
   if (i === void 0)
     return;
-  const o = i === "heat" ? "manual" : i === "auto" ? "plan" : i, s = Fn(Hn(n)), r = K(n?.attributes.temperature), a = o === "manual" && r !== void 0 && r >= s.min && r <= s.max;
+  const o = i === "heat" ? "manual" : i === "auto" ? "plan" : i, s = ii(ni(n)), a = X(n?.attributes.temperature), r = o === "manual" && a !== void 0 && a >= s.min && a <= s.max;
   return {
     room: e,
     entityId: t,
     mode: o,
-    temperature: ro(a ? r : 21, s),
-    duration: In(o)
+    temperature: zo(r ? a : 21, s),
+    duration: ei(o)
   };
 }
-function K(e) {
+function X(e) {
   const t = typeof e == "string" ? Number.parseFloat(e) : e;
   return typeof t == "number" && Number.isFinite(t) ? t : void 0;
 }
-function Hn(e) {
-  const t = K(e?.attributes.target_temp_step), n = K(e?.attributes.min_temp) ?? et, i = K(e?.attributes.max_temp) ?? 25, o = t !== void 0 && t > 0 ? t : 0.5;
-  return i > n ? { min: n, max: i, step: o } : { min: et, max: 25, step: o };
+function ni(e) {
+  const t = X(e?.attributes.target_temp_step), n = X(e?.attributes.min_temp) ?? at, i = X(e?.attributes.max_temp) ?? 25, o = t !== void 0 && t > 0 ? t : 0.5;
+  return i > n ? { min: n, max: i, step: o } : { min: at, max: 25, step: o };
 }
-function Fn(e) {
-  return { ...e, min: Math.max(e.min, et) + e.step };
+function ii(e) {
+  return { ...e, min: Math.max(e.min, at) + e.step };
 }
-function ro(e, t) {
+function zo(e, t) {
   const n = Math.round((e - t.min) / t.step) * t.step + t.min;
   return Math.min(t.max, Math.max(t.min, Math.round(n * 100) / 100));
 }
-function jn(e) {
+function oi(e) {
   const t = e?.state.toLowerCase();
   if (t === "off")
     return "off";
   if (t === "auto")
     return "auto";
   if (t === "heat") {
-    const n = K(e?.attributes.temperature);
-    return n !== void 0 && n <= et ? "off" : n === ne ? "boost" : "heat";
+    const n = X(e?.attributes.temperature);
+    return n !== void 0 && n <= at ? "off" : n === pe ? "boost" : "heat";
   }
 }
-function Un(e, t, n) {
+function si(e, t, n) {
   const i = e?.toLowerCase(), o = t?.toLowerCase();
   if (i === "off")
     return "off";
-  const a = (i === "auto" ? "schedule" : i === "heat" ? "manual" : void 0) ?? (o === "off" ? "off" : o === "schedule" || o === "manual" ? o : void 0);
-  return a === "manual" && n !== void 0 && n <= et ? "off" : a;
+  const r = (i === "auto" ? "schedule" : i === "heat" ? "manual" : void 0) ?? (o === "off" ? "off" : o === "schedule" || o === "manual" ? o : void 0);
+  return r === "manual" && n !== void 0 && n <= at ? "off" : r;
 }
-function ao(e) {
+function Do(e) {
   const t = Math.floor(e / 60), n = e % 60;
   return `${String(t).padStart(2, "0")}:${String(n).padStart(2, "0")}:00`;
 }
-function St(e) {
-  return e >= 0 && e < V.length ? V[e] : void 0;
+function Rt(e) {
+  return e >= 0 && e < K.length ? K[e] : void 0;
 }
-function lo(e, t, n) {
+function No(e, t, n) {
   if (t.mode === "plan")
     return { domain: "climate", service: "set_hvac_mode", data: { entity_id: e, hvac_mode: "auto" } };
-  const i = St(t.duration);
-  if (t.mode === "off" && (t.duration === ut || !n))
+  const i = Rt(t.duration);
+  if (t.mode === "off" && (t.duration === vt || !n))
     return { domain: "climate", service: "set_hvac_mode", data: { entity_id: e, hvac_mode: "off" } };
   if (!n)
     return t.mode === "manual" ? { domain: "climate", service: "set_temperature", data: { entity_id: e, temperature: t.temperature } } : void 0;
-  const o = t.mode === "boost" ? ne : t.mode === "off" ? et : t.temperature, s = { entity_id: e, temperature: o };
-  return i !== void 0 ? s.time_period = ao(i) : s.overlay = t.duration === ht ? "next_time_block" : "manual", { domain: "tado_ce", service: "set_climate_timer", data: s };
+  const o = t.mode === "boost" ? pe : t.mode === "off" ? at : t.temperature, s = { entity_id: e, temperature: o };
+  return i !== void 0 ? s.time_period = Do(i) : s.overlay = t.duration === ft ? "next_time_block" : "manual", { domain: "tado_ce", service: "set_climate_timer", data: s };
 }
-function yt(e) {
+function Ot(e) {
   const t = Math.max(1, Math.round(e)), n = Math.floor(t / 60), i = t % 60;
   return n === 0 ? `${i} min` : i === 0 ? `${n} h` : `${n} h ${i} min`;
 }
-const pt = 36e5;
-function co(e) {
+const gt = 36e5;
+function Io(e) {
   if (e == null)
     return;
   if (typeof e == "number")
@@ -1197,20 +1197,20 @@ function co(e) {
   const t = Date.parse(e);
   return Number.isNaN(t) ? void 0 : t;
 }
-function ho(e, t) {
+function Ho(e, t) {
   const n = {};
   for (const [i, o] of Object.entries(e ?? {})) {
     if (!Array.isArray(o))
       continue;
     const s = [];
-    o.forEach((r, a) => {
-      const l = r.s ?? r.state, d = co(r.lu ?? r.last_updated ?? r.lc ?? r.last_changed) ?? (a === 0 ? t : void 0);
+    o.forEach((a, r) => {
+      const l = a.s ?? a.state, d = Io(a.lu ?? a.last_updated ?? a.lc ?? a.last_changed) ?? (r === 0 ? t : void 0);
       l !== void 0 && d !== void 0 && s.push({ time: Math.max(d, t), state: l });
-    }), s.sort((r, a) => r.time - a.time), n[i] = s;
+    }), s.sort((a, r) => a.time - r.time), n[i] = s;
   }
   return n;
 }
-async function Ht(e, t, n, i) {
+async function Yt(e, t, n, i) {
   if (t.length === 0)
     return {};
   const o = await e.callWS({
@@ -1223,9 +1223,9 @@ async function Ht(e, t, n, i) {
     minimal_response: !0,
     no_attributes: !0
   });
-  return ho(o, n);
+  return Ho(o, n);
 }
-function Rt(e, t) {
+function Vt(e, t) {
   let n;
   for (const i of e ?? []) {
     if (i.time > t)
@@ -1234,61 +1234,61 @@ function Rt(e, t) {
   }
   return n;
 }
-function be(e) {
+function Le(e) {
   if (e === void 0)
     return;
   const t = Number.parseFloat(e);
   return Number.isFinite(t) ? t : void 0;
 }
-function po(e, t, n, i) {
-  const o = (n - t) / i, s = (e ?? []).filter((r) => be(r.state) !== void 0);
+function Fo(e, t, n, i) {
+  const o = (n - t) / i, s = (e ?? []).filter((a) => Le(a.state) !== void 0);
   return Array.from(
     { length: i },
-    (r, a) => be(Rt(s, t + (a + 1) * o))
+    (a, r) => Le(Vt(s, t + (r + 1) * o))
   );
 }
-function cn(e, t, n, i = !1) {
+function Gt(e, t, n, i = !1) {
   const o = [];
-  for (const r of e ?? []) {
-    const a = be(r.state);
-    a !== void 0 && !(i && a === 0) && r.time <= n && o.push({ t: Math.max(r.time, t), v: a });
+  for (const a of e ?? []) {
+    const r = Le(a.state);
+    r !== void 0 && !(i && r === 0) && a.time <= n && o.push({ t: Math.max(a.time, t), v: r });
   }
   const s = o[o.length - 1];
   return s && s.t < n && o.push({ t: n, v: s.v }), o;
 }
-function kt(e, t, n, i) {
+function wt(e, t, n, i) {
   const o = /* @__PURE__ */ new Set([t, n]);
-  for (const a of e)
-    for (const l of a ?? [])
+  for (const r of e)
+    for (const l of r ?? [])
       l.time > t && l.time < n && o.add(l.time);
-  const s = [...o].sort((a, l) => a - l), r = [];
-  for (let a = 0; a < s.length - 1; a += 1) {
-    const l = i(e.map((c) => Rt(c, s[a])));
+  const s = [...o].sort((r, l) => r - l), a = [];
+  for (let r = 0; r < s.length - 1; r += 1) {
+    const l = i(e.map((c) => Vt(c, s[r])));
     if (l === void 0)
       continue;
-    const d = r[r.length - 1];
-    d && d.value === l && d.end === s[a] ? d.end = s[a + 1] : r.push({ start: s[a], end: s[a + 1], value: l });
+    const d = a[a.length - 1];
+    d && d.value === l && d.end === s[r] ? d.end = s[r + 1] : a.push({ start: s[r], end: s[r + 1], value: l });
   }
-  return r;
+  return a;
 }
-function ce(e, t) {
+function ke(e, t) {
   let n = Number.POSITIVE_INFINITY, i = Number.NEGATIVE_INFINITY;
-  for (const r of e)
-    for (const a of r ?? [])
-      a !== void 0 && Number.isFinite(a) && (n = Math.min(n, a), i = Math.max(i, a));
+  for (const a of e)
+    for (const r of a ?? [])
+      r !== void 0 && Number.isFinite(r) && (n = Math.min(n, r), i = Math.max(i, r));
   if (!Number.isFinite(n) || !Number.isFinite(i) || t <= 0)
     return;
   let o = Math.floor(n / t) * t, s = Math.ceil(i / t) * t;
   return s - o < t && (o -= t, s += t), { min: o, max: s };
 }
-function uo(e, t) {
+function jo(e, t) {
   const n = t.max - t.min;
   return e.map(
     (i) => i === void 0 || n <= 0 ? void 0 : Math.min(1, Math.max(0, (i - t.min) / n))
   );
 }
-function hn() {
-  return u`
+function Uo() {
+  return m`
     <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       ${[
     [5.5, 6, 1.9],
@@ -1301,25 +1301,25 @@ function hn() {
     [11.5, 18, 1.7],
     [7, 20.5, 1.9],
     [15, 21, 1.4]
-  ].map(([t, n, i]) => _`<circle cx=${t} cy=${n} r=${i}></circle>`)}
+  ].map(([t, n, i]) => y`<circle cx=${t} cy=${n} r=${i}></circle>`)}
     </svg>
   `;
 }
-function mo(e) {
-  const t = (o, s, r, a) => _`<rect x=${o} y=${s} width=${r} height=${a} rx=${a / 2 > 1.2 ? 1.2 : a / 2} fill="currentColor" stroke="none"></rect>`, n = (o) => _`<path d="M27.5 6.7V${o}" stroke-width="1.6"></path>
+function Vo(e) {
+  const t = (o, s, a, r) => y`<rect x=${o} y=${s} width=${a} height=${r} rx=${r / 2 > 1.2 ? 1.2 : r / 2} fill="currentColor" stroke="none"></rect>`, n = (o) => y`<path d="M27.5 6.7V${o}" stroke-width="1.6"></path>
     <circle cx="27.5" cy=${o + 2.4} r="2" fill="currentColor" stroke="none"></circle>`;
   let i;
   switch (e) {
     case "open":
-      i = _`${t(4.5, 8.6, 20.5, 2.4)}${t(4.5, 12.2, 20.5, 2)}${n(21)}`;
+      i = y`${t(4.5, 8.6, 20.5, 2.4)}${t(4.5, 12.2, 20.5, 2)}${n(21)}`;
       break;
     case "shade":
-      i = _`<path d="M4.5 11.4h20.5M4.5 16.2h20.5M4.5 21h20.5M4.5 25.8h20.5" stroke-width="1.8"></path>${n(26)}`;
+      i = y`<path d="M4.5 11.4h20.5M4.5 16.2h20.5M4.5 21h20.5M4.5 25.8h20.5" stroke-width="1.8"></path>${n(26)}`;
       break;
     default:
-      i = _`${t(4.5, 8.8, 20.5, 3.8)}${t(4.5, 13.6, 20.5, 3.8)}${t(4.5, 18.4, 20.5, 3.8)}${t(4.5, 23.2, 20.5, 3.8)}${n(26)}`;
+      i = y`${t(4.5, 8.8, 20.5, 3.8)}${t(4.5, 13.6, 20.5, 3.8)}${t(4.5, 18.4, 20.5, 3.8)}${t(4.5, 23.2, 20.5, 3.8)}${n(26)}`;
   }
-  return u`
+  return m`
     <svg
       viewBox="0 0 32 32"
       fill="none"
@@ -1333,8 +1333,8 @@ function mo(e) {
     </svg>
   `;
 }
-function pn() {
-  return u`
+function On() {
+  return m`
     <svg
       viewBox="0 0 24 24"
       fill="none"
@@ -1349,57 +1349,57 @@ function pn() {
     </svg>
   `;
 }
-function Vn(e, t) {
-  return _`${[0, 1, 2].map(
-    (n) => _`<path
+function ai(e, t) {
+  return y`${[0, 1, 2].map(
+    (n) => y`<path
       d="M${6 + 6 * n} 20q-3-2.4 0-4.8t0-4.8t0-4.8"
-      style=${`stroke: ${n < e ? g.warning : g.off}`}
-      stroke-dasharray=${t ? "1.6 2.6" : f}
+      style=${`stroke: ${n < e ? f.warning : f.off}`}
+      stroke-dasharray=${t ? "1.6 2.6" : g}
     ></path>`
   )}`;
 }
-function ye(e, t) {
-  return u`
+function Pe(e, t) {
+  return m`
     <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" aria-hidden="true">
-      ${Vn(e, t)}
+      ${ai(e, t)}
     </svg>
   `;
 }
-function Bn(e) {
+function Re(e) {
   let t;
-  const n = _`<path d="M12 3v18M9.9 5.1 12 3l2.1 2.1M9.9 18.9 12 21l2.1-2.1"></path>`, i = _`<path d="M12 12c0-5 2.4-8.1 5.8-6.8 1.2 3.2-1.3 6.1-5.8 6.8z"></path>`;
+  const n = y`<path d="M12 3v18M9.9 5.1 12 3l2.1 2.1M9.9 18.9 12 21l2.1-2.1"></path>`, i = y`<path d="M12 12c0-5 2.4-8.1 5.8-6.8 1.2 3.2-1.3 6.1-5.8 6.8z"></path>`;
   switch (e) {
     case "cool":
     case "wind_free":
-      t = _`${n}
+      t = y`${n}
         <g transform="rotate(60 12 12)">${n}</g>
         <g transform="rotate(120 12 12)">${n}</g>`;
       break;
     case "dry":
-      t = _`<path d="M12 3.5S5.5 10.2 5.5 14.6a6.5 6.5 0 0 0 13 0C18.5 10.2 12 3.5 12 3.5z"></path>`;
+      t = y`<path d="M12 3.5S5.5 10.2 5.5 14.6a6.5 6.5 0 0 0 13 0C18.5 10.2 12 3.5 12 3.5z"></path>`;
       break;
     case "fan":
-      t = _`${i}<g transform="rotate(120 12 12)">${i}</g>
+      t = y`${i}<g transform="rotate(120 12 12)">${i}</g>
         <g transform="rotate(240 12 12)">${i}</g>`;
       break;
     case "heat":
-      t = _`<circle cx="12" cy="12" r="4"></circle>
+      t = y`<circle cx="12" cy="12" r="4"></circle>
         ${[0, 1, 2, 3, 4, 5, 6, 7].map(
-        (o) => _`<path d="M12 3v2.5" transform=${`rotate(${45 * o} 12 12)`}></path>`
+        (o) => y`<path d="M12 3v2.5" transform=${`rotate(${45 * o} 12 12)`}></path>`
       )}`;
       break;
     case "auto":
-      t = _`<circle cx="12" cy="12" r="9"></circle>
+      t = y`<circle cx="12" cy="12" r="9"></circle>
         <path d="M8.3 16.3 12 7.7l3.7 8.6M9.7 13.6h4.6"></path>`;
       break;
     default:
-      t = _`<rect x="3" y="5" width="18" height="8" rx="2"></rect>
+      t = y`<rect x="3" y="5" width="18" height="8" rx="2"></rect>
         <path d="M7 9.5h10M8 16.5v2.5M12 16.5v2.5M16 16.5v2.5"></path>`;
   }
   return t;
 }
-function Tt(e, t, n) {
-  return u`
+function xt(e, t, n) {
+  return m`
     <svg
       viewBox="0 0 24 24"
       fill="none"
@@ -1407,18 +1407,18 @@ function Tt(e, t, n) {
       stroke-width="1.8"
       stroke-linecap="round"
       stroke-linejoin="round"
-      stroke-dasharray=${n ? "2 2.4" : f}
+      stroke-dasharray=${n ? "2 2.4" : g}
       aria-hidden="true"
     >
-      ${Bn(e)}
+      ${Re(e)}
     </svg>
   `;
 }
-function Wn() {
-  return _`<rect x="5" y="3.5" width="14" height="17" rx="1.5"></rect><path d="M12 3.5v17M5 12h14"></path>`;
+function ri() {
+  return y`<rect x="5" y="3.5" width="14" height="17" rx="1.5"></rect><path d="M12 3.5v17M5 12h14"></path>`;
 }
-function he(e, t) {
-  return u`
+function ie(e, t) {
+  return m`
     <svg
       viewBox="0 0 24 24"
       fill="none"
@@ -1426,31 +1426,31 @@ function he(e, t) {
       stroke-width="1.8"
       stroke-linecap="round"
       stroke-linejoin="round"
-      stroke-dasharray=${t ? "2 2.4" : f}
+      stroke-dasharray=${t ? "2 2.4" : g}
       aria-hidden="true"
     >
-      ${Wn()}
+      ${ri()}
     </svg>
   `;
 }
-function pe(e) {
+function xe(e) {
   let t;
   switch (e) {
     case "off":
-      t = _`<path d="M12 3.5v8M7.2 6.6a7.5 7.5 0 1 0 9.6 0"></path>`;
+      t = y`<path d="M12 3.5v8M7.2 6.6a7.5 7.5 0 1 0 9.6 0"></path>`;
       break;
     case "auto":
-      t = _`<rect x="4" y="5" width="16" height="15" rx="2.5"></rect>
+      t = y`<rect x="4" y="5" width="16" height="15" rx="2.5"></rect>
         <path d="M4 10h16M8.5 3v4M15.5 3v4"></path>`;
       break;
     case "heat":
-      t = _`<path d="M4 8h7.5M16.5 8H20M4 16h3.5M12.5 16H20"></path>
+      t = y`<path d="M4 8h7.5M16.5 8H20M4 16h3.5M12.5 16H20"></path>
         <circle cx="14" cy="8" r="2.5"></circle><circle cx="10" cy="16" r="2.5"></circle>`;
       break;
     default:
-      t = _`<path d="M13.2 2.5 5.5 13.2h5.6L10.2 21.5l8.3-11.2h-5.7z"></path>`;
+      t = y`<path d="M13.2 2.5 5.5 13.2h5.6L10.2 21.5l8.3-11.2h-5.7z"></path>`;
   }
-  return u`
+  return m`
     <svg
       viewBox="0 0 24 24"
       fill="none"
@@ -1464,107 +1464,136 @@ function pe(e) {
     </svg>
   `;
 }
-const U = 4, fo = 32, st = 6, X = 150, Mt = st + X, Ft = 9, Kn = Mt + 10, Yt = 12, go = 12, un = 34, mn = "history-icon-fade", qn = 14, vo = 7, $o = (e) => 2 + (e.windows ? 1 : 0), Yn = (e) => Kn + $o(e) * Yt, wo = (e) => Yn(e) + qn + vo, fn = 12, bo = [0, 0.24, 0.44, 0.68], gn = "history-under-temperature", vn = "history-plot", Oe = {
-  schedule: g.plan,
-  manual: g.warning,
-  off: g.closed
-}, B = (e) => `fill: ${e}`, q = (e) => `stroke: ${e}`;
-function ue(e, t, n) {
-  return Un(t, e, n);
+const ze = " ", Q = 4, Bo = 44, J = 6, Z = 180, it = J + Z, Zt = 10, li = it + 10, oe = 14, Ln = 14, Wo = 3, di = 14, Ko = 7;
+function qo(e, t, n) {
+  if (t === "temperature") {
+    const o = n ? ["climate", "heating"] : ["heating", "climate"];
+    return e.windows ? [...o, "windows"] : o;
+  }
+  const i = [];
+  return e.ventilation && i.push("ventilation"), e.windows && i.push("windows"), i;
 }
-function jt(e) {
+const ci = (e) => e === 0 ? it : li + e * oe, Yo = (e = 0) => ci(Math.max(e, Wo)) + di + Ko, _e = 12, Go = [0, 0.24, 0.44, 0.68], Pn = "history-under-temperature", bt = "history-plot", Rn = "history-curve", Be = {
+  schedule: f.plan,
+  manual: f.warning,
+  off: f.closed
+}, B = (e) => `fill: ${e}`, W = (e) => `stroke: ${e}`;
+function Se(e, t, n) {
+  return si(t, e, n);
+}
+function Xt(e) {
   if (e === void 0)
     return;
   const t = Number.parseFloat(e);
   return Number.isFinite(t) ? t : void 0;
 }
-const yo = 0.05;
-function ko(e, t) {
-  const n = e.filter((a) => Number.isFinite(a));
+const hi = 0.05;
+function Zo(e, t) {
+  const n = e.filter((r) => Number.isFinite(r));
   let i = 19, o = 23;
   if (n.length > 0) {
     if (i = Math.min(...n), o = Math.max(...n), o - i < t) {
       const l = (i + o) / 2;
       i = l - t / 2, o = l + t / 2;
     }
-    const a = (o - i) * yo;
-    i -= a, o += a;
+    const r = (o - i) * hi;
+    i -= r, o += r;
   }
-  const s = o - i, r = s <= 3 ? 0.5 : s <= 6 ? 1 : s <= 12 ? 2 : 5;
-  return { min: i, max: o, step: r };
+  const s = o - i, a = s <= 3 ? 0.5 : s <= 6 ? 1 : s <= 12 ? 2 : 5;
+  return { min: i, max: o, step: a };
 }
-function _o(e, t, n) {
+function Xo(e, t, n) {
   const i = [], o = n / 1e3;
   for (let s = Math.ceil(e / n - o) * n; s <= t + o; s += n)
     i.push(Math.round(s * 100) / 100);
   return i;
 }
-function xo(e, t, n, i) {
-  const o = (v) => v ? e[v] : void 0, { startMs: s, endMs: r } = n, a = o(t.heating?.overlay), l = o(t.heating?.climate), d = cn(o(t.temperature), s, r, !0), c = cn(o(t.humidity), s, r, !0), p = kt(
-    [a, l, o(t.heating?.target)],
-    s,
+function Jo(e, t, n, i, o) {
+  const s = (M) => M ? e[M] : void 0, { startMs: a, endMs: r } = n, l = s(t.heating?.overlay), d = s(t.heating?.climate), c = Gt(s(t.temperature), a, r, !0), p = Gt(s(t.humidity), a, r, !0), h = wt(
+    [l, d, s(t.heating?.target)],
+    a,
     r,
-    ([v, b, E]) => ue(v, b, jt(E))
-  ), h = kt(
-    [a, l, o(t.heating?.intensity), o(t.heating?.target)],
-    s,
+    ([M, z, L]) => Se(M, z, Xt(L))
+  ), u = wt(
+    [l, d, s(t.heating?.intensity), s(t.heating?.target)],
+    a,
     r,
-    ([v, b, E, y]) => {
-      const P = ue(v, b, jt(y)), N = Dn(jt(E), t.thresholds);
-      return P === void 0 || P === "off" || N === 0 ? void 0 : String(N);
+    ([M, z, L, H]) => {
+      const Y = Se(M, z, Xt(H)), G = Xn(Xt(L), t.thresholds);
+      return Y === void 0 || Y === "off" || G === 0 ? void 0 : String(G);
     }
-  ), m = kt(
-    [a, l, o(t.heating?.target)],
-    s,
+  ), w = wt(
+    [l, d, s(t.heating?.target)],
+    a,
     r,
-    ([v, b, E]) => {
-      const y = jt(E), P = ue(v, b, y);
-      if (!(y === void 0 || y <= et))
-        return P === "schedule" || P === "manual" ? String(y) : void 0;
+    ([M, z, L]) => {
+      const H = Xt(L), Y = Se(M, z, H);
+      if (!(H === void 0 || H <= at))
+        return Y === "schedule" || Y === "manual" ? String(H) : void 0;
     }
-  ), w = t.windows.length > 0 ? kt(
-    t.windows.map((v) => o(v.entity)),
-    s,
+  ), T = t.windows.length > 0 ? wt(
+    t.windows.map((M) => s(M.entity)),
+    a,
     r,
-    (v) => v.some((b) => b?.toLowerCase() === "on") ? "open" : void 0
-  ) : void 0, T = kt([o(t.air_conditioner)], s, r, ([v]) => {
-    const b = Li(v);
-    return b === "unknown" ? void 0 : b;
-  }), M = d.map((v) => v.v), { min: $, max: S, step: C } = ko(
-    M.length > 0 ? M : m.map((v) => Number(v.value)),
+    (M) => M.some((z) => z?.toLowerCase() === "on") ? "open" : void 0
+  ) : void 0, C = o ? wt([s(o)], a, r, ([M]) => M?.toLowerCase() === "on" ? "on" : void 0) : void 0, $ = Gt(s(t.carbon_dioxide), a, r, !0), _ = Gt(s(t.pm25), a, r), A = wt([s(t.air_conditioner)], a, r, ([M]) => {
+    const z = ao(M);
+    return z === "unknown" ? void 0 : z;
+  }), S = c.map((M) => M.v), { min: b, max: k, step: O } = Zo(
+    S.length > 0 ? S : w.map((M) => Number(M.value)),
     i.min_temperature_span
-  ), x = c.map((v) => v.v);
+  ), x = p.map((M) => M.v);
   return {
     range: n,
-    temperature: d,
-    humidity: c,
-    heating: p,
-    intensity: h,
-    target: m,
-    climate: T,
-    windows: w,
-    tempMin: $,
-    tempMax: S,
-    tempStep: C,
+    temperature: c,
+    humidity: p,
+    heating: h,
+    intensity: u,
+    target: w,
+    climate: A,
+    windows: T,
+    co2: $,
+    pm25: _,
+    ventilation: C,
+    limits: {
+      co2: { warning: t.thresholds.co2_warning, critical: t.thresholds.co2_critical },
+      pm25: { warning: t.thresholds.pm25_warning, critical: t.thresholds.pm25_critical }
+    },
+    tempMin: b,
+    tempMax: k,
+    tempStep: O,
     humidityMin: x.length > 0 ? Math.min(...x) : void 0,
     humidityMax: x.length > 0 ? Math.max(...x) : void 0,
     night: [i.night_start, i.night_end]
   };
 }
-function So(e) {
-  return e.temperature.length > 0 || e.humidity.length > 0 || e.heating.length > 0;
+function Qo(e, t = "temperature") {
+  return t === "co2" ? e.co2.length > 0 : t === "pm25" ? e.pm25.length > 0 : e.temperature.length > 0 || e.humidity.length > 0 || e.heating.length > 0;
 }
-function rt(e) {
-  return e - U - fo;
+function ts(e, t, n) {
+  const i = e.filter((l) => Number.isFinite(l)), o = i.length > 0 ? Math.max(...i) : t.warning;
+  let s = Math.max(o, t.warning);
+  o >= t.warning && (s = Math.max(s, t.critical));
+  const a = 400, r = n === "pm25" ? 0 : Math.min(a, i.length > 0 ? Math.floor(Math.min(...i) / 100) * 100 : a);
+  return { min: r, max: s + (s - r) * hi };
 }
-function To(e, t, n) {
-  return U + (e - t.startMs) / (t.endMs - t.startMs) * rt(n);
+function es(e, t, n, i) {
+  const o = n === "co2" ? [50, 100, 200, 250, 500, 1e3, 2e3] : [1, 2, 5, 10, 20, 50, 100], s = (t - e) / Math.max(2, i), a = o.find((l) => l >= s * 0.8) ?? o[o.length - 1], r = [];
+  for (let l = Math.ceil(e / a - 1e-9) * a; l <= t + 1e-9; l += a)
+    r.push(l);
+  return r;
 }
-function Mo(e, t, n) {
-  const i = Math.min(1, Math.max(0, (e - U) / rt(t)));
+function ct(e) {
+  return e - Q - Bo;
+}
+function ns(e, t, n) {
+  return Q + (e - t.startMs) / (t.endMs - t.startMs) * ct(n);
+}
+function is(e, t, n) {
+  const i = Math.min(1, Math.max(0, (e - Q) / ct(t)));
   return n.startMs + i * (n.endMs - n.startMs);
 }
-function ke(e, t) {
+function Bt(e, t) {
   let n;
   for (const i of e) {
     if (i.t > t)
@@ -1573,12 +1602,12 @@ function ke(e, t) {
   }
   return n;
 }
-function Ut(e, t, n) {
+function _t(e, t, n) {
   return e.find(
     (i) => i.start <= t && (t < i.end || t === n && i.end === n)
   )?.value;
 }
-function Co(e, [t, n]) {
+function os(e, [t, n]) {
   const i = [];
   if (t === n)
     return i;
@@ -1586,25 +1615,25 @@ function Co(e, [t, n]) {
   for (o.setHours(0, 0, 0, 0), o.setDate(o.getDate() - 1); o.getTime() < e.endMs; ) {
     const s = new Date(o);
     s.setHours(t, 0, 0, 0);
-    const r = new Date(o);
-    n < t && r.setDate(r.getDate() + 1), r.setHours(n, 0, 0, 0);
-    const a = Math.max(s.getTime(), e.startMs), l = Math.min(r.getTime(), e.endMs);
-    l > a && i.push([a, l]), o.setDate(o.getDate() + 1);
+    const a = new Date(o);
+    n < t && a.setDate(a.getDate() + 1), a.setHours(n, 0, 0, 0);
+    const r = Math.max(s.getTime(), e.startMs), l = Math.min(a.getTime(), e.endMs);
+    l > r && i.push([r, l]), o.setDate(o.getDate() + 1);
   }
   return i;
 }
-const $n = [1, 2, 3, 4, 6, 12, 24, 48, 72, 120, 168];
-function Le(e) {
-  const t = (e.endMs - e.startMs) / pt;
-  let n = $n[0], i = 1 / 0;
-  for (const o of $n) {
-    const s = t / o, a = (s < 6 ? 6 - s : s > 10 ? s - 10 : 0) * 100 + Math.abs(s - 8) - o / 1e6;
-    a < i && (i = a, n = o);
+const zn = [1, 2, 3, 4, 6, 12, 24, 48, 72, 120, 168];
+function We(e) {
+  const t = (e.endMs - e.startMs) / gt;
+  let n = zn[0], i = 1 / 0;
+  for (const o of zn) {
+    const s = t / o, r = (s < 6 ? 6 - s : s > 10 ? s - 10 : 0) * 100 + Math.abs(s - 8) - o / 1e6;
+    r < i && (i = r, n = o);
   }
   return n;
 }
-function Eo(e) {
-  const t = Le(e), n = [], i = new Date(e.startMs);
+function ss(e) {
+  const t = We(e), n = [], i = new Date(e.startMs);
   if (i.setMinutes(0, 0, 0), t >= 24)
     for (i.setHours(0); i.getTime() < e.startMs; )
       i.setDate(i.getDate() + 1);
@@ -1614,145 +1643,217 @@ function Eo(e) {
     i.getTime() >= e.startMs && n.push(i.getTime()), t >= 24 ? i.setDate(i.getDate() + t / 24) : i.setHours(i.getHours() + t);
   return n;
 }
-function Ao(e, t, n) {
-  return e - 16 < t ? { x: t, anchor: "start" } : e + 16 > n ? { x: n, anchor: "end" } : { x: e, anchor: "middle" };
+function as(e, t) {
+  return { x: Math.max(e, t + 9), anchor: "middle" };
 }
-function Oo(e) {
-  return e === "off" ? Oe.off : zt[e] ?? g.off;
+function rs(e) {
+  return e === "off" ? Be.off : Ut[e] ?? f.off;
 }
-function Lo(e, t, n) {
+function ls(e, t, n) {
   const i = new Date(e).getHours() === 0;
-  return Le(t) >= 24 || i && t.endMs - t.startMs > 36 * pt ? n.day(e) : n.hour(e).replace(/^(\d{1,2}):00$/, "$1");
+  return We(t) >= 24 || i && t.endMs - t.startMs > 36 * gt ? n.day(e) : n.hour(e).replace(/^(\d{1,2}):00$/, "$1");
 }
-function Po(e, t, n) {
-  const { t: i } = n, o = t ?? e.range.endMs, s = ke(e.temperature, o), r = ke(e.humidity, o), a = Ut(e.heating, o, e.range.endMs), l = Number(Ut(e.intensity, o, e.range.endMs) ?? 0), d = Ut(e.target, o, e.range.endMs), c = Ut(e.climate, o, e.range.endMs);
-  let p = i.chart.now;
-  if (t !== void 0) {
-    const T = (S) => {
-      const C = new Date(S);
-      return C.setHours(12, 0, 0, 0), C.getTime();
-    }, M = Math.round((T(e.range.endMs) - T(t)) / (24 * pt));
-    p = `${M === 0 ? "" : M === 1 ? `${i.chart.yesterday} ` : `${n.day(t)} `}${n.time(t)}`;
-  }
-  const h = a === void 0 ? "––" : `${i.heatingMode[a]}${a !== "off" && d !== void 0 ? ` · ${n.half(Number(d))} °C` : ""}`, m = c ? i.climateMode[c] : "––", w = c ? zt[c] : g.off;
-  return u`
+function pi(e, t, n) {
+  const { t: i } = n;
+  if (t === void 0)
+    return i.chart.now;
+  const o = (r) => {
+    const l = new Date(r);
+    return l.setHours(12, 0, 0, 0), l.getTime();
+  }, s = Math.round((o(e.range.endMs) - o(t)) / (24 * gt));
+  return `${s === 0 ? "" : s === 1 ? `${i.chart.yesterday} ` : `${n.day(t)} `}${n.time(t)}`;
+}
+function ui(e, t) {
+  return e === void 0 ? f.label : e >= t.critical ? f.alertOnPopup : e >= t.warning ? f.warning : f.white;
+}
+function ds(e, t, n) {
+  const { t: i } = n, o = t ?? e.range.endMs, s = Bt(e.temperature, o), a = Bt(e.humidity, o), r = _t(e.heating, o, e.range.endMs), l = Number(_t(e.intensity, o, e.range.endMs) ?? 0), d = _t(e.target, o, e.range.endMs), c = _t(e.climate, o, e.range.endMs), p = pi(e, t, n), h = r === void 0 ? "––" : `${i.heatingMode[r]}${r !== "off" && d !== void 0 ? ` · ${n.half(Number(d))} °C` : ""}`, u = c ? i.climateMode[c] : "––", w = c ? Ut[c] : f.off;
+  return m`
     <div class="readout" aria-live="polite">
       <div class="readout-main">
+        <span class="readout-values">
+          <span class="readout-temp"
+            >${s === void 0 ? "––" : m`${n.one(s)}<span class="readout-unit">${ze}°C</span>`}</span
+          >
+          ${a === void 0 ? g : m`<span class="readout-hum"
+                ><span class="readout-swatch" aria-hidden="true"></span><span class="sr-only">${i.required.humidity} </span>${n.percent(Math.round(a))}</span
+              >`}
+        </span>
         <span class="readout-time">${p}</span>
-        <span class="readout-temp">${s === void 0 ? "––" : `${n.one(s)} °C`}</span>
-        <span class="readout-hum">${r === void 0 ? "" : n.percent(Math.round(r))}</span>
       </div>
       <div class="readout-systems">
-        <span class="readout-system" style=${`color: ${a === "off" ? g.off : a ? Oe[a] : g.label}`}>
-          <span class="readout-icon">${ye(a && a !== "off" ? l : 0, a === void 0)}</span>
+        <span class="readout-system" style=${`color: ${r === "off" ? f.off : r ? Be[r] : f.label}`}>
+          <span class="readout-icon">${Pe(r && r !== "off" ? l : 0, r === void 0)}</span>
           ${i.system.heating} ${h}
         </span>
         <span class="readout-system" style=${`color: ${w}`}>
-          <span class="readout-icon">${Tt(c ?? "off", w, c === void 0)}</span>
-          ${i.system.climate} ${m}
+          <span class="readout-icon">${xt(c ?? "off", w, c === void 0)}</span>
+          ${i.system.climate} ${u}
         </span>
       </div>
     </div>
   `;
 }
-function Do(e, t, n, i, o = !1) {
-  const { range: s } = e, r = (k) => To(k, s, t), a = (k) => Mt - (k - e.tempMin) / (e.tempMax - e.tempMin) * X, l = (e.humidityMin ?? 0) - 3, d = Math.max((e.humidityMax ?? 100) + 3, l + 12), c = (k) => Mt - (k - l) / (d - l) * X, p = U + rt(t), h = (k, A) => k.map((I, j) => `${j === 0 ? "M" : "L"}${r(I.t).toFixed(1)} ${A(I.v).toFixed(1)}`).join(" "), m = h(e.temperature, a), w = e.temperature[0], T = e.temperature[e.temperature.length - 1], M = w && T ? `${m} L${r(T.t).toFixed(1)} ${Mt} L${r(w.t).toFixed(1)} ${Mt} Z` : "";
-  let $ = "";
-  e.target.forEach((k, A) => {
-    const I = a(Number(k.value)).toFixed(1), j = e.target[A - 1];
-    $ += j && j.end === k.start ? ` L${r(k.start).toFixed(1)} ${I}` : ` M${r(k.start).toFixed(1)} ${I}`, $ += ` L${r(k.end).toFixed(1)} ${I}`;
+function cs(e, t, n, i, o) {
+  const { t: s } = i, a = n ?? e.range.endMs, r = n === void 0 && o !== void 0, l = r ? o.value : Bt(e[t], a), d = t === "co2" && e.pm25.length > 0 ? r && o.secondary ? o.secondary.value : Bt(e.pm25, a) : void 0, c = r && o.secondary?.stale === !0, p = e.limits[t], h = t === "co2" ? "ppm" : "µg/m³", u = e.ventilation ? _t(e.ventilation, a, e.range.endMs) === "on" : void 0, w = e.windows ? _t(e.windows, a, e.range.endMs) === "open" : void 0;
+  return m`
+    <div class="readout" aria-live="polite">
+      <div class="readout-main">
+        <span class="readout-values">
+          <span class="readout-temp" style=${`color: ${r && o.stale ? f.label : ui(l, p)}`}
+            >${l === void 0 ? "––" : m`${i.whole(l)}<span class="readout-unit">${ze}${h}</span>`}</span
+          >
+          ${t === "co2" && e.pm25.length > 0 ? m`<span class="readout-hum pm25" style=${c ? `color: ${f.label}` : g}
+                ><span class="readout-swatch" aria-hidden="true"></span><span class="sr-only">PM2.5 </span>${d === void 0 ? "––" : m`${i.whole(d)}${ze}µg/m³`}</span
+              >` : g}
+        </span>
+        <span class="readout-time">${pi(e, n, i)}</span>
+      </div>
+      <div class="readout-systems">
+        ${u === void 0 ? g : m`<span class="readout-system" style=${`color: ${u ? f.fresh : f.off}`}>
+              <span class="readout-icon">${xt("fan", u ? f.fresh : f.off, !1)}</span>
+              ${s.ventilation.title} ${u ? s.chart.ventilationOn : s.chart.ventilationOff}
+            </span>`}
+        ${w === void 0 ? g : m`<span class="readout-system" style=${`color: ${w ? f.sky : f.off}`}>
+              <span class="readout-icon">${ie(w ? f.sky : f.off, !1)}</span>
+              ${s.window.popup} ${w ? s.window.open : s.window.closed}
+            </span>`}
+      </div>
+    </div>
+  `;
+}
+function hs(e, t, n, i, o, s = !1, a) {
+  const { range: r } = e, l = t === "temperature" ? void 0 : t, d = (v) => ns(v, r, n), c = l ? e[l] : e.temperature, p = l ? e.limits[l] : void 0, h = l ? ts(c.map((v) => v.v), e.limits[l], l) : { min: e.tempMin, max: e.tempMax }, u = (v) => it - (v - h.min) / (h.max - h.min) * Z, w = (e.humidityMin ?? 0) - 3, T = Math.max((e.humidityMax ?? 100) + 3, w + 12), C = (v) => it - (v - w) / (T - w) * Z, $ = Q + ct(n), _ = (v, E) => v.map((R, N) => `${N === 0 ? "M" : "L"}${d(R.t).toFixed(1)} ${E(R.v).toFixed(1)}`).join(" "), A = (v, E) => v.map((R, N) => {
+    const V = v[N - 1];
+    return `${N === 0 ? "M" : `L${d(R.t).toFixed(1)} ${E(V.v).toFixed(1)} L`}${d(R.t).toFixed(1)} ${E(R.v).toFixed(1)}`;
+  }).join(" "), S = l === "pm25" ? A(c, u) : _(c, u), b = c[0], k = c[c.length - 1], O = b && k ? `${S} L${d(k.t).toFixed(1)} ${it} L${d(b.t).toFixed(1)} ${it} Z` : "";
+  let x = "";
+  l || e.target.forEach((v, E) => {
+    const R = u(Number(v.value)).toFixed(1), N = e.target[E - 1];
+    x += N && N.end === v.start ? ` L${d(v.start).toFixed(1)} ${R}` : ` M${d(v.start).toFixed(1)} ${R}`, x += ` L${d(v.end).toFixed(1)} ${R}`;
   });
-  const S = rt(t) / Math.max(1, (s.endMs - s.startMs) / pt / Le(s)), C = (e.tempMax - e.tempMin) / Math.max(2, Math.round(X / S)), x = [0.5, 1, 2, 5, 10].find((k) => k >= C * 0.8) ?? 10, v = _o(e.tempMin, e.tempMax, x), b = (k, A, I) => k.map((j) => {
-    const Re = r(j.start);
-    return _`<rect x=${Re.toFixed(1)} y=${A} width=${Math.max(r(j.end) - Re, 0.8).toFixed(1)}
-        height=${Ft} rx="2" style=${B(I(j.value))}></rect>`;
-  }), E = o ? ["climate", "heating"] : ["heating", "climate"];
-  e.windows && E.push("windows");
-  const y = Yn(e), P = y + qn, N = wo(e), L = (k) => k === "heating" ? _`${Vn(3, !1)}` : k === "climate" ? _`<g style=${q(g.off)}>${Bn("off")}</g>` : _`<g style=${q("var(--kd-sky)")}>${Wn()}</g>`, H = (k, A) => k === "heating" ? _`${b(e.heating, A, (I) => Oe[I] ?? g.off)}` : k === "climate" ? _`${b(e.climate, A, (I) => Oo(I))}` : _`${(e.windows ?? []).map((I) => {
-    const j = r(I.start);
-    return _`<rect class="window-open" x=${j.toFixed(1)} y=${A} width=${Math.max(r(I.end) - j, 1.5).toFixed(1)}
-              height=${Ft} rx="2" style=${B("var(--kd-sky)")}></rect>`;
-  })}`, G = n === void 0 ? void 0 : r(n), Z = n === void 0 ? void 0 : ke(e.temperature, n), ie = Co(s, e.night);
-  return u`
-    ${Po(e, n, i)}
+  const M = ct(n) / Math.max(1, (r.endMs - r.startMs) / gt / We(r)), z = Math.max(2, Math.round(Z / M)), L = (h.max - h.min) / z, H = [0.5, 1, 2, 5, 10].find((v) => v >= L * 0.8) ?? 10, Y = l ? es(h.min, h.max, l, z) : Xo(h.min, h.max, H), G = (v) => l ? o.whole(v) : `${o.tick(v)}°`, $t = p ? [
+    { value: p.warning, color: f.warning },
+    { value: p.critical, color: f.alertOnPopup }
+  ].filter((v) => v.value > h.min && v.value < h.max) : [], et = (v) => Math.min(1, Math.max(0, (u(v) - J) / Z)), I = [];
+  if (p && $t.length > 0) {
+    const v = $t.some((N) => N.value === p.critical), E = et(p.critical), R = et(p.warning);
+    v && I.push([0, f.alertOnPopup], [E, f.alertOnPopup]), I.push([v ? E : 0, f.warning], [R, f.warning], [R, f.white], [1, f.white]);
+  }
+  const fi = (v) => p ? ui(v, p) : f.white, Ge = (v, E, R) => v.map((N) => {
+    const V = d(N.start);
+    return y`<rect x=${V.toFixed(1)} y=${E} width=${Math.max(d(N.end) - V, 0.8).toFixed(1)}
+        height=${Zt} rx="2" style=${B(R(N.value))}></rect>`;
+  }), ue = qo(e, t, s), me = ci(ue.length), gi = me + di, Ze = Yo(ue.length), vi = (v) => v === "heating" ? y`${ai(3, !1)}` : v === "climate" ? y`<g style=${W(f.off)}>${Re("off")}</g>` : v === "ventilation" ? y`<g style=${W(f.fresh)}>${Re("fan")}</g>` : y`<g style=${W("var(--kd-sky)")}>${ri()}</g>`, Xe = (v, E, R, N, V) => v.map((nn) => {
+    const on = d(nn.start);
+    return y`<rect class=${N} x=${on.toFixed(1)} y=${E} width=${Math.max(d(nn.end) - on, V).toFixed(1)}
+        height=${Zt} rx="2" style=${B(R)}></rect>`;
+  }), $i = (v, E) => v === "heating" ? y`${Ge(e.heating, E, (R) => Be[R] ?? f.off)}` : v === "climate" ? y`${Ge(e.climate, E, (R) => rs(R))}` : v === "ventilation" ? y`${Xe(e.ventilation ?? [], E, f.fresh, "ventilation-on", 1.5)}` : y`${Xe(e.windows ?? [], E, "var(--kd-sky)", "window-open", 1.5)}`, Kt = i === void 0 ? void 0 : d(i), fe = i === void 0 ? void 0 : Bt(c, i), wi = os(r, e.night), Je = (v, E, R, N) => (v ?? []).map(
+    (V) => y`<rect class=${R} x=${d(V.start).toFixed(1)} y=${J}
+        width=${Math.max(d(V.end) - d(V.start), 3).toFixed(1)} height=${Z}
+        style=${`${B(E)}; opacity: var(${N})`}></rect>`
+  ), Qe = (v) => l ? fi(v) : f.white, bi = Math.max(...e.pm25.map((v) => v.v), 0), yi = Math.max(bi + 3, 10), ki = (v) => it - v / yi * Z, tn = l === "co2" && e.pm25.length > 0 ? A(e.pm25, ki) : "", xi = (v) => [...v].reduce((E, R) => E + (/\d/.test(R) ? 6.7 : 3.6), 0), Tt = ss(r).map((v) => {
+    const E = ls(v, r, o), R = as(d(v), Q), N = xi(E), V = R.x - N / 2;
+    return { x: d(v), text: E, anchored: R, left: V, right: V + N, show: !1 };
+  });
+  let en = 1 / 0;
+  for (let v = Tt.length - 1; v >= 0; v--)
+    Tt[v].right <= en + 2 && (Tt[v].show = !0, en = Tt[v].left);
+  return m`
+    ${l ? cs(e, l, i, o, a) : ds(e, i, o)}
     <svg
       class="chart"
-      viewBox="0 0 ${t} ${N}"
-      width=${t}
-      height=${N}
+      viewBox="0 0 ${n} ${Ze}"
+      width=${n}
+      height=${Ze}
       aria-hidden="true"
     >
       <defs>
-        <clipPath id=${gn}><path d=${M}></path></clipPath>
-        <linearGradient id=${mn} gradientUnits="userSpaceOnUse" x1=${U} x2=${U + un} y1="0" y2="0">
-          <stop offset="0" style="stop-color: var(--kd-sheet-bg); stop-opacity: 1"></stop>
-          <stop offset="0.55" style="stop-color: var(--kd-sheet-bg); stop-opacity: 0.92"></stop>
-          <stop offset="1" style="stop-color: var(--kd-sheet-bg); stop-opacity: 0"></stop>
-        </linearGradient>
-        <clipPath id=${vn}>
-          <rect x=${U} y=${st} width=${rt(t)} height=${X}></rect>
+        <clipPath id=${Pn}><path d=${O}></path></clipPath>
+        <clipPath id=${bt}>
+          <rect x=${Q} y=${J} width=${ct(n)} height=${Z} rx="8"></rect>
         </clipPath>
+        ${I.length > 0 ? y`<linearGradient id=${Rn} gradientUnits="userSpaceOnUse" x1="0" x2="0" y1=${J} y2=${it}>
+              ${I.map(
+    ([v, E]) => y`<stop offset=${`${(v * 100).toFixed(2)}%`} style=${`stop-color: ${E}`}></stop>`
+  )}
+            </linearGradient>` : g}
       </defs>
-      <rect x=${U} y=${st} width=${rt(t)} height=${X} rx="8" style=${B("var(--kd-fill)")}></rect>
-      ${ie.map(
-    ([k, A]) => _`<rect class="night" x=${r(k).toFixed(1)} y=${st} width=${(r(A) - r(k)).toFixed(1)}
-          height=${X} style=${B("var(--kd-night)")}></rect>`
+      <rect x=${Q} y=${J} width=${ct(n)} height=${Z} rx="8" style=${B("var(--kd-fill)")}></rect>
+      <g clip-path=${`url(#${bt})`}>
+        ${wi.map(
+    ([v, E]) => y`<rect class="night" x=${d(v).toFixed(1)} y=${J} width=${(d(E) - d(v)).toFixed(1)}
+            height=${Z} style=${B("var(--kd-night)")}></rect>`
   )}
-      ${v.map(
-    (k) => _`<line x1=${U} x2=${p} y1=${a(k).toFixed(1)} y2=${a(k).toFixed(1)}
-            style=${q("var(--kd-grid)")} stroke-width="1"></line>
-          <text x=${p + 6} y=${(a(k) + 4).toFixed(1)} style=${B(g.label)} font-size=${fn}>${i.tick(k)}°</text>`
-  )}
-      ${M ? _`<path d=${M} style=${B("var(--kd-area)")}></path>` : f}
-      <g clip-path=${`url(#${gn})`}>
-        ${e.intensity.map(
-    (k) => _`<rect x=${r(k.start).toFixed(1)} y=${st}
-            width=${Math.max(r(k.end) - r(k.start), 0.8).toFixed(1)} height=${X}
-            style=${B(g.warning)} opacity=${bo[Number(k.value)] ?? 0}></rect>`
-  )}
+        ${l ? Je(e.windows, "var(--kd-sky)", "window-band", "--kd-band-window") : g}
+        ${l ? Je(e.ventilation, f.fresh, "ventilation-band", "--kd-band-ventilation") : g}
       </g>
-      ${e.humidity.length > 0 ? _`<path d=${h(e.humidity, c)} fill="none" style=${q(g.humidityLine)}
-            stroke-width="1.5" stroke-dasharray="4 3" stroke-linejoin="round" opacity="0.85"></path>` : f}
-      ${$ ? _`<path d=${$} fill="none" style=${q(g.plan)} stroke-width="1.4"
-            stroke-dasharray="3 3" opacity="0.6" clip-path=${`url(#${vn})`}></path>` : f}
-      ${m ? _`<path class="temperature-curve" d=${m} fill="none" style=${q(g.white)} stroke-width="2"
-            stroke-linejoin="round" stroke-linecap="round"></path>` : f}
-      ${T && n === void 0 ? _`<circle cx=${r(T.t).toFixed(1)} cy=${a(T.v).toFixed(1)} r="3.5" style=${B(g.white)}></circle>` : f}
+      ${Y.map((v) => {
+    const E = u(v), R = $t.some((N) => Math.abs(u(N.value) - E) < 10);
+    return y`<line x1=${Q} x2=${$} y1=${E.toFixed(1)} y2=${E.toFixed(1)}
+            style=${W("var(--kd-grid)")} stroke-width="1"></line>
+          ${R ? g : y`<text x=${$ + 6} y=${(E + 4).toFixed(1)} style=${B(f.label)} font-size=${_e}>${G(v)}</text>`}`;
+  })}
+      ${$t.map(
+    (v) => y`<line class="limit-line" x1=${Q} x2=${$} y1=${u(v.value).toFixed(1)} y2=${u(v.value).toFixed(1)}
+            style=${W(v.color)} stroke-width="1" stroke-dasharray="4 3" opacity="0.8"></line>
+          <text class="limit-label" x=${$ + 6} y=${(u(v.value) + 4).toFixed(1)} style=${B(v.color)} font-size=${_e}
+            font-weight="600">${G(v.value)}</text>`
+  )}
+      <g clip-path=${`url(#${bt})`}>
+        ${O ? y`<path d=${O} style=${B("var(--kd-area)")}></path>` : g}
+      </g>
+      ${l ? g : y`<g clip-path=${`url(#${Pn})`}>
+        ${e.intensity.map(
+    (v) => y`<rect x=${d(v.start).toFixed(1)} y=${J}
+            width=${Math.max(d(v.end) - d(v.start), 0.8).toFixed(1)} height=${Z}
+            style=${B(f.warning)} opacity=${Go[Number(v.value)] ?? 0}></rect>`
+  )}
+      </g>`}
+      ${tn ? y`<path class="pm25-line" d=${tn} fill="none" style=${W(f.pm25)}
+            stroke-width="1.25" stroke-dasharray="4 3" stroke-linejoin="round" opacity="0.75" clip-path=${`url(#${bt})`}></path>` : g}
+      ${!l && e.humidity.length > 0 ? y`<path d=${_(e.humidity, C)} fill="none" style=${W(f.humidityLine)}
+            stroke-width="1.25" stroke-dasharray="4 3" stroke-linejoin="round" opacity="0.65"></path>` : g}
+      ${x ? y`<path d=${x} fill="none" style=${W(f.plan)} stroke-width="1"
+            stroke-dasharray="3 3" opacity="0.45" clip-path=${`url(#${bt})`}></path>` : g}
+      ${S ? y`<path class="temperature-curve" d=${S} fill="none"
+            style=${W(I.length > 0 ? `url(#${Rn})` : f.white)} stroke-width="2.5"
+            stroke-linejoin="round" stroke-linecap="round" clip-path=${`url(#${bt})`}></path>` : g}
+      ${k && i === void 0 ? y`<circle class="end-dot" cx=${d(k.t).toFixed(1)} cy=${u(k.v).toFixed(1)} r="4"
+            style=${`${B(Qe(k.v))}; ${W("var(--kd-sheet-bg)")}`} stroke-width="2"></circle>` : g}
 
-      ${E.map((k, A) => {
-    const I = Kn + A * Yt, j = I + (Yt - Ft) / 2;
-    return _`<g class=${`strip-row ${k}`}>
-          <rect x=${U} y=${j} width=${rt(t)} height=${Ft} rx="2" style=${B("var(--kd-fill)")}></rect>
-          ${H(k, j)}
-          <rect x=${U} y=${I} width=${un} height=${Yt} style=${B(`url(#${mn})`)}></rect>
-          <g class="strip-icon" transform=${`translate(${U + 1} ${I}) scale(${go / 24})`} fill="none"
-            stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">${L(k)}</g>
+      ${ue.map((v, E) => {
+    const R = li + E * oe, N = R + (oe - Zt) / 2;
+    return y`<g class=${`strip-row ${v}`}>
+          <rect x=${Q} y=${N} width=${ct(n)} height=${Zt} rx="2" style=${B("var(--kd-fill)")}></rect>
+          ${$i(v, N)}
+          <g class="strip-icon" transform=${`translate(${$ + 6} ${R + (oe - Ln) / 2}) scale(${Ln / 24})`} fill="none"
+            stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${vi(v)}</g>
         </g>`;
   })}
 
-      ${Eo(s).map((k) => {
-    const A = Ao(r(k), U, p);
-    return _`<line x1=${r(k).toFixed(1)} x2=${r(k).toFixed(1)} y1=${st} y2=${y}
-            style=${q("var(--kd-grid-soft)")} stroke-width="1"></line>
-          <text class="tick" x=${A.x.toFixed(1)} y=${P} style=${B(g.label)} font-size=${fn}
-            text-anchor=${A.anchor}>${Lo(k, s, i)}</text>`;
-  })}
-      ${G === void 0 ? f : _`<line x1=${G.toFixed(1)} x2=${G.toFixed(1)} y1=${st} y2=${y}
-              style=${q(g.white)} stroke-width="1" opacity="0.7"></line>
-            ${Z === void 0 ? f : _`<circle cx=${G.toFixed(1)} cy=${a(Z).toFixed(1)} r="4"
-                  style=${`${B(g.white)}; ${q("var(--kd-sheet-bg)")}`} stroke-width="2"></circle>`}`}
+      ${Tt.map(
+    (v) => y`<line x1=${v.x.toFixed(1)} x2=${v.x.toFixed(1)} y1=${J} y2=${me}
+            style=${W("var(--kd-grid-soft)")} stroke-width="1"></line>
+          ${v.show ? y`<text class="tick" x=${v.anchored.x.toFixed(1)} y=${gi} style=${B(f.label)} font-size=${_e}
+                text-anchor=${v.anchored.anchor}>${v.text}</text>` : g}`
+  )}
+      ${Kt === void 0 ? g : y`<line x1=${Kt.toFixed(1)} x2=${Kt.toFixed(1)} y1=${J} y2=${me}
+              style=${W(f.white)} stroke-width="1" opacity="0.7"></line>
+            ${fe === void 0 ? g : y`<circle cx=${Kt.toFixed(1)} cy=${u(fe).toFixed(1)} r="4"
+                  style=${`${B(Qe(fe))}; ${W("var(--kd-sheet-bg)")}`} stroke-width="2"></circle>`}`}
     </svg>
   `;
 }
-const wn = pt / 4;
-function zo(e) {
+const Dn = gt / 4;
+function ps(e) {
   return `var(--kd-scene-${e})`;
 }
-function Ro(e) {
+function us(e) {
   let t;
   switch (e) {
     case "bedroom":
-      t = _`
+      t = y`
         <path d="M121 10a15 15 0 1 0 13 23 12 12 0 0 1-13-23z"></path>
         <path d="M92 14v9M87.5 18.5h9M140 50v7M136.5 53.5h7"></path>
         <path d="M18 56v46M18 86h116v16M18 102h116"></path>
@@ -1760,7 +1861,7 @@ function Ro(e) {
         <path d="M60 86v-8a6 6 0 0 1 6-6h58a10 10 0 0 1 10 10v4"></path>`;
       break;
     case "office":
-      t = _`
+      t = y`
         <rect x="42" y="22" width="66" height="42" rx="5"></rect>
         <path d="M75 64v14M60 78h30"></path>
         <path d="M16 92h118M24 92v16M126 92v16"></path>
@@ -1768,7 +1869,7 @@ function Ro(e) {
         <path d="M22 78h14v14H22zM36 81h3.5a3 3 0 0 1 0 6H36"></path>`;
       break;
     case "kids":
-      t = _`
+      t = y`
         <rect x="22" y="72" width="30" height="30" rx="5"></rect>
         <rect x="56" y="72" width="30" height="30" rx="5"></rect>
         <rect x="39" y="40" width="30" height="30" rx="5"></rect>
@@ -1777,7 +1878,7 @@ function Ro(e) {
         <path d="M118 14l4.5 9.5 10.5 1.3-7.7 7.2 2 10.3-9.3-5.1-9.3 5.1 2-10.3-7.7-7.2 10.5-1.3z"></path>`;
       break;
     default:
-      t = _`
+      t = y`
         <rect x="46" y="14" width="40" height="28" rx="3"></rect>
         <path d="M52 36l9-9 7 7 6-5 7 7"></path>
         <path d="M18 76h12v26H18zM110 76h12v26h-12zM30 86h80v16H30z"></path>
@@ -1785,7 +1886,7 @@ function Ro(e) {
         <path d="M24 102v6M116 102v6"></path>
         <path d="M136 108V40M127 40h18l-4-14h-10z"></path>`;
   }
-  return u`<svg
+  return m`<svg
     viewBox="0 0 150 112"
     fill="none"
     stroke="currentColor"
@@ -1795,8 +1896,8 @@ function Ro(e) {
     aria-hidden="true"
   >${t}</svg>`;
 }
-const mt = 420, No = 2, Io = 30, Ho = 120;
-function Fo(e) {
+const yt = 420, ms = 2, fs = 30, gs = 120;
+function vs(e) {
   let t, n;
   for (const i of e ?? []) {
     const o = i.state.toLowerCase();
@@ -1804,29 +1905,29 @@ function Fo(e) {
   }
   return n;
 }
-function jo(e, t, n) {
-  return Rt(e, t)?.toLowerCase() === "on" ? !0 : (e ?? []).some((i) => i.time > t && i.time <= n && i.state.toLowerCase() === "on");
+function $s(e, t, n) {
+  return Vt(e, t)?.toLowerCase() === "on" ? !0 : (e ?? []).some((i) => i.time > t && i.time <= n && i.state.toLowerCase() === "on");
 }
-function me(e) {
+function Me(e) {
   if (e === void 0)
     return;
   const t = Number.parseFloat(e);
   return Number.isFinite(t) ? t : void 0;
 }
-function Uo(e, t, n) {
+function ws(e, t, n) {
   return t <= n ? { done: 1, closable: !0 } : e <= n ? { done: 0, closable: !1 } : { done: Math.min(1, Math.max(0, (e - t) / (e - n))), closable: !1 };
 }
-function Vo(e, t, n, i, o) {
-  if (o <= mt || n <= o || n <= mt || e - n < Io)
+function bs(e, t, n, i, o) {
+  if (o <= yt || n <= o || n <= yt || e - n < fs)
     return;
   const s = (i - t) / 6e4;
-  if (!(s >= No))
+  if (!(s >= ms))
     return;
-  const r = Math.log((e - mt) / (n - mt)) / s, a = Math.log((n - mt) / (o - mt)) / r;
-  if (!(!Number.isFinite(a) || a <= 0 || a > Ho))
-    return Math.max(1, Math.ceil(a));
+  const a = Math.log((e - yt) / (n - yt)) / s, r = Math.log((n - yt) / (o - yt)) / a;
+  if (!(!Number.isFinite(r) || r <= 0 || r > gs))
+    return Math.max(1, Math.ceil(r));
 }
-class Bo {
+class ys {
   /** `times` is read at every press, so changed properties apply at once. */
   constructor(t) {
     this.times = t, this.pressing = !1, this.fired = !1;
@@ -1867,44 +1968,44 @@ class Bo {
     window.clearTimeout(this.timer), this.pressing = !1, this.fired = !1, this.last = void 0;
   }
 }
-function Xt(e) {
+function re(e) {
   return (e?.locale?.language || e?.language || "").trim();
 }
-function Pe(e) {
+function Ke(e) {
   const t = e.toLowerCase().split(/[-_]/)[0];
   return t === "cs" ? "cs" : t === "sv" ? "sv" : "en";
 }
-function Wo(e, t) {
-  return e === "auto" ? Pe(Xt(t)) : e;
+function ks(e, t) {
+  return e === "auto" ? Ke(re(t)) : e;
 }
-function Ko() {
-  return Pe(document.documentElement.lang || navigator.language || "");
+function xs() {
+  return Ke(document.documentElement.lang || navigator.language || "");
 }
-const bn = /* @__PURE__ */ new WeakMap(), qo = { cs: "cs-CZ", sv: "sv-SE", en: "en" }, Yo = /* @__PURE__ */ new Set(["cs", "de", "fi", "fr", "sk", "sv"]), Go = {
+const Nn = /* @__PURE__ */ new WeakMap(), _s = { cs: "cs-CZ", sv: "sv-SE", en: "en" }, Ss = /* @__PURE__ */ new Set(["cs", "de", "fi", "fr", "sk", "sv"]), Ms = {
   comma_decimal: ["en-US", "en"],
   decimal_comma: ["de", "es", "it"],
   space_comma: ["fr", "sv", "cs"],
   quote_decimal: ["de-CH"]
 };
-function fe(e, t) {
+function Te(e, t) {
   const n = e?.locale?.[t];
   return typeof n == "string" && n !== "" ? n : "language";
 }
-function Zo(e, t, n) {
-  const i = Xt(n).replace("_", "-"), o = i !== "" && Pe(i) === t ? i : qo[t], s = fe(n, "number_format"), r = fe(n, "time_format"), a = fe(n, "date_format"), l = [t, o, s, r, a].join("|");
-  let d = bn.get(e);
-  d || (d = /* @__PURE__ */ new Map(), bn.set(e, d));
+function Ts(e, t, n) {
+  const i = re(n).replace("_", "-"), o = i !== "" && Ke(i) === t ? i : _s[t], s = Te(n, "number_format"), a = Te(n, "time_format"), r = Te(n, "date_format"), l = [t, o, s, a, r].join("|");
+  let d = Nn.get(e);
+  d || (d = /* @__PURE__ */ new Map(), Nn.set(e, d));
   let c = d.get(l);
-  return c || (c = Qo(e[t], t, o, s, r, a), d.set(l, c)), c;
+  return c || (c = As(e[t], t, o, s, a, r), d.set(l, c)), c;
 }
-function Xo(e) {
+function Cs(e) {
   try {
     return new Intl.NumberFormat(e), e;
   } catch {
     return "en";
   }
 }
-function Jo(e, t) {
+function Es(e, t) {
   if (e === "12")
     return !0;
   if (e === "24")
@@ -1912,29 +2013,29 @@ function Jo(e, t) {
   const n = e === "system" ? void 0 : t;
   return (/* @__PURE__ */ new Date("January 1, 2023 22:00:00")).toLocaleString(n).includes("10");
 }
-function Qo(e, t, n, i, o, s) {
-  const r = Xo(n), a = i === "system" ? void 0 : i === "none" ? "en-US" : Go[i] ?? r, l = i === "none" ? { useGrouping: !1 } : {}, d = new Intl.NumberFormat(a, { minimumFractionDigits: 1, maximumFractionDigits: 1, ...l }), c = new Intl.NumberFormat(a, { minimumFractionDigits: 2, maximumFractionDigits: 2, ...l }), p = new Intl.NumberFormat(a, { maximumFractionDigits: 1, ...l }), h = new Intl.NumberFormat(a, { maximumFractionDigits: 0, ...l }), m = Jo(o, r), w = m ? "h12" : "h23", T = new Intl.DateTimeFormat(r, { hour: m ? "numeric" : "2-digit", minute: "2-digit", hourCycle: w }), M = new Intl.DateTimeFormat(r, m ? { hour: "numeric", hourCycle: w } : { hour: "2-digit", minute: "2-digit", hourCycle: w }), $ = s === "system" ? void 0 : r, S = new Intl.DateTimeFormat($, { day: "numeric", month: "numeric" }), C = (v) => {
+function As(e, t, n, i, o, s) {
+  const a = Cs(n), r = i === "system" ? void 0 : i === "none" ? "en-US" : Ms[i] ?? a, l = i === "none" ? { useGrouping: !1 } : {}, d = new Intl.NumberFormat(r, { minimumFractionDigits: 1, maximumFractionDigits: 1, ...l }), c = new Intl.NumberFormat(r, { minimumFractionDigits: 2, maximumFractionDigits: 2, ...l }), p = new Intl.NumberFormat(r, { maximumFractionDigits: 1, ...l }), h = new Intl.NumberFormat(r, { maximumFractionDigits: 0, ...l }), u = Es(o, a), w = u ? "h12" : "h23", T = new Intl.DateTimeFormat(a, { hour: u ? "numeric" : "2-digit", minute: "2-digit", hourCycle: w }), C = new Intl.DateTimeFormat(a, u ? { hour: "numeric", hourCycle: w } : { hour: "2-digit", minute: "2-digit", hourCycle: w }), $ = s === "system" ? void 0 : a, _ = new Intl.DateTimeFormat($, { day: "numeric", month: "numeric" }), A = (b) => {
     if (!["DMY", "MDY", "YMD"].includes(s))
-      return S.format(v);
-    const b = S.formatToParts(v), E = b.find((H) => H.type === "literal")?.value ?? "/", y = b[b.length - 1], P = y?.type === "literal" ? y.value : "", N = b.find((H) => H.type === "day")?.value ?? "", L = b.find((H) => H.type === "month")?.value ?? "";
-    return s === "DMY" ? `${N}${E}${L}${P}` : `${L}${E}${N}${P}`;
-  }, x = Yo.has(r.toLowerCase().split("-")[0]) ? " " : "";
+      return _.format(b);
+    const k = _.formatToParts(b), O = k.find((H) => H.type === "literal")?.value ?? "/", x = k[k.length - 1], M = x?.type === "literal" ? x.value : "", z = k.find((H) => H.type === "day")?.value ?? "", L = k.find((H) => H.type === "month")?.value ?? "";
+    return s === "DMY" ? `${z}${O}${L}${M}` : `${L}${O}${z}${M}`;
+  }, S = Ss.has(a.toLowerCase().split("-")[0]) ? " " : "";
   return {
     language: t,
-    locale: r,
+    locale: a,
     t: e,
-    one: (v) => d.format(v),
-    two: (v) => c.format(v),
-    half: (v) => p.format(Math.round(v * 2) / 2),
-    tick: (v) => p.format(v),
-    whole: (v) => h.format(v),
-    percent: (v) => `${v}${x}%`,
-    time: (v) => T.format(v),
-    hour: (v) => M.format(v),
-    day: C
+    one: (b) => d.format(b),
+    two: (b) => c.format(b),
+    half: (b) => p.format(Math.round(b * 2) / 2),
+    tick: (b) => p.format(b),
+    whole: (b) => h.format(b),
+    percent: (b) => `${b}${S}%`,
+    time: (b) => T.format(b),
+    hour: (b) => C.format(b),
+    day: A
   };
 }
-const it = (e, t, n, i) => e === 1 ? t : e >= 2 && e <= 4 ? n : i, ts = {
+const lt = (e, t, n, i) => e === 1 ? t : e >= 2 && e <= 4 ? n : i, Os = {
   /** Heading without `title` in the YAML. */
   title: "Domov",
   /** Card picker of Home Assistant. */
@@ -1966,10 +2067,9 @@ const it = (e, t, n, i) => e === 1 ? t : e >= 2 && e <= 4 ? n : i, ts = {
   temperatureTrendLabel: (e, t, n, i) => `${e}: teplota za ${t}${n ? ` ${n}` : ""}, historie místnosti za ${i}`,
   link: { page: "Otevře stránku místnosti.", web: "Otevře odkaz." },
   // CO₂ and PM2.5
-  air: "Kvalita vzduchu",
   /** "CO₂ 656 ppm, za 2 hodiny stoupá, naposledy před 2 h". */
   airSensor: (e, t, n, i) => `${e} ${t ?? "neznámé"}${n ? `, ${n}` : ""}${i}`,
-  airDescription: (e, t, n) => `${e}: kvalita vzduchu, ${t || "bez čidla"}. ${n ? "Otevře detaily." : "Otevře detail a historii."}`,
+  airDescription: (e, t, n) => `${e}: kvalita vzduchu, ${t || "bez čidla"}. Otevře graf za ${n}.`,
   detailsAndHistory: "Detail a historie",
   /** A value that is not known, for screen readers ("––" on screen). */
   unknownValue: "neznámé",
@@ -2079,17 +2179,18 @@ const it = (e, t, n, i) => e === 1 ? t : e >= 2 && e <= 4 ? n : i, ts = {
     loading: "Načítám historii…",
     historyFailed: "Historii se nepodařilo načíst.",
     noHistory: (e) => `Za ${e === 1 ? "poslední hodinu" : e >= 2 && e <= 4 ? `poslední ${e} hodiny` : `posledních ${e} hodin`} nejsou k dispozici data.`,
-    chart: (e) => `Graf za ${e}. Šipkami vlevo a vpravo procházíte čas, klávesou End se vrátíte na teď.`,
-    temperatureDetails: "Detail teploty"
+    chart: (e) => `Graf za ${e}. Šipkami vlevo a vpravo procházíte čas, klávesou End se vrátíte na teď.`
   },
   // Room history chart (Historie a grafy)
   chart: {
     now: "Teď",
-    yesterday: "včera"
+    yesterday: "včera",
+    ventilationOn: "běží",
+    ventilationOff: "vypnuto"
   },
   // House summary chips (Dashboard Domov, Konflikty)
   summaryChips: {
-    rooms: (e) => `${e} ${it(e, "místnost", "místnosti", "místností")}`,
+    rooms: (e) => `${e} ${lt(e, "místnost", "místnosti", "místností")}`,
     conflict: {
       "window-heating": "Okno otevřené · topí se",
       "window-cooling": "Okno otevřené · chladí se",
@@ -2100,7 +2201,7 @@ const it = (e, t, n, i) => e === 1 ? t : e >= 2 && e <= 4 ? n : i, ts = {
       "window-cooling": "Konflikt: Okno je otevřené a chladí se",
       "cooling-cold": "Konflikt: Chladí se, i když je chladno"
     },
-    windowsOpen: (e) => `${e} ${it(e, "okno otevřené", "okna otevřená", "oken otevřených")}`,
+    windowsOpen: (e) => `${e} ${lt(e, "okno otevřené", "okna otevřená", "oken otevřených")}`,
     windowsSpoken: "Otevřená okna",
     manual: "Ručně",
     boost: "Boost",
@@ -2139,16 +2240,16 @@ const it = (e, t, n, i) => e === 1 ? t : e >= 2 && e <= 4 ? n : i, ts = {
   // Durations and periods for screen readers
   duration: {
     lessThanMinute: "méně než minutu",
-    minute: (e) => `${e} ${it(e, "minuta", "minuty", "minut")}`,
-    hour: (e) => `${e} ${it(e, "hodina", "hodiny", "hodin")}`,
-    day: (e) => `${e} ${it(e, "den", "dny", "dní")}`
+    minute: (e) => `${e} ${lt(e, "minuta", "minuty", "minut")}`,
+    hour: (e) => `${e} ${lt(e, "hodina", "hodiny", "hodin")}`,
+    day: (e) => `${e} ${lt(e, "den", "dny", "dní")}`
   },
   /** A period after "za" (accusative): "2 hodiny", "1 hodinu", "24 hodin", "90 minut". */
   period: {
-    minute: (e) => `${e} ${it(e, "minutu", "minuty", "minut")}`,
-    hour: (e) => `${e} ${it(e, "hodinu", "hodiny", "hodin")}`
+    minute: (e) => `${e} ${lt(e, "minutu", "minuty", "minut")}`,
+    hour: (e) => `${e} ${lt(e, "hodinu", "hodiny", "hodin")}`
   }
-}, _t = (e, t, n) => e === 1 ? t : n, es = {
+}, Lt = (e, t, n) => e === 1 ? t : n, Ls = {
   title: "Home",
   cardDescription: "Temperature, air quality, heating and blinds of your rooms at a glance.",
   status: {
@@ -2171,9 +2272,8 @@ const it = (e, t, n, i) => e === 1 ? t : e >= 2 && e <= 4 ? n : i, ts = {
   humidityLabel: (e, t, n) => `${e}: humidity ${t ?? "unknown"}${n}, details and history`,
   temperatureTrendLabel: (e, t, n, i) => `${e}: temperature${n ? ` ${n}` : ""} over ${t}, room history for ${i}`,
   link: { page: "Opens the room page.", web: "Opens the link." },
-  air: "Air quality",
   airSensor: (e, t, n, i) => `${e} ${t ?? "unknown"}${n ? `, ${n}` : ""}${i}`,
-  airDescription: (e, t, n) => `${e}: air quality, ${t || "no sensor"}. ${n ? "Opens details." : "Opens details and history."}`,
+  airDescription: (e, t, n) => `${e}: air quality, ${t || "no sensor"}. Opens the chart for ${n}.`,
   detailsAndHistory: "Details and history",
   unknownValue: "unknown",
   trend: { rising: "rising", falling: "falling", stable: "stable" },
@@ -2271,15 +2371,16 @@ const it = (e, t, n, i) => e === 1 ? t : e >= 2 && e <= 4 ? n : i, ts = {
     loading: "Loading history…",
     historyFailed: "The history could not be loaded.",
     noHistory: (e) => `No data for ${e === 1 ? "the last hour" : `the last ${e} hours`}.`,
-    chart: (e) => `Chart of ${e}. The left and right arrow keys move through time, the End key returns to now.`,
-    temperatureDetails: "Temperature details"
+    chart: (e) => `Chart of ${e}. The left and right arrow keys move through time, the End key returns to now.`
   },
   chart: {
     now: "Now",
-    yesterday: "yesterday"
+    yesterday: "yesterday",
+    ventilationOn: "running",
+    ventilationOff: "off"
   },
   summaryChips: {
-    rooms: (e) => `${e} ${_t(e, "room", "rooms")}`,
+    rooms: (e) => `${e} ${Lt(e, "room", "rooms")}`,
     conflict: {
       "window-heating": "Window open · heating on",
       "window-cooling": "Window open · cooling on",
@@ -2290,7 +2391,7 @@ const it = (e, t, n, i) => e === 1 ? t : e >= 2 && e <= 4 ? n : i, ts = {
       "window-cooling": "Conflict: a window is open while cooling",
       "cooling-cold": "Conflict: cooling although it is chilly"
     },
-    windowsOpen: (e) => `${e} ${_t(e, "window", "windows")} open`,
+    windowsOpen: (e) => `${e} ${Lt(e, "window", "windows")} open`,
     windowsSpoken: "Open windows",
     manual: "Manual",
     boost: "Boost",
@@ -2327,16 +2428,16 @@ const it = (e, t, n, i) => e === 1 ? t : e >= 2 && e <= 4 ? n : i, ts = {
   },
   duration: {
     lessThanMinute: "less than a minute",
-    minute: (e) => `${e} ${_t(e, "minute", "minutes")}`,
-    hour: (e) => `${e} ${_t(e, "hour", "hours")}`,
-    day: (e) => `${e} ${_t(e, "day", "days")}`
+    minute: (e) => `${e} ${Lt(e, "minute", "minutes")}`,
+    hour: (e) => `${e} ${Lt(e, "hour", "hours")}`,
+    day: (e) => `${e} ${Lt(e, "day", "days")}`
   },
   /** A period with its article: "the last 2 hours", "the last hour", "the last 90 minutes". */
   period: {
     minute: (e) => e === 1 ? "the last minute" : `the last ${e} minutes`,
     hour: (e) => e === 1 ? "the last hour" : `the last ${e} hours`
   }
-}, Vt = (e, t, n) => e === 1 ? t : n, ns = {
+}, Jt = (e, t, n) => e === 1 ? t : n, Ps = {
   title: "Hem",
   cardDescription: "Översikt över temperatur, luftkvalitet, värme och persienner i rummen.",
   status: {
@@ -2359,9 +2460,8 @@ const it = (e, t, n, i) => e === 1 ? t : e >= 2 && e <= 4 ? n : i, ts = {
   humidityLabel: (e, t, n) => `${e}: luftfuktighet ${t ?? "okänd"}${n}, detaljer och historik`,
   temperatureTrendLabel: (e, t, n, i) => `${e}: temperaturen${n ? ` ${n}` : ""} under ${t}, rumshistorik för ${i}`,
   link: { page: "Öppnar rummets sida.", web: "Öppnar länken." },
-  air: "Luftkvalitet",
   airSensor: (e, t, n, i) => `${e} ${t ?? "okänt"}${n ? `, ${n}` : ""}${i}`,
-  airDescription: (e, t, n) => `${e}: luftkvalitet, ${t || "ingen sensor"}. ${n ? "Öppnar detaljer." : "Öppnar detaljer och historik."}`,
+  airDescription: (e, t, n) => `${e}: luftkvalitet, ${t || "ingen sensor"}. Öppnar diagrammet för ${n}.`,
   detailsAndHistory: "Detaljer och historik",
   unknownValue: "okänt",
   trend: { rising: "stiger", falling: "sjunker", stable: "stabil" },
@@ -2459,12 +2559,13 @@ const it = (e, t, n, i) => e === 1 ? t : e >= 2 && e <= 4 ? n : i, ts = {
     loading: "Läser in historik…",
     historyFailed: "Historiken kunde inte läsas in.",
     noHistory: (e) => `Inga data för ${e === 1 ? "den senaste timmen" : `de senaste ${e} timmarna`}.`,
-    chart: (e) => `Diagram över ${e}. Vänster- och högerpilen flyttar i tiden, End-tangenten går tillbaka till nu.`,
-    temperatureDetails: "Temperaturdetaljer"
+    chart: (e) => `Diagram över ${e}. Vänster- och högerpilen flyttar i tiden, End-tangenten går tillbaka till nu.`
   },
   chart: {
     now: "Nu",
-    yesterday: "igår"
+    yesterday: "igår",
+    ventilationOn: "igång",
+    ventilationOff: "av"
   },
   summaryChips: {
     rooms: (e) => `${e} rum`,
@@ -2478,7 +2579,7 @@ const it = (e, t, n, i) => e === 1 ? t : e >= 2 && e <= 4 ? n : i, ts = {
       "window-cooling": "Konflikt: ett fönster är öppet medan kylan är på",
       "cooling-cold": "Konflikt: kyler fast det är kyligt"
     },
-    windowsOpen: (e) => `${e} fönster ${Vt(e, "öppet", "öppna")}`,
+    windowsOpen: (e) => `${e} fönster ${Jt(e, "öppet", "öppna")}`,
     windowsSpoken: "Öppna fönster",
     manual: "Manuell",
     boost: "Boost",
@@ -2515,20 +2616,20 @@ const it = (e, t, n, i) => e === 1 ? t : e >= 2 && e <= 4 ? n : i, ts = {
   },
   duration: {
     lessThanMinute: "mindre än en minut",
-    minute: (e) => `${e} ${Vt(e, "minut", "minuter")}`,
-    hour: (e) => `${e} ${Vt(e, "timme", "timmar")}`,
-    day: (e) => `${e} ${Vt(e, "dag", "dagar")}`
+    minute: (e) => `${e} ${Jt(e, "minut", "minuter")}`,
+    hour: (e) => `${e} ${Jt(e, "timme", "timmar")}`,
+    day: (e) => `${e} ${Jt(e, "dag", "dagar")}`
   },
   /** A period in its definite form: "de senaste 2 timmarna", "den senaste timmen". */
   period: {
     minute: (e) => e === 1 ? "den senaste minuten" : `de senaste ${e} minuterna`,
     hour: (e) => e === 1 ? "den senaste timmen" : `de senaste ${e} timmarna`
   }
-}, is = { cs: ts, en: es, sv: ns };
-function _e(e, t) {
-  return Zo(is, e, t);
+}, Rs = { cs: Os, en: Ls, sv: Ps };
+function De(e, t) {
+  return Ts(Rs, e, t);
 }
-const os = Xn`
+const zs = Si`
     /*
      * Colours (CURRENT_SPEC.md, Barvy): the dark theme is the default set, the light theme
      * overrides it. The card sets data-theme on itself (theme: auto | dark | light), so the
@@ -2581,6 +2682,8 @@ const os = Xn`
       --kd-grid: rgb(255 255 255 / 8%);
       --kd-grid-soft: rgb(255 255 255 / 6%);
       --kd-area: rgb(255 255 255 / 7%);
+      --kd-band-window: 0.42;
+      --kd-band-ventilation: 0.5;
       --kd-scene-bedroom: #a5a1f2;
       --kd-scene-office: #7fc8f8;
       --kd-scene-kids: #ffb36b;
@@ -2634,6 +2737,8 @@ const os = Xn`
       --kd-grid: rgb(0 0 0 / 8%);
       --kd-grid-soft: rgb(0 0 0 / 6%);
       --kd-area: rgb(0 0 0 / 5%);
+      --kd-band-window: 0.3;
+      --kd-band-ventilation: 0.38;
       --kd-scene-bedroom: #6f67d6;
       --kd-scene-office: #2c8bc9;
       --kd-scene-kids: #d9822b;
@@ -2953,7 +3058,7 @@ const os = Xn`
     }
 
     .plain-button:focus-visible {
-      outline: 2px solid var(--primary-color, #64b5f6);
+      outline: 2px solid var(--kd-sky);
       outline-offset: 2px;
       border-radius: 6px;
     }
@@ -3619,6 +3724,10 @@ const os = Xn`
       transition: transform 220ms ease-out;
     }
 
+    .sheet:focus {
+      outline: none;
+    }
+
     .sheet.dragging {
       transition: none;
     }
@@ -3723,14 +3832,41 @@ const os = Xn`
       line-height: 20px;
     }
 
+    /* A 30 px circle (normal button of the kit) inside a 44 px touch area. */
     .close {
+      display: flex;
+      align-items: center;
+      justify-content: center;
       width: 44px;
       height: 44px;
       flex: 0 0 44px;
       margin: -8px -8px 0 0;
       color: var(--kd-label);
-      font-size: 18px;
-      text-align: center;
+    }
+
+    .close-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: var(--kd-segmented-bg);
+    }
+
+    .close:active .close-icon {
+      background: rgb(118 118 128 / 36%);
+    }
+
+    .close:focus-visible {
+      border-radius: 50%;
+      outline: 2px solid var(--kd-sky);
+      outline-offset: -2px;
+    }
+
+    .close svg {
+      width: 12px;
+      height: 12px;
     }
 
     .sheet-message {
@@ -4359,38 +4495,70 @@ const os = Xn`
     }
 
     .chart-wrap:focus-visible {
-      outline: 2px solid var(--primary-color, #64b5f6);
+      outline: 2px solid var(--kd-sky);
       outline-offset: 2px;
     }
 
     .readout {
       display: grid;
       gap: 2px;
-      min-height: 46px;
-      margin-bottom: 8px;
+      min-height: 52px;
+      margin: 12px 0;
     }
 
+    /* Value (and humidity) on the left, the time on the right: the number does not jump when the time gets longer ("včera 22:15"). */
     .readout-main {
       display: flex;
       align-items: baseline;
-      gap: 10px;
+      justify-content: space-between;
+      gap: 12px;
       font-variant-numeric: tabular-nums;
     }
 
+    .readout-values {
+      display: flex;
+      align-items: baseline;
+      gap: 14px;
+      min-width: 0;
+    }
+
     .readout-time {
-      min-width: 3.4em;
+      flex: none;
       color: var(--kd-label);
       font-size: 15px;
+      text-align: right;
     }
 
     .readout-temp {
       font-size: 22px;
       font-weight: 600;
+      line-height: 28px;
+      white-space: nowrap;
     }
 
+    .readout-unit {
+      color: var(--kd-label);
+      font-size: 15px;
+      font-weight: 400;
+    }
+
+    /* Humidity is the dashed blue line of the chart: a sample of that line stands for the missing label. */
     .readout-hum {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
       color: var(--kd-sky);
       font-size: 15px;
+      white-space: nowrap;
+    }
+
+    .readout-swatch {
+      width: 14px;
+      border-top: 2px dashed currentColor;
+    }
+
+    .readout-hum.pm25 {
+      color: var(--kd-pm25);
     }
 
     .readout-systems {
@@ -4416,6 +4584,7 @@ const os = Xn`
 
     .chart {
       display: block;
+      overflow: visible;
       max-width: 100%;
       height: auto;
       font-family: inherit;
@@ -4460,59 +4629,59 @@ const os = Xn`
         --trend-reach: 14px;
       }
     }
-`, ss = " ";
-function yn(e) {
-  if (!e || W(e.state.toLowerCase()))
+`, Ds = " ";
+function In(e) {
+  if (!e || q(e.state.toLowerCase()))
     return;
   const t = Number.parseFloat(e.state);
   return Number.isFinite(t) ? t : void 0;
 }
-function xe(e, t) {
-  return e === void 0 ? "" : `· ${t.half(e)}${ss}°C`;
+function Ne(e, t) {
+  return e === void 0 ? "" : `· ${t.half(e)}${Ds}°C`;
 }
-function rs(e, t, n, i, o, s) {
-  const r = s.t.heatingMode, a = e?.state.toLowerCase(), l = t?.state.toLowerCase(), d = l === void 0 || W(l), c = yn(n), p = Un(a, l, c);
+function Ns(e, t, n, i, o, s) {
+  const a = s.t.heatingMode, r = e?.state.toLowerCase(), l = t?.state.toLowerCase(), d = l === void 0 || q(l), c = In(n), p = si(r, l, c);
   if (p === "off")
-    return { label: r.off, color: g.off, active: !1, extra: "", unknown: !1, overlay: "off", waves: 0 };
-  if (d || a === void 0 || W(a))
-    return { label: "––", color: g.label, active: !1, extra: "", unknown: !0, waves: 0 };
-  const h = Dn(yn(i), o);
+    return { label: a.off, color: f.off, active: !1, extra: "", unknown: !1, overlay: "off", waves: 0 };
+  if (d || r === void 0 || q(r))
+    return { label: "––", color: f.label, active: !1, extra: "", unknown: !0, waves: 0 };
+  const h = Xn(In(i), o);
   if (p === "schedule")
-    return { label: r.schedule, color: g.plan, active: !0, extra: xe(c, s), unknown: !1, overlay: "schedule", waves: h };
+    return { label: a.schedule, color: f.plan, active: !0, extra: Ne(c, s), unknown: !1, overlay: "schedule", waves: h };
   if (p === "manual") {
-    const m = c === ne ? "boost" : "manual";
-    return { label: r.manual, color: g.warning, active: !0, extra: xe(c, s), unknown: !1, overlay: "manual", override: m, waves: h };
+    const u = c === pe ? "boost" : "manual";
+    return { label: a.manual, color: f.warning, active: !0, extra: Ne(c, s), unknown: !1, overlay: "manual", override: u, waves: h };
   }
-  return { label: t?.state ?? "––", color: g.warning, active: !0, extra: "", unknown: !1, waves: h };
+  return { label: t?.state ?? "––", color: f.warning, active: !0, extra: "", unknown: !1, waves: h };
 }
-function Jt(e, t) {
+function le(e, t) {
   let n = "unknown", i, o;
-  if (e && !W(e.state.toLowerCase())) {
-    const r = e.state.toLowerCase(), a = String(e.attributes.preset_mode ?? "none").toLowerCase();
-    r === "off" ? n = "off" : r === "cool" ? n = a === "wind_free" ? "wind_free" : "cool" : r === "dry" ? n = "dry" : r === "fan_only" ? n = "fan" : r === "heat" ? n = "heat" : (r === "auto" || r === "heat_cool") && (n = "auto"), n !== "off" && n !== "unknown" && n !== "wind_free" && a !== "none" && a !== "" && (i = qt(a)), o = ot(e.attributes.temperature);
+  if (e && !q(e.state.toLowerCase())) {
+    const a = e.state.toLowerCase(), r = String(e.attributes.preset_mode ?? "none").toLowerCase();
+    a === "off" ? n = "off" : a === "cool" ? n = r === "wind_free" ? "wind_free" : "cool" : a === "dry" ? n = "dry" : a === "fan_only" ? n = "fan" : a === "heat" ? n = "heat" : (a === "auto" || a === "heat_cool") && (n = "auto"), n !== "off" && n !== "unknown" && n !== "wind_free" && r !== "none" && r !== "" && (i = ne(r)), o = dt(e.attributes.temperature);
   }
   const s = ["cool", "wind_free", "dry", "heat", "auto"].includes(n);
   return {
     mode: n,
     label: i ?? t.t.climateMode[n],
-    color: zt[n],
+    color: Ut[n],
     active: n !== "off" && n !== "unknown",
-    extra: s ? xe(o, t) : "",
+    extra: s ? Ne(o, t) : "",
     unknown: n === "unknown"
   };
 }
-function as(e, t) {
+function Is(e, t) {
   const n = e.unknown ? t.t.unknownState : e.label;
   return e.extra ? `${n} ${e.extra.replace(/^·\s*/, "")}` : n;
 }
-function Bt(e, t) {
+function Qt(e, t) {
   return e.length <= 2 ? e.join(", ") : t.t.summaryChips.rooms(e.length);
 }
-function Qt(e, t) {
+function de(e, t) {
   return e.windows.filter((n) => t(n.entity)?.state.toLowerCase() === "on");
 }
-function De(e, t, n) {
-  return rs(
+function qe(e, t, n) {
+  return Ns(
     t(e.heating?.climate),
     t(e.heating?.overlay),
     t(e.heating?.target),
@@ -4521,79 +4690,79 @@ function De(e, t, n) {
     n
   );
 }
-function Gn(e, t, n, i) {
-  const o = Qt(e, t).length > 0, s = De(e, t, i), r = e.air_conditioner ? Jt(t(e.air_conditioner), i).mode : "unknown", a = !s.unknown && s.waves > 0 || r === "heat", l = r === "cool" || r === "wind_free", d = [];
-  return o && a && d.push("window-heating"), o && l ? d.push("window-cooling") : l && n && d.push("cooling-cold"), d;
+function mi(e, t, n, i) {
+  const o = de(e, t).length > 0, s = qe(e, t, i), a = e.air_conditioner ? le(t(e.air_conditioner), i).mode : "unknown", r = !s.unknown && s.waves > 0 || a === "heat", l = a === "cool" || a === "wind_free", d = [];
+  return o && r && d.push("window-heating"), o && l ? d.push("window-cooling") : l && n && d.push("cooling-cold"), d;
 }
-function ls(e, t, n, i) {
-  const o = i.t.summaryChips, s = { "window-heating": [], "window-cooling": [], "cooling-cold": [] }, r = [], a = [], l = [], d = [];
+function Hs(e, t, n, i) {
+  const o = i.t.summaryChips, s = { "window-heating": [], "window-cooling": [], "cooling-cold": [] }, a = [], r = [], l = [], d = [];
   let c = 0;
-  const p = [], h = new Map(e.map(($) => [$.name, Rn($, i.language)])), m = ($) => $.map((S) => h.get(S) ?? S);
+  const p = [], h = new Map(e.map(($) => [$.name, Qn($, i.language)])), u = ($) => $.map((_) => h.get(_) ?? _);
   for (const $ of e) {
-    for (const x of Gn($, t, n.has($.name), i))
-      s[x].push($.name);
-    const S = Qt($, t).length;
-    S > 0 && r.push([$.name, S]);
-    const C = De($, t, i);
-    C.override === "boost" ? l.push($.name) : C.override === "manual" && a.push($.name), C.waves > 0 && (d.push($.name), c = Math.max(c, C.waves)), $.air_conditioner && Jt(t($.air_conditioner), i).active && p.push($.name);
+    for (const S of mi($, t, n.has($.name), i))
+      s[S].push($.name);
+    const _ = de($, t).length;
+    _ > 0 && a.push([$.name, _]);
+    const A = qe($, t, i);
+    A.override === "boost" ? l.push($.name) : A.override === "manual" && r.push($.name), A.waves > 0 && (d.push($.name), c = Math.max(c, A.waves)), $.air_conditioner && le(t($.air_conditioner), i).active && p.push($.name);
   }
   const w = [], T = [
     ["window-heating", "conflict-window"],
     ["window-cooling", "conflict-window"],
     ["cooling-cold", "conflict-cooling"]
   ];
-  for (const [$, S] of T)
+  for (const [$, _] of T)
     s[$].length > 0 && w.push({
-      kind: S,
-      text: `${o.conflict[$]}: ${Bt(m(s[$]), i)}`,
-      color: g.warning,
-      spoken: `${o.conflictSpoken[$]}: ${m(s[$]).join(", ")}`
+      kind: _,
+      text: `${o.conflict[$]}: ${Qt(u(s[$]), i)}`,
+      color: f.warning,
+      spoken: `${o.conflictSpoken[$]}: ${u(s[$]).join(", ")}`
     });
-  const M = r.reduce(($, [, S]) => $ + S, 0);
-  return M > 0 && w.push({
+  const C = a.reduce(($, [, _]) => $ + _, 0);
+  return C > 0 && w.push({
     kind: "windows",
-    text: o.windowsOpen(M),
-    color: g.sky,
-    spoken: `${o.windowsSpoken}: ${r.map(([$, S]) => S > 1 ? `${h.get($) ?? $} (${S})` : h.get($) ?? $).join(", ")}`
-  }), a.length > 0 && w.push({
+    text: o.windowsOpen(C),
+    color: f.sky,
+    spoken: `${o.windowsSpoken}: ${a.map(([$, _]) => _ > 1 ? `${h.get($) ?? $} (${_})` : h.get($) ?? $).join(", ")}`
+  }), r.length > 0 && w.push({
     kind: "manual",
-    text: `${o.manual}: ${Bt(m(a), i)}`,
-    color: g.warning,
-    spoken: `${o.manualSpoken}: ${m(a).join(", ")}`,
-    opens: { system: "heating", rooms: a }
+    text: `${o.manual}: ${Qt(u(r), i)}`,
+    color: f.warning,
+    spoken: `${o.manualSpoken}: ${u(r).join(", ")}`,
+    opens: { system: "heating", rooms: r }
   }), l.length > 0 && w.push({
     kind: "boost",
-    text: `${o.boost}: ${Bt(m(l), i)}`,
-    color: g.warning,
-    spoken: `${o.boostSpoken}: ${m(l).join(", ")}`,
+    text: `${o.boost}: ${Qt(u(l), i)}`,
+    color: f.warning,
+    spoken: `${o.boostSpoken}: ${u(l).join(", ")}`,
     opens: { system: "heating", rooms: l }
   }), d.length > 0 && w.push({
     kind: "heating",
     text: o.heating(o.rooms(d.length)),
-    color: g.warning,
-    spoken: `${o.heatingSpoken}: ${m(d).join(", ")}`,
+    color: f.warning,
+    spoken: `${o.heatingSpoken}: ${u(d).join(", ")}`,
     waves: c,
     opens: { system: "heating", rooms: d }
   }), p.length > 0 && w.push({
     kind: "climate",
-    text: `${o.climate}: ${Bt(m(p), i)}`,
-    color: g.cool,
-    spoken: `${o.climateSpoken}: ${m(p).join(", ")}`,
+    text: `${o.climate}: ${Qt(u(p), i)}`,
+    color: f.cool,
+    spoken: `${o.climateSpoken}: ${u(p).join(", ")}`,
     opens: { system: "climate", rooms: p }
   }), w;
 }
-var ds = Object.defineProperty, z = (e, t, n, i) => {
-  for (var o = void 0, s = e.length - 1, r; s >= 0; s--)
-    (r = e[s]) && (o = r(t, n, o) || o);
-  return o && ds(t, n, o), o;
+var Fs = Object.defineProperty, F = (e, t, n, i) => {
+  for (var o = void 0, s = e.length - 1, a; s >= 0; s--)
+    (a = e[s]) && (o = a(t, n, o) || o);
+  return o && Fs(t, n, o), o;
 };
-const kn = "klima-dashboard.after-timer", cs = 5 * 6e4, hs = 3e4, Y = " ", ps = 550, _n = 400, us = 700, ms = "(orientation: landscape) and (max-height: 600px)", fs = 1600, gs = 5e3, vs = 100, $s = 0.6, ws = 6;
-function bs(e) {
+const Hn = "klima-dashboard.after-timer", js = 5 * 6e4, Us = 3e4, tt = " ", Vs = 550, Fn = 400, Bs = 700, Ws = "(orientation: landscape) and (max-height: 600px)", Ks = 1600, qs = 5e3, Ys = 100, Gs = 0.6, Zs = 6;
+function Xs(e) {
   return e === void 0 ? void 0 : e.mode === "manual" ? "heat" : e.mode === "plan" ? "auto" : e.mode;
 }
-const ze = class ze extends Et {
+const Ye = class Ye extends Dt {
   constructor() {
-    super(...arguments), this._i18n = _e("en"), this._ventilationEnding = !1, this._announcement = "", this._ventRequest = 0, this._ventOn = !1, this._historyStatus = "loading", this._touchOnSlider = !1, this._dragY = 0, this._moving = {}, this._prefersDark = !0, this._trends = {}, this._trendsLoaded = !1, this._reported = {}, this._historyRequest = 0, this._scrubbing = !1, this._clock = 0, this._trendsLoading = !1, this._trendsStarted = !1, this._gesture = new Bo(() => ({ holdMs: ps, doubleTapMs: _n })), this._movingWatch = /* @__PURE__ */ new Map(), this.handleColorScheme = (t) => {
+    super(...arguments), this._i18n = De("en"), this._ventilationEnding = !1, this._announcement = "", this._ventRequest = 0, this._ventOn = !1, this._historyStatus = "loading", this._touchOnSlider = !1, this._dragY = 0, this._moving = {}, this._prefersDark = !0, this._trends = {}, this._trendsLoaded = !1, this._reported = {}, this._historyRequest = 0, this._scrubbing = !1, this._clock = 0, this._trendsLoading = !1, this._trendsStarted = !1, this._gesture = new ys(() => ({ holdMs: Vs, doubleTapMs: Fn })), this._movingWatch = /* @__PURE__ */ new Map(), this.handleColorScheme = (t) => {
       this._prefersDark = t.matches;
     }, this.chartPointer = (t) => {
       if (t.type === "pointerdown" && (this._scrubbing = !0), t.pointerType !== "mouse" && !this._scrubbing)
@@ -4602,7 +4771,7 @@ const ze = class ze extends Et {
       if (!n || !i)
         return;
       const o = i.getBoundingClientRect(), s = this.chartWidth();
-      this._scrubTime = Mo((t.clientX - o.left) * s / Math.max(o.width, 1), s, n.range);
+      this._scrubTime = is((t.clientX - o.left) * s / Math.max(o.width, 1), s, n.range);
     }, this.chartPointerEnd = (t) => {
       this._scrubbing = !1, t.pointerType !== "mouse" && (this._scrubTime = void 0);
     }, this.chartPointerLeave = (t) => {
@@ -4613,8 +4782,8 @@ const ze = class ze extends Et {
         return;
       const { startMs: i, endMs: o } = n.range, s = this._scrubTime ?? o;
       if (t.key === "ArrowLeft" || t.key === "ArrowRight") {
-        const r = s + (t.key === "ArrowLeft" ? -wn : wn);
-        this._scrubTime = r >= o ? void 0 : Math.max(i, r);
+        const a = s + (t.key === "ArrowLeft" ? -Dn : Dn);
+        this._scrubTime = a >= o ? void 0 : Math.max(i, a);
       } else if (t.key === "Home")
         this._scrubTime = i;
       else if (t.key === "End")
@@ -4636,7 +4805,7 @@ const ze = class ze extends Et {
         return;
       const i = t.clientY - n.startY;
       if (!n.dragging) {
-        if (i < ws)
+        if (i < Zs)
           return;
         n.dragging = !0, t.currentTarget.setPointerCapture(t.pointerId);
       }
@@ -4646,7 +4815,7 @@ const ze = class ze extends Et {
       if (this._drag = void 0, !n || !n.dragging)
         return;
       const i = Math.max(0, t.clientY - n.startY), o = i / Math.max(1, performance.now() - n.startTime);
-      t.type === "pointerup" && (i > vs || o > $s) ? this.closeSheet() : this._dragY = 0;
+      t.type === "pointerup" && (i > Ys || o > Gs) ? this.closeSheet() : this._dragY = 0;
     }, this.handleSheetKeydown = (t) => {
       if (t.key === "Escape") {
         t.stopPropagation(), this.closeSheet();
@@ -4668,12 +4837,12 @@ const ze = class ze extends Et {
     };
   }
   setConfig(t) {
-    this._config = to(t), this._trends = {}, this._trendsLoaded = !1, this._reported = {}, this._trendsStarted = !1;
+    this._config = Eo(t), this._trends = {}, this._trendsLoaded = !1, this._reported = {}, this._trendsStarted = !1;
   }
   connectedCallback() {
     super.connectedCallback(), this._colorScheme = window.matchMedia?.("(prefers-color-scheme: dark)"), this._prefersDark = this._colorScheme?.matches ?? !0, this._colorScheme?.addEventListener("change", this.handleColorScheme), window.clearInterval(this._clockTimer), this._clockTimer = window.setInterval(() => {
       (this.anyWindowOpen() || this.ventilationOn()) && (this._clock = Date.now());
-    }, hs), this.requestUpdate();
+    }, Us), this.requestUpdate();
   }
   disconnectedCallback() {
     super.disconnectedCallback(), this._colorScheme?.removeEventListener("change", this.handleColorScheme), this._colorScheme = void 0, window.removeEventListener("resize", this.handleResize), this.flushHeat(), this._gesture.dispose();
@@ -4686,7 +4855,7 @@ const ze = class ze extends Et {
   shouldUpdate(t) {
     if (t.size === 1 && t.has("hass")) {
       const n = t.get("hass");
-      return n?.themes?.darkMode !== this.hass?.themes?.darkMode || Xt(n) !== Xt(this.hass) || ["number_format", "time_format", "date_format"].some(
+      return n?.themes?.darkMode !== this.hass?.themes?.darkMode || re(n) !== re(this.hass) || ["number_format", "time_format", "date_format"].some(
         (i) => n?.locale?.[i] !== this.hass?.locale?.[i]
       ) || this.hasRelevantEntityChanged(n);
     }
@@ -4695,7 +4864,7 @@ const ze = class ze extends Et {
   willUpdate(t) {
     t.has("hass") && this.trackMovingPresets();
     const n = this.theme();
-    this.dataset.theme !== n && (this.dataset.theme = n), this._i18n = _e(Wo(this._config?.language ?? "auto", this.hass), this.hass), this.lang !== this._i18n.language && (this.lang = this._i18n.language);
+    this.dataset.theme !== n && (this.dataset.theme = n), this._i18n = De(ks(this._config?.language ?? "auto", this.hass), this.hass), this.lang !== this._i18n.language && (this.lang = this._i18n.language);
     const i = this.ventilationOn();
     i !== this._ventOn && (this._ventOn = i, this._ventilationEnding = !1, this._sheet?.kind === "ventilation" && (this._announcement = i ? "" : this._i18n.t.ventilation.ended, this.loadVentilation()));
   }
@@ -4714,17 +4883,17 @@ const ze = class ze extends Et {
   updated(t) {
     !this._trendsStarted && this.hass && this._config && (this._trendsStarted = !0, this.refreshTrends(), window.clearInterval(this._trendTimer), this._trendTimer = window.setInterval(() => {
       this.refreshTrends();
-    }, cs)), this._focusSegment && (this.renderRoot.querySelector(`.segment[data-system="${this._focusSegment}"]`)?.focus(), this._focusSegment = void 0), t.has("_sheet") && this._sheet && !t.get("_sheet") && (this.renderRoot.querySelector(".sheet .option[aria-pressed='true']") ?? this.renderRoot.querySelector(".sheet button:not([disabled])"))?.focus();
+    }, js)), this._focusSegment && (this.renderRoot.querySelector(`.segment[data-system="${this._focusSegment}"]`)?.focus(), this._focusSegment = void 0), t.has("_sheet") && this._sheet && !t.get("_sheet") && (this.renderRoot.querySelector(".sheet .option[aria-pressed='true']") ?? this.renderRoot.querySelector(".sheet"))?.focus();
   }
   anyWindowOpen() {
-    return (this._config?.rooms ?? []).some((t) => Qt(t, (n) => this.getState(n)).length > 0);
+    return (this._config?.rooms ?? []).some((t) => de(t, (n) => this.getState(n)).length > 0);
   }
   hasRelevantEntityChanged(t) {
     if (!t || !this.hass || !this._config)
       return !0;
-    for (const n of Pi(this._config)) {
+    for (const n of ro(this._config)) {
       const i = t.states[n], o = this.hass.states[n];
-      if (i?.state !== o?.state || i?.last_updated !== o?.last_updated || !zi(i?.attributes, o?.attributes))
+      if (i?.state !== o?.state || i?.last_updated !== o?.last_updated || !co(i?.attributes, o?.attributes))
         return !0;
     }
     return !1;
@@ -4734,20 +4903,20 @@ const ze = class ze extends Et {
   }
   render() {
     if (!this._config)
-      return f;
-    const t = tt(this.entityState(this._config.houseModeEntity) ?? ""), n = t === tt(this._config.houseModes.summer), i = n || t === tt(this._config.houseModes.winter), o = this.trendAxes(this._config), s = Date.now(), r = Dt(this._config.title, this._i18n.language) ?? this._i18n.t.title, a = this.renderOutside(), l = ls(
+      return g;
+    const t = st(this.entityState(this._config.houseModeEntity) ?? ""), n = t === st(this._config.houseModes.summer), i = n || t === st(this._config.houseModes.winter), o = this.trendAxes(this._config), s = Date.now(), a = jt(this._config.title, this._i18n.language) ?? this._i18n.t.title, r = this.renderOutside(), l = Hs(
       this._config.rooms,
       (p) => this.getState(p),
       this.coldRooms(n, i, s),
       this._i18n
-    ), d = this._config.ventilationEntity !== void 0, c = r !== "" || a !== f || l.length > 0 || d;
-    return u`
+    ), d = this._config.ventilationEntity !== void 0, c = a !== "" || r !== g || l.length > 0 || d;
+    return m`
       <ha-card>
         <div class="dashboard">
-          ${c ? u`<header class="dashboard-header">
-                ${d ? u`<div class="title-row">${r === "" ? f : u`<h1>${r}</h1>`}${this.renderVentilationButton()}</div>` : r === "" ? f : u`<h1>${r}</h1>`}
-                ${a} ${this.renderSummary(l)}
-              </header>` : f}
+          ${c ? m`<header class="dashboard-header">
+                ${d ? m`<div class="title-row">${a === "" ? g : m`<h1>${a}</h1>`}${this.renderVentilationButton()}</div>` : a === "" ? g : m`<h1>${a}</h1>`}
+                ${r} ${this.renderSummary(l)}
+              </header>` : g}
           <div class="rooms n${Math.min(this._config.rooms.length, 4)}">
             ${this._config.rooms.map(
       (p, h) => this.renderRoom(p, h, n, i, o, s)
@@ -4763,12 +4932,12 @@ const ze = class ze extends Et {
   coldRooms(t, n, i) {
     const o = /* @__PURE__ */ new Set();
     for (const s of this._config?.rooms ?? []) {
-      const r = s.thresholds.stale_minutes;
-      Xe(
+      const a = s.thresholds.stale_minutes;
+      wn(
         {
-          temperature: this.reading(s.temperature, r, i),
-          humidity: this.reading(s.humidity, r, i),
-          co2: this.reading(s.carbon_dioxide, r, i),
+          temperature: this.reading(s.temperature, a, i),
+          humidity: this.reading(s.humidity, a, i),
+          co2: this.reading(s.carbon_dioxide, a, i),
           pm25: this.pm25Reading(s, i)
         },
         t,
@@ -4789,33 +4958,33 @@ const ze = class ze extends Et {
       return s ? this._trends[s] : void 0;
     });
     return {
-      temperature: ce(n((i) => i.temperature), bt(t.trends, "temperature")),
-      co2: ce(n((i) => i.carbon_dioxide), bt(t.trends, "co2")),
-      pm25: ce(n((i) => i.pm25), bt(t.trends, "pm25"))
+      temperature: ke(n((i) => i.temperature), At(t.trends, "temperature")),
+      co2: ke(n((i) => i.carbon_dioxide), At(t.trends, "co2")),
+      pm25: ke(n((i) => i.pm25), At(t.trends, "pm25"))
     };
   }
   // ---------------------------------------------------------------- header
   renderOutside() {
     const t = this._config?.outside;
     if (!t)
-      return f;
-    const { t: n, whole: i } = this._i18n, o = this.numberState(t.temperature), s = this.numberState(t.minimum), r = this.numberState(t.maximum), a = this.numberState(t.rain_probability), l = this.numberState(t.pm25), d = s !== void 0 && r !== void 0 ? `${i(s)}–${i(r)}${Y}°C` : void 0, c = [
-      o === void 0 ? void 0 : `${i(o)}${Y}°C`,
+      return g;
+    const { t: n, whole: i } = this._i18n, o = this.numberState(t.temperature), s = this.numberState(t.minimum), a = this.numberState(t.maximum), r = this.numberState(t.rain_probability), l = this.numberState(t.pm25), d = s !== void 0 && a !== void 0 ? `${i(s)}–${i(a)}${tt}°C` : void 0, c = [
+      o === void 0 ? void 0 : `${i(o)}${tt}°C`,
       d,
-      a === void 0 ? void 0 : `☂${Y}${this._i18n.percent(i(a))}`
+      r === void 0 ? void 0 : `☂${tt}${this._i18n.percent(i(r))}`
     ].filter((w) => w !== void 0), p = this._config.thresholds;
-    let h = "––", m = g.label;
-    return l !== void 0 && (l >= p.pm25_critical ? (h = n.airLevel.poor, m = g.alert) : l >= p.pm25_warning ? (h = n.airLevel.moderate, m = g.warning) : h = n.airLevel.good), c.length === 0 && !t.pm25 ? f : u`<div class="outside">
-      ${c.length > 0 ? u`<div>${c.join(" · ")}</div>` : f}
-      ${t.pm25 ? u`<div>${n.outsideAir} <span style=${`color: ${m}`}>${h}</span></div>` : f}
+    let h = "––", u = f.label;
+    return l !== void 0 && (l >= p.pm25_critical ? (h = n.airLevel.poor, u = f.alert) : l >= p.pm25_warning ? (h = n.airLevel.moderate, u = f.warning) : h = n.airLevel.good), c.length === 0 && !t.pm25 ? g : m`<div class="outside">
+      ${c.length > 0 ? m`<div>${c.join(" · ")}</div>` : g}
+      ${t.pm25 ? m`<div>${n.outsideAir} <span style=${`color: ${u}`}>${h}</span></div>` : g}
     </div>`;
   }
   /** House summary chips: only what differs from a quiet house (CURRENT_SPEC.md, Dashboard Domov). */
   renderSummary(t) {
-    return t.length === 0 ? f : u`<ul class="summary" aria-label=${this._i18n.t.summary}>
+    return t.length === 0 ? g : m`<ul class="summary" aria-label=${this._i18n.t.summary}>
       ${t.map((n) => {
       const i = this.summaryIcon(n), o = n.opens;
-      return o && o.rooms.length > 0 ? u`<li class="chip" style=${`--chip-color: ${n.color}`}>
+      return o && o.rooms.length > 0 ? m`<li class="chip" style=${`--chip-color: ${n.color}`}>
             <button
               type="button"
               class="plain-button chip-open"
@@ -4826,7 +4995,7 @@ const ze = class ze extends Et {
             >
               <span class="chip-icon" aria-hidden="true">${i}</span>${n.text}
             </button>
-          </li>` : u`<li class="chip" style=${`--chip-color: ${n.color}`} title=${n.spoken} aria-label=${n.spoken}>
+          </li>` : m`<li class="chip" style=${`--chip-color: ${n.color}`} title=${n.spoken} aria-label=${n.spoken}>
           <span class="chip-icon" aria-hidden="true">${i}</span>${n.text}
         </li>`;
     })}
@@ -4834,26 +5003,26 @@ const ze = class ze extends Et {
   }
   /** The icon of a summary chip (window, air conditioner, heating option or waves). */
   summaryIcon(t) {
-    return t.kind === "windows" || t.kind === "conflict-window" ? he(t.color, !1) : t.kind === "climate" || t.kind === "conflict-cooling" ? Tt("cool", t.color, !1) : t.kind === "manual" || t.kind === "boost" ? pe(t.kind === "boost" ? "boost" : "heat") : ye(t.waves ?? 3, !1);
+    return t.kind === "windows" || t.kind === "conflict-window" ? ie(t.color, !1) : t.kind === "climate" || t.kind === "conflict-cooling" ? xt("cool", t.color, !1) : t.kind === "manual" || t.kind === "boost" ? xe(t.kind === "boost" ? "boost" : "heat") : Pe(t.waves ?? 3, !1);
   }
   // ------------------------------------------------------------------ room
-  renderRoom(t, n, i, o, s, r) {
-    const a = t.thresholds.stale_minutes, l = this.reading(t.temperature, a, r), d = this.reading(t.humidity, a, r), c = this.reading(t.carbon_dioxide, a, r), p = this.pm25Reading(t, r), { t: h } = this._i18n, m = Xe({ temperature: l, humidity: d, co2: c, pm25: p }, i, o, t, h), w = t.image, T = ($) => m.cause === $ ? `color: ${m.color}` : f, M = Gn(t, ($) => this.getState($), m.id === "cold", this._i18n);
-    return u`
+  renderRoom(t, n, i, o, s, a) {
+    const r = t.thresholds.stale_minutes, l = this.reading(t.temperature, r, a), d = this.reading(t.humidity, r, a), c = this.reading(t.carbon_dioxide, r, a), p = this.pm25Reading(t, a), { t: h } = this._i18n, u = wn({ temperature: l, humidity: d, co2: c, pm25: p }, i, o, t, h), w = t.image, T = ($) => u.cause === $ ? `color: ${u.color}` : g, C = mi(t, ($) => this.getState($), u.id === "cold", this._i18n);
+    return m`
       <div class="room-cell"><article
         class="room ${!t.cover && !t.hasCo2 && !t.hasPm25 ? "compact" : ""}"
         aria-label=${this.roomLabel(t)}
-        style=${w?.kind === "scene" ? `--scene-tone: ${zo(w.scene)}` : f}
+        style=${w?.kind === "scene" ? `--scene-tone: ${ps(w.scene)}` : g}
       >
         ${this.renderImage(t)}
         ${this.renderTitle(t, n)}
         <div class="status-line">
           <span
             class="status-dot"
-            style=${m.kind === "unknown" ? `border: 1.5px solid ${g.off}` : `background: ${m.color}`}
+            style=${u.kind === "unknown" ? `border: 1.5px solid ${f.off}` : `background: ${u.color}`}
           ></span>
-          <span style=${`color: ${m.color}; font-weight: ${m.kind === "normal" ? 400 : 500}`}>
-            ${m.label}
+          <span style=${`color: ${u.color}; font-weight: ${u.kind === "normal" ? 400 : 500}`}>
+            ${u.label}
           </span>
         </div>
         <div class="measurements">
@@ -4862,7 +5031,7 @@ const ze = class ze extends Et {
             class="plain-button temperature ${l.stale ? "stale" : ""}"
             style=${T("temperature")}
             ?disabled=${!t.temperature}
-            title=${this.staleTitle(l) ?? f}
+            title=${this.staleTitle(l) ?? g}
             aria-label=${h.temperatureLabel(
       this.roomLabel(t),
       l.value === void 0 ? void 0 : this._i18n.one(l.value),
@@ -4871,14 +5040,14 @@ const ze = class ze extends Et {
     )}
             @click=${($) => this.openSheet("history", t, $)}
           >
-            ${l.value === void 0 ? u`<span class="missing">––</span>` : u`${this._i18n.one(l.value)}<span class="temperature-unit">${Y}°C</span>${this.staleMark(l)}`}
+            ${l.value === void 0 ? m`<span class="missing">––</span>` : m`${this._i18n.one(l.value)}<span class="temperature-unit">${tt}°C</span>${this.staleMark(l)}`}
           </button>
           <button
             type="button"
             class="plain-button humidity ${d.stale ? "stale" : ""}"
             style=${T("humidity")}
             ?disabled=${!t.humidity}
-            title=${this.staleTitle(d) ?? f}
+            title=${this.staleTitle(d) ?? g}
             aria-label=${h.humidityLabel(
       this.roomLabel(t),
       d.value === void 0 ? void 0 : this._i18n.percent(Math.round(d.value)),
@@ -4886,7 +5055,7 @@ const ze = class ze extends Et {
     )}
             @click=${() => this.showMoreInfo(t.humidity)}
           >
-            ${d.value === void 0 ? u`<span class="missing">––</span>` : u`${this._i18n.percent(Math.round(d.value))}${this.staleMark(d)}`}
+            ${d.value === void 0 ? m`<span class="missing">––</span>` : m`${this._i18n.percent(Math.round(d.value))}${this.staleMark(d)}`}
           </button>
         </div>
         <div class="lower">
@@ -4894,9 +5063,9 @@ const ze = class ze extends Et {
             ${this.renderAirBlock(t, n, c, p, s)}
             ${this.renderHvac(t, i, n)}
             ${this.renderTemperatureTrend(t, l, s.temperature)}
-            ${this.renderWindow(t, n, M, r)}
+            ${this.renderWindow(t, n, C, a)}
           </div>
-          ${t.cover ? this.renderCover(t, t.cover) : u`<div class="cover-panel" aria-hidden="true"></div>
+          ${t.cover ? this.renderCover(t, t.cover) : m`<div class="cover-panel" aria-hidden="true"></div>
                 <div class="presets" aria-hidden="true"></div>`}
         </div>
       </article></div>
@@ -4908,17 +5077,17 @@ const ze = class ze extends Et {
    */
   renderImage(t) {
     const n = t.image;
-    return n ? n.kind === "scene" ? u`<div class="scene" aria-hidden="true">${Ro(n.scene)}</div>` : u`<div class="scene photo" aria-hidden="true">
+    return n ? n.kind === "scene" ? m`<div class="scene" aria-hidden="true">${us(n.scene)}</div>` : m`<div class="scene photo" aria-hidden="true">
       <img src=${n.url} alt="" loading="lazy" decoding="async" />
-    </div>` : f;
+    </div>` : g;
   }
   /** Room name; with `link` a button that opens the page or address (CURRENT_SPEC.md, Room Card). */
   renderTitle(t, n) {
     const i = t.link;
     if (!i)
-      return u`<div class="room-title">${this.roomLabel(t)}</div>`;
+      return m`<div class="room-title">${this.roomLabel(t)}</div>`;
     const o = `link-description-${n}`;
-    return u`
+    return m`
       <button
         type="button"
         class="plain-button room-title room-link"
@@ -4946,129 +5115,90 @@ const ze = class ze extends Et {
   }
   /** The room history period for screen readers: "24 hodin" (after "za"), "the last 24 hours". */
   historyPeriod() {
-    return tn((this._config?.history.hours ?? 24) * 60, this._i18n.t);
+    return kn((this._config?.history.hours ?? 24) * 60, this._i18n.t);
   }
   /** The micro trend period for screen readers: "2 hodiny" (after "za"), "the last 2 hours". */
   trendPeriod() {
-    return tn(this._config?.trends.minutes ?? 120, this._i18n.t);
-  }
-  /** On the lighter ground of the popup options the critical red needs a lighter shade to stay readable. */
-  popupColor(t) {
-    return t === g.alert ? g.alertOnPopup : t;
+    return kn(this._config?.trends.minutes ?? 120, this._i18n.t);
   }
   /** Colour of a CO₂ / PM2.5 number: white, orange from the warning limit, red from the critical one; grey without a fresh value. */
   airColor(t, n, i) {
-    return t.value === void 0 || t.stale ? g.label : t.value >= i ? g.alert : t.value >= n ? g.warning : g.white;
+    return t.value === void 0 || t.stale ? f.label : t.value >= i ? f.alert : t.value >= n ? f.warning : f.white;
   }
   /**
-   * CO₂ and PM2.5 are one touch target over both rows (52 px). With both sensors it
-   * opens the popup "Kvalita vzduchu" with a link to each detail; with one it opens that
-   * detail at once. A sensor the room does not have (`carbon_dioxide: false`) has no row; without
-   * both the place stays empty, so the rows below keep their position (CURRENT_SPEC.md, Room Card).
+   * CO₂ and PM2.5 are one touch target over both rows (52 px). It opens the room history with the CO₂ curve
+   * and PM2.5 as the weaker dashed line (without a CO₂ sensor the PM2.5 curve is the main one). A sensor the room
+   * does not have (`carbon_dioxide: false`) has no row; without both the place stays empty, so the rows below
+   * keep their position (CURRENT_SPEC.md, Room Card).
    */
   renderAirBlock(t, n, i, o, s) {
     if (!t.hasCo2 && !t.hasPm25)
-      return f;
-    const { thresholds: r } = t, { t: a } = this._i18n, l = this._config.trends, d = [t.carbon_dioxide, t.pm25].filter((w) => !!w), c = (w, T, M, $, S, C) => {
-      if (!T || !M)
+      return g;
+    const { thresholds: a } = t, { t: r } = this._i18n, l = this._config.trends, d = (h, u, w, T, C, $) => {
+      if (!u || !w)
         return;
-      const x = $.value === void 0 ? void 0 : Je(this._trends[M], bt(l, C));
-      return a.airSensor(
-        w,
-        $.value === void 0 ? void 0 : `${this._i18n.whole($.value)} ${S}`,
-        x ? a.trendOver(a.trend[x], this.trendPeriod()) : void 0,
-        this.staleSpoken($)
+      const _ = T.value === void 0 ? void 0 : bn(this._trends[w], At(l, $));
+      return r.airSensor(
+        h,
+        T.value === void 0 ? void 0 : `${this._i18n.whole(T.value)} ${C}`,
+        _ ? r.trendOver(r.trend[_], this.trendPeriod()) : void 0,
+        this.staleSpoken(T)
       );
-    }, p = [
-      c("CO₂", t.hasCo2, t.carbon_dioxide, i, "ppm", "co2"),
-      c("PM2.5", t.hasPm25, t.pm25, o, "µg/m³", "pm25")
-    ].filter(Boolean).join("; "), h = d.length > 1, m = `air-description-${n}`;
-    return u`
+    }, c = [
+      d("CO₂", t.hasCo2, t.carbon_dioxide, i, "ppm", "co2"),
+      d("PM2.5", t.hasPm25, t.pm25, o, "µg/m³", "pm25")
+    ].filter(Boolean).join("; "), p = `air-description-${n}`;
+    return m`
       <button
         type="button"
         class="plain-button air-block"
-        ?disabled=${d.length === 0}
-        aria-haspopup=${h ? "dialog" : f}
-        aria-describedby=${m}
-        @click=${(w) => h ? this.openSheet("air", t, w) : this.showMoreInfo(d[0])}
+        ?disabled=${!t.carbon_dioxide && !t.pm25}
+        aria-haspopup="dialog"
+        aria-describedby=${p}
+        @click=${(h) => this.openSheet("history", t, h, t.hasCo2 ? "co2" : "pm25")}
       >
         ${t.hasCo2 ? this.renderAirRow(
       "co2",
       t.carbon_dioxide,
-      u`<ha-icon icon="mdi:molecule-co2"></ha-icon>`,
+      m`<ha-icon icon="mdi:molecule-co2"></ha-icon>`,
       i,
       "ppm",
-      r.co2_warning,
-      r.co2_critical,
+      a.co2_warning,
+      a.co2_critical,
       s.co2
-    ) : f}
+    ) : g}
         ${t.hasPm25 ? this.renderAirRow(
       "pm25",
       t.pm25,
-      hn(),
+      Uo(),
       o,
       "µg/m³",
-      r.pm25_warning,
-      r.pm25_critical,
+      a.pm25_warning,
+      a.pm25_critical,
       s.pm25
-    ) : f}
+    ) : g}
       </button>
-      <span class="sr-only" id=${m}>${a.airDescription(this.roomLabel(t), p, h)}</span>
-    `;
-  }
-  /** Popup "Kvalita vzduchu": CO₂ and PM2.5 with their values, each opens the standard entity detail. */
-  renderAirBody(t, n) {
-    const { thresholds: i } = t, o = i.stale_minutes, s = [
-      { slot: "co2", label: "CO₂", unit: "ppm", present: t.hasCo2, entityId: t.carbon_dioxide, warning: i.co2_warning, critical: i.co2_critical },
-      { slot: "pm25", label: "PM2.5", unit: "µg/m³", present: t.hasPm25, entityId: t.pm25, warning: i.pm25_warning, critical: i.pm25_critical }
-    ].filter((r) => r.present);
-    return u`
-      <div class="options list-options" role="group" aria-label=${this._i18n.t.air}>
-        ${s.map(({ slot: r, label: a, unit: l, entityId: d, warning: c, critical: p }) => {
-      const h = r === "pm25" ? this.pm25Reading(t, n) : this.reading(d, o, n), m = h.value !== void 0, w = m && !h.stale ? g[r] : g.off;
-      return u`<button
-            type="button"
-            class="plain-button option list-option"
-            ?disabled=${!d}
-            @click=${() => {
-        this.closeSheet(!1), this.showMoreInfo(d);
-      }}
-          >
-            <span class="option-icon" style=${`color: ${w}`} aria-hidden="true">
-              ${r === "co2" ? u`<ha-icon icon="mdi:molecule-co2"></ha-icon>` : hn()}
-            </span>
-            <span class="option-text">
-              <span>${a}</span>
-              <span class="option-hint">${this._i18n.t.detailsAndHistory}</span>
-            </span>
-            <span class="list-value" style=${`color: ${this.popupColor(this.airColor(h, c, p))}`}>
-              ${m ? `${this._i18n.whole(h.value)} ${l}` : u`<span aria-hidden="true">––</span><span class="sr-only">${this._i18n.t.unknownValue}</span>`}
-            </span>
-            ${d ? u`<span class="list-chevron" aria-hidden="true">›</span>` : f}
-            ${h.stale ? u`<span class="sr-only">${this.staleSpoken(h)}</span>` : f}
-          </button>`;
-    })}
-      </div>
+      <span class="sr-only" id=${p}>${r.airDescription(this.roomLabel(t), c, this.historyPeriod())}</span>
     `;
   }
   /**
    * One CO₂ / PM2.5 row inside the air block: icon and value in the left column, micro trend
    * in the right column. A stale value is grey, never orange or red.
    */
-  renderAirRow(t, n, i, o, s, r, a, l) {
-    const d = o.value !== void 0, c = this._i18n.whole(o.value ?? 0), p = this.airColor(o, r, a), h = g[t];
-    return u`
-      <div class="air-row slot-${t}" title=${this.staleTitle(o) ?? f}>
+  renderAirRow(t, n, i, o, s, a, r, l) {
+    const d = o.value !== void 0, c = this._i18n.whole(o.value ?? 0), p = this.airColor(o, a, r), h = f[t];
+    return m`
+      <div class="air-row slot-${t}" title=${this.staleTitle(o) ?? g}>
         <span class="row-main">
-          <span class="row-icon" style=${`color: ${d && !o.stale ? h : g.off}`} aria-hidden="true">
+          <span class="row-icon" style=${`color: ${d && !o.stale ? h : f.off}`} aria-hidden="true">
             ${i}
           </span>
           <span class="row-text">
-            ${d ? u`<span class="row-label" style=${`color: ${p}`}>${c}</span>
-                  <span class="row-unit">${s}</span>${this.staleMark(o)}` : u`<span class="row-label" style=${`color: ${g.label}`}>––</span>`}
+            ${d ? m`<span class="row-label" style=${`color: ${p}`}>${c}</span>
+                  <span class="row-unit">${s}</span>${this.staleMark(o)}` : m`<span class="row-label" style=${`color: ${f.label}`}>––</span>`}
           </span>
         </span>
-        ${d ? this.renderSpark(n, l, h, o.stale === !0) : f}
+        ${d ? this.renderSpark(n, l, h, o.stale === !0) : g}
       </div>
     `;
   }
@@ -5078,22 +5208,22 @@ const ze = class ze extends Et {
    */
   renderTemperatureTrend(t, n, i) {
     if (!t.temperature || n.value === void 0)
-      return f;
-    const o = this.renderSpark(t.temperature, i, g.peach, n.stale === !0);
-    if (o === f)
-      return f;
-    const s = Je(this._trends[t.temperature], bt(this._config.trends, "temperature")), { t: r } = this._i18n;
-    return u`
+      return g;
+    const o = this.renderSpark(t.temperature, i, f.peach, n.stale === !0);
+    if (o === g)
+      return g;
+    const s = bn(this._trends[t.temperature], At(this._config.trends, "temperature")), { t: a } = this._i18n;
+    return m`
       <button
         type="button"
         class="plain-button trend-button slot-temperature-trend"
-        aria-label=${r.temperatureTrendLabel(
+        aria-label=${a.temperatureTrendLabel(
       this.roomLabel(t),
       this.trendPeriod(),
-      s ? r.trend[s] : void 0,
+      s ? a.trend[s] : void 0,
       this.historyPeriod()
     )}
-        @click=${(a) => this.openSheet("history", t, a)}
+        @click=${(r) => this.openSheet("history", t, r)}
       >
         ${o}
       </button>
@@ -5107,9 +5237,9 @@ const ze = class ze extends Et {
    */
   renderSpark(t, n, i, o) {
     if (!t)
-      return f;
+      return g;
     if (!this._trendsLoaded)
-      return u`<span class="spark loading" aria-hidden="true">
+      return m`<span class="spark loading" aria-hidden="true">
         <span class="spark-plot">
           <svg viewBox="0 0 100 100" preserveAspectRatio="none">
             <line x1="2" y1="50" x2="98" y2="50" stroke="currentColor" stroke-width="1.6"
@@ -5119,19 +5249,19 @@ const ze = class ze extends Et {
       </span>`;
     const s = this._trends[t];
     if (!s || !n)
-      return f;
-    const r = uo(s, n).map(
+      return g;
+    const a = jo(s, n).map(
       (p, h) => p === void 0 ? void 0 : { x: h / Math.max(1, s.length - 1) * 100, y: (1 - p) * 100 }
     ).filter((p) => p !== void 0);
-    if (r.length < 2)
-      return f;
-    const a = r.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(" "), l = r[0], d = r[r.length - 1], c = `${a} ${d.x.toFixed(2)},100 ${l.x.toFixed(2)},100`;
-    return u`<span class="spark ${o ? "stale" : ""}" style=${`color: ${i}`} aria-hidden="true">
+    if (a.length < 2)
+      return g;
+    const r = a.map((p) => `${p.x.toFixed(2)},${p.y.toFixed(2)}`).join(" "), l = a[0], d = a[a.length - 1], c = `${r} ${d.x.toFixed(2)},100 ${l.x.toFixed(2)},100`;
+    return m`<span class="spark ${o ? "stale" : ""}" style=${`color: ${i}`} aria-hidden="true">
       <span class="spark-plot">
         <svg viewBox="0 0 100 100" preserveAspectRatio="none">
           <polygon points=${c} fill="currentColor" fill-opacity="0.08"></polygon>
           <polyline
-            points=${a}
+            points=${r}
             fill="none"
             stroke="currentColor"
             stroke-width="1.6"
@@ -5154,17 +5284,17 @@ const ze = class ze extends Et {
    * (CURRENT_SPEC.md, Ovládání Topení a Klimatizace).
    */
   renderHvac(t, n, i) {
-    const { t: o } = this._i18n, s = De(t, (m) => this.getState(m), this._i18n), r = Jt(this.getState(t.air_conditioner), this._i18n), a = (m) => this.renderSystemRow(ye(s.unknown ? 0 : s.waves, s.unknown), s, m), l = (m) => this.renderSystemRow(Tt(r.mode, r.color, r.unknown), r, m), d = n ? ["climate", "heating"] : ["heating", "climate"], c = this.hvacTarget(t, d, { heating: !s.unknown && s.waves > 0, climate: r.active }), p = d.map((m) => `${o.system[m]} ${as(m === "heating" ? s : r, this._i18n)}`).join(", "), h = `hvac-description-${i}`;
-    return u`
+    const { t: o } = this._i18n, s = qe(t, (u) => this.getState(u), this._i18n), a = le(this.getState(t.air_conditioner), this._i18n), r = (u) => this.renderSystemRow(Pe(s.unknown ? 0 : s.waves, s.unknown), s, u), l = (u) => this.renderSystemRow(xt(a.mode, a.color, a.unknown), a, u), d = n ? ["climate", "heating"] : ["heating", "climate"], c = this.hvacTarget(t, d, { heating: !s.unknown && s.waves > 0, climate: a.active }), p = d.map((u) => `${o.system[u]} ${Is(u === "heating" ? s : a, this._i18n)}`).join(", "), h = `hvac-description-${i}`;
+    return m`
       <button
         type="button"
         class="plain-button hvac slot-hvac"
         ?disabled=${!c}
         aria-describedby=${h}
-        @click=${(m) => c ? this.openSheet(c, t, m) : void 0}
+        @click=${(u) => c ? this.openSheet(c, t, u) : void 0}
       >
-        ${n ? l(!0) : a(!0)}
-        ${n ? a(!1) : l(!1)}
+        ${n ? l(!0) : r(!0)}
+        ${n ? r(!1) : l(!1)}
       </button>
       <span class="sr-only" id=${h}>${o.hvacDescription(this.roomLabel(t), p, c)}</span>
     `;
@@ -5172,7 +5302,7 @@ const ze = class ze extends Et {
   /** The system the HVAC popup opens: the primary one, or the other when only that is configured. */
   /** The system a tap on the HVAC lines opens: the one that runs (a ventilation started on the air conditioner in winter opens Klimatizace), otherwise the first by the house mode. */
   hvacTarget(t, n, i) {
-    const o = (r) => r === "heating" ? !!t.heating?.climate : !!t.air_conditioner, s = n.filter((r) => o(r) && i?.[r]);
+    const o = (a) => a === "heating" ? !!t.heating?.climate : !!t.air_conditioner, s = n.filter((a) => o(a) && i?.[a]);
     return s.length === 1 ? s[0] : n.find(o);
   }
   /**
@@ -5181,7 +5311,7 @@ const ze = class ze extends Et {
    * whole target wraps onto a hidden second line (never cut inside a number).
    */
   renderSystemRow(t, n, i) {
-    return u`
+    return m`
       <span
         class="system-row ${i && n.active ? "strong" : ""}"
         style=${`--row-color: ${n.color}`}
@@ -5190,7 +5320,7 @@ const ze = class ze extends Et {
           <span class="row-icon">${t}</span>
           <span class="row-text">
             <span class="row-label">${n.label}</span>
-            ${n.extra ? u`<span class="row-unit">${n.extra}</span>` : f}
+            ${n.extra ? m`<span class="row-unit">${n.extra}</span>` : g}
           </span>
         </span>
       </span>
@@ -5200,7 +5330,7 @@ const ze = class ze extends Et {
   /** One window: open / closed / unknown and, when open, for how many minutes (its last_changed). */
   windowState(t, n) {
     const i = this.getState(t), o = i?.state.toLowerCase();
-    if (o === void 0 || W(o))
+    if (o === void 0 || q(o))
       return { state: "unknown" };
     if (o !== "on")
       return { state: "closed" };
@@ -5216,63 +5346,63 @@ const ze = class ze extends Et {
    * gives way, never the dot.
    */
   renderWindow(t, n, i, o) {
-    const { t: s } = this._i18n, r = t.windows.map((x) => ({ window: x, ...this.windowState(x.entity, o) })), a = r.filter((x) => x.state === "open"), l = a.length > 0, d = !l && (r.length === 0 || r.some((x) => x.state === "unknown")), c = t.windows.length > 1, p = l ? g.sky : g.label, h = l ? a.length > 1 ? s.window.openCount(a.length) : s.window.open : d ? "––" : s.window.closed, m = a.map((x) => x.minutesOpen).filter((x) => x !== void 0), w = m.length > 0 ? Math.max(...m) : void 0, T = i.includes("window-heating") ? s.window.conflict.heating : i.includes("window-cooling") ? s.window.conflict.cooling : void 0, M = `window-description-${n}`, $ = w === void 0 ? void 0 : Qe(w, s);
-    let S;
+    const { t: s } = this._i18n, a = t.windows.map((S) => ({ window: S, ...this.windowState(S.entity, o) })), r = a.filter((S) => S.state === "open"), l = r.length > 0, d = !l && (a.length === 0 || a.some((S) => S.state === "unknown")), c = t.windows.length > 1, p = l ? f.sky : f.label, h = l ? r.length > 1 ? s.window.openCount(r.length) : s.window.open : d ? "––" : s.window.closed, u = r.map((S) => S.minutesOpen).filter((S) => S !== void 0), w = u.length > 0 ? Math.max(...u) : void 0, T = i.includes("window-heating") ? s.window.conflict.heating : i.includes("window-cooling") ? s.window.conflict.cooling : void 0, C = `window-description-${n}`, $ = w === void 0 ? void 0 : yn(w, s);
+    let _;
     if (!c)
-      S = s.window.spokenSingle(d ? "unknown" : l ? "open" : "closed", $);
+      _ = s.window.spokenSingle(d ? "unknown" : l ? "open" : "closed", $);
     else if (l) {
-      const x = a.map((v) => this.windowName(t, v.window)).join(", ");
-      S = a.length === 1 ? s.window.spokenOneOpen(x, $) : s.window.spokenManyOpen(x, $);
+      const S = r.map((b) => this.windowName(t, b.window)).join(", ");
+      _ = r.length === 1 ? s.window.spokenOneOpen(S, $) : s.window.spokenManyOpen(S, $);
     } else
-      S = d ? s.window.spokenUnknown : s.window.spokenAllClosed;
-    const C = t.windows[0]?.entity;
-    return u`
+      _ = d ? s.window.spokenUnknown : s.window.spokenAllClosed;
+    const A = t.windows[0]?.entity;
+    return m`
       <button
         type="button"
         class="plain-button system-row slot-window ${l ? "strong" : ""}"
         style=${`--row-color: ${p}`}
-        ?disabled=${!C}
-        aria-haspopup=${c ? "dialog" : f}
-        aria-describedby=${M}
-        @click=${(x) => c ? this.openSheet("windows", t, x) : this.showMoreInfo(C)}
+        ?disabled=${!A}
+        aria-haspopup=${c ? "dialog" : g}
+        aria-describedby=${C}
+        @click=${(S) => c ? this.openSheet("windows", t, S) : this.showMoreInfo(A)}
       >
         <span class="row-main">
-          <span class="row-icon">${he(d ? g.off : p, d)}</span>
+          <span class="row-icon">${ie(d ? f.off : p, d)}</span>
           <span class="row-text">
             <span class="row-label">${h}</span>
-            ${T ? u`<span class="conflict-dot" aria-hidden="true"></span>` : f}
-            ${w === void 0 ? f : u`<span class="row-unit window-duration"
-                  >${`${T ? "" : `${Y}·${Y}`}${le(w)}`}</span
+            ${T ? m`<span class="conflict-dot" aria-hidden="true"></span>` : g}
+            ${w === void 0 ? g : m`<span class="row-unit window-duration"
+                  >${`${T ? "" : `${tt}·${tt}`}${be(w)}`}</span
                 >`}
           </span>
         </span>
       </button>
-      <span class="sr-only" id=${M}>${s.window.description(this.roomLabel(t), S, T, c)}</span>
+      <span class="sr-only" id=${C}>${s.window.description(this.roomLabel(t), _, T, c)}</span>
     `;
   }
   /** Name of a window in the "Okna" popup: from the YAML, otherwise "Okno 1", "Window 1", … */
   windowName(t, n) {
-    return Dt(n.name, this._i18n.language) ?? this._i18n.t.window.defaultName(t.windows.indexOf(n) + 1);
+    return jt(n.name, this._i18n.language) ?? this._i18n.t.window.defaultName(t.windows.indexOf(n) + 1);
   }
   /** Popup "Okna" of a room with several windows: each window with its state; a row opens its detail. */
   renderWindowsBody(t, n) {
     const { t: i } = this._i18n;
-    return u`
+    return m`
       <div class="options list-options" role="group" aria-label=${i.window.popup}>
         ${t.windows.map((o) => {
-      const { state: s, minutesOpen: r } = this.windowState(o.entity, n), a = s === "unknown", l = s === "open" ? g.sky : g.label;
-      return u`<button
+      const { state: s, minutesOpen: a } = this.windowState(o.entity, n), r = s === "unknown", l = s === "open" ? f.sky : f.label;
+      return m`<button
             type="button"
             class="plain-button option list-option window-option"
             @click=${() => {
         this.closeSheet(!1), this.showMoreInfo(o.entity);
       }}
           >
-            <span class="option-icon" aria-hidden="true">${he(a ? g.off : l, a)}</span>
+            <span class="option-icon" aria-hidden="true">${ie(r ? f.off : l, r)}</span>
             <span class="option-text">
               <span>${this.windowName(t, o)}</span>
               <span class="option-hint window-state" style=${`color: ${l}`}>
-                ${a ? u`<span aria-hidden="true">––</span><span class="sr-only">${i.unknownValue}</span>` : s === "open" ? i.window.open : i.window.closed}${r === void 0 ? f : u`${Y}·${Y}${le(r)}`}
+                ${r ? m`<span aria-hidden="true">––</span><span class="sr-only">${i.unknownValue}</span>` : s === "open" ? i.window.open : i.window.closed}${a === void 0 ? g : m`${tt}·${tt}${be(a)}`}
               </span>
             </span>
             <span class="list-chevron" aria-hidden="true">›</span>
@@ -5301,9 +5431,9 @@ const ze = class ze extends Et {
   renderVentilationButton() {
     const t = this.ventilationState();
     if (t === void 0)
-      return f;
+      return g;
     const { t: n } = this._i18n, i = t === "on", o = `${n.ventilation.title}. ${i ? n.summaryChips.ventilationSpoken : n.summaryChips.ventilationOffSpoken}`;
-    return u`<button
+    return m`<button
       type="button"
       class="plain-button vent-trigger ${i ? "on" : "off"}"
       title=${o}
@@ -5311,8 +5441,8 @@ const ze = class ze extends Et {
       aria-haspopup="dialog"
       @click=${(s) => this.openVentilationSheet(s)}
     >
-      <span class="vent-icon" aria-hidden="true">${Tt("fan", i ? g.fresh : g.label, !1)}</span>
-      ${i ? u`<span>${n.ventilation.title}</span>` : f}
+      <span class="vent-icon" aria-hidden="true">${xt("fan", i ? f.fresh : f.label, !1)}</span>
+      ${i ? m`<span>${n.ventilation.title}</span>` : g}
     </button>`;
   }
   /** The popup of the ventilation mode (it has no room; the first one stands in). */
@@ -5331,28 +5461,28 @@ const ze = class ze extends Et {
       return;
     const i = ++this._ventRequest, o = Date.now();
     try {
-      const s = await Ht(t, [n], o - 168 * pt, o), r = Fo(s[n]);
+      const s = await Yt(t, [n], o - 168 * gt, o), a = vs(s[n]);
       if (i !== this._ventRequest)
         return;
-      if (!r) {
+      if (!a) {
         this._vent = { rooms: [] };
         return;
       }
-      const a = this.ventilationRooms(), l = r.end ?? o, d = a.flatMap((p) => [p.carbon_dioxide, ...p.windows.map((h) => h.entity)]), c = await Ht(
+      const r = this.ventilationRooms(), l = a.end ?? o, d = r.flatMap((p) => [p.carbon_dioxide, ...p.windows.map((h) => h.entity)]), c = await Yt(
         t,
         d.filter((p) => p !== void 0),
-        r.start - 30 * 6e4,
+        a.start - 30 * 6e4,
         l
       );
       if (i !== this._ventRequest)
         return;
       this._vent = {
-        session: r,
-        rooms: a.map((p) => ({
+        session: a,
+        rooms: r.map((p) => ({
           name: p.name,
-          opened: p.windows.some((h) => jo(c[h.entity], r.start, l)),
-          start: me(Rt(c[p.carbon_dioxide ?? ""], r.start)),
-          end: me(Rt(c[p.carbon_dioxide ?? ""], l))
+          opened: p.windows.some((h) => $s(c[h.entity], a.start, l)),
+          start: Me(Vt(c[p.carbon_dioxide ?? ""], a.start)),
+          end: Me(Vt(c[p.carbon_dioxide ?? ""], l))
         }))
       };
     } catch (s) {
@@ -5367,70 +5497,70 @@ const ze = class ze extends Et {
    * start values come from the history.
    */
   renderVentilationBody(t) {
-    const { t: n } = this._i18n, i = n.ventilation, o = this._config, s = this.ventilationOn(), r = o?.ventilationCo2Target ?? 450, a = this._vent, l = a?.session, d = u`<span class="no-data" aria-hidden="true">––</span><span class="sr-only">${n.unknownValue}</span>`, c = this._sheetError, p = o?.ventilationTimerEntity, h = this.getState(p), m = h?.state.toLowerCase() === "active" ? Date.parse(String(h.attributes.finishes_at ?? "")) : Number.NaN, w = Number.isNaN(m) || m <= t ? void 0 : m, T = Date.parse(this.getState(o?.ventilationEntity)?.last_changed ?? ""), M = Number.isNaN(T) ? void 0 : Math.max(0, (t - T) / 6e4), $ = this.ventilationRooms().flatMap((v) => {
-      const b = a?.rooms.find((Z) => Z.name === v.name), E = Qt(v, (Z) => this.getState(Z)).length > 0;
-      if (s ? !E : !b?.opened)
+    const { t: n } = this._i18n, i = n.ventilation, o = this._config, s = this.ventilationOn(), a = o?.ventilationCo2Target ?? 450, r = this._vent, l = r?.session, d = m`<span class="no-data" aria-hidden="true">––</span><span class="sr-only">${n.unknownValue}</span>`, c = this._sheetError, p = o?.ventilationTimerEntity, h = this.getState(p), u = h?.state.toLowerCase() === "active" ? Date.parse(String(h.attributes.finishes_at ?? "")) : Number.NaN, w = Number.isNaN(u) || u <= t ? void 0 : u, T = Date.parse(this.getState(o?.ventilationEntity)?.last_changed ?? ""), C = Number.isNaN(T) ? void 0 : Math.max(0, (t - T) / 6e4), $ = this.ventilationRooms().flatMap((b) => {
+      const k = r?.rooms.find((G) => G.name === b.name), O = de(b, (G) => this.getState(G)).length > 0;
+      if (s ? !O : !k?.opened)
         return [];
-      const y = this.getState(v.carbon_dioxide), P = s ? me(y?.state) : b?.end, N = b?.start, L = Date.parse(y?.last_updated ?? ""), G = N !== void 0 && P !== void 0 ? Uo(N, P, r) : void 0;
-      return [{ room: v, startValue: N, live: P, reported: L, steps: G }];
-    }), S = (v) => {
-      const b = v.steps === void 0 ? void 0 : v.steps.closable ? 100 : Math.min(99, Math.floor(v.steps.done * 100)), E = v.steps?.closable ? g.fresh : g.white, y = v.startValue === void 0 ? void 0 : this._i18n.whole(v.startValue), P = v.live === void 0 ? void 0 : this._i18n.whole(v.live);
-      return u`<div
+      const x = this.getState(b.carbon_dioxide), M = s ? Me(x?.state) : k?.end, z = k?.start, L = Date.parse(x?.last_updated ?? ""), Y = z !== void 0 && M !== void 0 ? ws(z, M, a) : void 0;
+      return [{ room: b, startValue: z, live: M, reported: L, steps: Y }];
+    }), _ = (b) => {
+      const k = b.steps === void 0 ? void 0 : b.steps.closable ? 100 : Math.min(99, Math.floor(b.steps.done * 100)), O = b.steps?.closable ? f.fresh : f.white, x = b.startValue === void 0 ? void 0 : this._i18n.whole(b.startValue), M = b.live === void 0 ? void 0 : this._i18n.whole(b.live);
+      return m`<div
         class="static-row"
         role="group"
-        aria-label=${y !== void 0 && P !== void 0 && b !== void 0 ? i.roomSpoken(this.roomLabel(v.room), y, P, this._i18n.percent(b)) : this.roomLabel(v.room)}
+        aria-label=${x !== void 0 && M !== void 0 && k !== void 0 ? i.roomSpoken(this.roomLabel(b.room), x, M, this._i18n.percent(k)) : this.roomLabel(b.room)}
       >
         <span class="option-text">
-          <span>${this.roomLabel(v.room)}</span>
-          <span class="vent-co2" aria-hidden="true">${y !== void 0 && P !== void 0 ? i.co2Range(y, P) : "CO₂ ––"}</span>
+          <span>${this.roomLabel(b.room)}</span>
+          <span class="vent-co2" aria-hidden="true">${x !== void 0 && M !== void 0 ? i.co2Range(x, M) : "CO₂ ––"}</span>
         </span>
-        <span class="list-value vent-percent" style=${`color: ${E}`} aria-hidden="true">
-          <span>${b === void 0 ? "––" : this._i18n.percent(b)}</span>
+        <span class="list-value vent-percent" style=${`color: ${O}`} aria-hidden="true">
+          <span>${k === void 0 ? "––" : this._i18n.percent(k)}</span>
           <span class="vent-co2">${i.done}</span>
         </span>
       </div>`;
     };
-    let C, x;
+    let A, S;
     if (s) {
-      const v = $.filter((L) => L.steps !== void 0), b = $.length > 0 && v.length === $.length, E = b && v.every((L) => L.steps?.closable), P = v.filter((L) => !L.steps?.closable).map(
-        (L) => L.startValue !== void 0 && L.live !== void 0 && l !== void 0 && !Number.isNaN(L.reported) ? Vo(L.startValue, l.start, L.live, L.reported, r) : void 0
-      ), N = !b || E || P.some((L) => L === void 0) ? void 0 : Math.max(...P);
-      C = u`
+      const b = $.filter((L) => L.steps !== void 0), k = $.length > 0 && b.length === $.length, O = k && b.every((L) => L.steps?.closable), M = b.filter((L) => !L.steps?.closable).map(
+        (L) => L.startValue !== void 0 && L.live !== void 0 && l !== void 0 && !Number.isNaN(L.reported) ? bs(L.startValue, l.start, L.live, L.reported, a) : void 0
+      ), z = !k || O || M.some((L) => L === void 0) ? void 0 : Math.max(...M);
+      A = m`
         <div class="static-row">
           <span class="option-text"><span>${i.running}</span></span>
           <span class="list-value">
-            ${M === void 0 ? d : u`<span aria-hidden="true">${le(M)}</span
-                  ><span class="sr-only">${Qe(M, n)}</span>`}
+            ${C === void 0 ? d : m`<span aria-hidden="true">${be(C)}</span
+                  ><span class="sr-only">${yn(C, n)}</span>`}
           </span>
         </div>
-        ${p === void 0 ? f : u`<div class="static-row">
+        ${p === void 0 ? g : m`<div class="static-row">
               <span class="option-text"><span>${i.endsBy}</span></span>
               <span class="list-value">${w === void 0 ? d : this._i18n.time(w)}</span>
             </div>`}
-        ${$.map(S)}
+        ${$.map(_)}
         <div class="static-row">
           <span class="option-text">
             <span>${i.canClose}</span>
-            <span class="vent-co2">${i.goalShort(this._i18n.whole(r))}</span>
+            <span class="vent-co2">${i.goalShort(this._i18n.whole(a))}</span>
           </span>
-          <span class="list-value" style=${`color: ${E ? g.fresh : g.white}`}>
-            ${b ? E ? i.yes : i.notYet : d}
+          <span class="list-value" style=${`color: ${O ? f.fresh : f.white}`}>
+            ${k ? O ? i.yes : i.notYet : d}
           </span>
         </div>
-        ${E ? f : u`<div class="static-row">
+        ${O ? g : m`<div class="static-row">
               <span class="option-text"><span>${i.remaining}</span></span>
-              <span class="list-value">${N === void 0 ? d : i.minutes(N)}</span>
-            </div>`}`, x = i.sentence;
-    } else l ? (C = u`
+              <span class="list-value">${z === void 0 ? d : i.minutes(z)}</span>
+            </div>`}`, S = i.sentence;
+    } else l ? (A = m`
         <div class="static-row">
           <span class="option-text"><span>${i.last}</span></span>
-          <span class="list-value">${new Date(l.start).toDateString() === new Date(t).toDateString() ? f : `${this._i18n.day(l.start)} `}${this._i18n.time(l.start)}${l.end === void 0 ? f : u`–${this._i18n.time(l.end)}`}</span>
+          <span class="list-value">${new Date(l.start).toDateString() === new Date(t).toDateString() ? g : `${this._i18n.day(l.start)} `}${this._i18n.time(l.start)}${l.end === void 0 ? g : m`–${this._i18n.time(l.end)}`}</span>
         </div>
-        ${$.map(S)}`, x = i.goal(this._i18n.whole(r))) : (C = u``, x = a === void 0 ? "" : i.never);
-    return u`
-      ${C === void 0 || !s && !l ? f : u`<div class="static-list" role="group" aria-label=${i.title}>${C}</div>`}
-      <p class="timer-foot ${c ? "error" : ""}" role=${c ? "alert" : f}>${c ?? x}</p>
-      ${s ? u`<button
+        ${$.map(_)}`, S = i.goal(this._i18n.whole(a))) : (A = m``, S = r === void 0 ? "" : i.never);
+    return m`
+      ${A === void 0 || !s && !l ? g : m`<div class="static-list" role="group" aria-label=${i.title}>${A}</div>`}
+      <p class="timer-foot ${c ? "error" : ""}" role=${c ? "alert" : g}>${c ?? S}</p>
+      ${s ? m`<button
             type="button"
             class="plain-button vent-end"
             ?disabled=${this._ventilationEnding}
@@ -5440,7 +5570,7 @@ const ze = class ze extends Et {
     }}
           >
             ${this._ventilationEnding ? i.ending : i.end}
-          </button>` : f}
+          </button>` : g}
     `;
   }
   /** "Ukončit": turns the mode off; Home Assistant switches the fans off and returns the slats (kit, Home Assistant: větrací režim). */
@@ -5459,8 +5589,8 @@ const ze = class ze extends Et {
   }
   // ----------------------------------------------------------------- cover
   renderCover(t, n) {
-    const i = this.getState(n), o = i?.state.toLowerCase(), s = o !== void 0 && !W(o), r = s ? ot(i?.attributes.current_position) : void 0, a = s ? ot(i?.attributes.current_tilt_position) : void 0, l = r !== void 0 && a !== void 0, d = o === "opening" || o === "closing", { t: c } = this._i18n, p = l ? c.cover.position(Math.round(r), Math.round(a)) : c.cover.unknown;
-    return u`
+    const i = this.getState(n), o = i?.state.toLowerCase(), s = o !== void 0 && !q(o), a = s ? dt(i?.attributes.current_position) : void 0, r = s ? dt(i?.attributes.current_tilt_position) : void 0, l = a !== void 0 && r !== void 0, d = o === "opening" || o === "closing", { t: c } = this._i18n, p = l ? c.cover.position(Math.round(a), Math.round(r)) : c.cover.unknown;
+    return m`
       <button
         type="button"
         class="plain-button cover-panel ${d ? "moving" : ""}"
@@ -5468,42 +5598,42 @@ const ze = class ze extends Et {
         @click=${() => this.showMoreInfo(n)}
       >
         <svg
-          viewBox="0 0 ${Kt} ${ge}"
+          viewBox="0 0 ${ee} ${Ce}"
           preserveAspectRatio="none"
           aria-hidden="true"
         >
-          ${xi(r, a)}
+          ${Ji(a, r)}
         </svg>
       </button>
       <div class="presets" role="group" aria-label=${c.cover.presets(this.roomLabel(t))}>
-        ${t.presets.map((h) => this.renderPreset(t, h, r, a, s))}
+        ${t.presets.map((h) => this.renderPreset(t, h, a, r, s))}
       </div>
     `;
   }
   renderPreset(t, n, i, o, s) {
-    const r = this._moving[t.name], a = r === n.id, l = r === void 0 && ae(i, o, n, this.tolerance()), d = `${t.name}|${n.id}`, { t: c } = this._i18n, p = Ri(n, c, this._i18n.language), h = this._hint?.key === d && this._hint.error === !0;
-    return u`
+    const a = this._moving[t.name], r = a === n.id, l = a === void 0 && we(i, o, n, this.tolerance()), d = `${t.name}|${n.id}`, { t: c } = this._i18n, p = ho(n, c, this._i18n.language), h = this._hint?.key === d && this._hint.error === !0;
+    return m`
       <button
         type="button"
-        class="plain-button preset ${this._flash === d ? "sent" : ""} ${s ? "" : "unavailable"} ${a ? "pending" : ""} ${h ? "failed" : ""}"
+        class="plain-button preset ${this._flash === d ? "sent" : ""} ${s ? "" : "unavailable"} ${r ? "pending" : ""} ${h ? "failed" : ""}"
         title=${p}
         aria-pressed=${l ? "true" : "false"}
-        aria-busy=${a ? "true" : f}
+        aria-busy=${r ? "true" : g}
         aria-disabled=${s ? "false" : "true"}
-        aria-label=${h && this._hint?.spoken ? `${c.cover.preset(this.roomLabel(t), p, en(n, c, this._i18n.language), s)} ${this._hint.text} ${this._hint.spoken}` : c.cover.preset(this.roomLabel(t), p, en(n, c, this._i18n.language), s)}
-        @pointerdown=${(m) => this.pressStart(m, t, n, s)}
+        aria-label=${h && this._hint?.spoken ? `${c.cover.preset(this.roomLabel(t), p, xn(n, c, this._i18n.language), s)} ${this._hint.text} ${this._hint.spoken}` : c.cover.preset(this.roomLabel(t), p, xn(n, c, this._i18n.language), s)}
+        @pointerdown=${(u) => this.pressStart(u, t, n, s)}
         @pointerup=${() => this.pressEnd(t, n, s)}
         @pointercancel=${() => this.pressCancel()}
         @pointerleave=${() => this.pressCancel()}
-        @contextmenu=${(m) => m.preventDefault()}
-        @click=${(m) => {
-      m.detail === 0 && (s ? this.applyPreset(t, n) : this.showUnavailable(d));
+        @contextmenu=${(u) => u.preventDefault()}
+        @click=${(u) => {
+      u.detail === 0 && (s ? this.applyPreset(t, n) : this.showUnavailable(d));
     }}
       >
-        ${mo(n.icon)}
-        ${this._hint?.key !== d ? f : h ? u`<span class="preset-hint error" role="alert"
+        ${Vo(n.icon)}
+        ${this._hint?.key !== d ? g : h ? m`<span class="preset-hint error" role="alert"
                 >${this._hint.text}<span class="sr-only"> ${this._hint.spoken}</span></span
-              >` : u`<span class="preset-hint" role="status">${this._hint.text}</span>`}
+              >` : m`<span class="preset-hint" role="status">${this._hint.text}</span>`}
       </button>
     `;
   }
@@ -5526,7 +5656,7 @@ const ze = class ze extends Et {
       }
       this._hintTimer = window.setTimeout(() => {
         this._gesture.pending(o) && (this._gesture.forget(), this.showHint(o, this._i18n.t.cover.hint, "selection"));
-      }, _n);
+      }, Fn);
     }
   }
   pressCancel() {
@@ -5538,7 +5668,7 @@ const ze = class ze extends Et {
   showHint(t, n, i, o) {
     this._hint = { key: t, text: n, ...o ? { spoken: o.spoken, error: !0 } : {} }, this.haptic(i), window.clearTimeout(this._hintHideTimer), this._hintHideTimer = window.setTimeout(() => {
       this._hint = void 0;
-    }, o ? gs : fs);
+    }, o ? qs : Ks);
   }
   /** Tolerance (±, %) within which the blind is in a preset (`covers.tolerance`). */
   tolerance() {
@@ -5548,7 +5678,7 @@ const ze = class ze extends Et {
     if (!this.hass || !t.cover || !this._config)
       return;
     const i = this.entityState(t.cover)?.toLowerCase();
-    if (i === void 0 || W(i)) {
+    if (i === void 0 || q(i)) {
       this.showUnavailable(`${t.name}|${n.id}`);
       return;
     }
@@ -5561,7 +5691,7 @@ const ze = class ze extends Et {
         tilt: n.tilt
       }), this.haptic("success"), this._flash = `${t.name}|${n.id}`, window.clearTimeout(this._flashTimer), this._flashTimer = window.setTimeout(() => {
         this._flash = void 0;
-      }, us);
+      }, Bs);
     } catch (o) {
       console.error("Klima Dashboard: the blind script failed", o), this.endMoving(t.name);
       const { cover: s } = this._i18n.t;
@@ -5574,9 +5704,9 @@ const ze = class ze extends Et {
    */
   startMoving(t, n, i) {
     const o = this.getState(n);
-    if (ae(
-      ot(o?.attributes.current_position),
-      ot(o?.attributes.current_tilt_position),
+    if (we(
+      dt(o?.attributes.current_position),
+      dt(o?.attributes.current_tilt_position),
       i,
       this.tolerance()
     ) && !this.isMoving(n)) {
@@ -5591,18 +5721,18 @@ const ze = class ze extends Et {
       const n = this._moving[t.name], i = t.presets.find((l) => l.id === n), o = this._movingWatch.get(t.name);
       if (!i || !o || !t.cover)
         continue;
-      const s = this.getState(t.cover), r = s?.state.toLowerCase();
-      if (r === void 0 || W(r) || ae(
-        ot(s?.attributes.current_position),
-        ot(s?.attributes.current_tilt_position),
+      const s = this.getState(t.cover), a = s?.state.toLowerCase();
+      if (a === void 0 || q(a) || we(
+        dt(s?.attributes.current_position),
+        dt(s?.attributes.current_tilt_position),
         i,
         this.tolerance()
       ) && !this.isMoving(t.cover)) {
         this.endMoving(t.name);
         continue;
       }
-      const a = this.coverSignature(t.cover);
-      a !== o.signature && (o.signature = a, this.armStall(t.name));
+      const r = this.coverSignature(t.cover);
+      r !== o.signature && (o.signature = r, this.armStall(t.name));
     }
   }
   armStall(t) {
@@ -5632,17 +5762,15 @@ const ze = class ze extends Et {
   renderSheet(t) {
     const n = this._sheet;
     if (!n)
-      return f;
+      return g;
     const { t: i } = this._i18n;
     if (n.kind === "history")
       return this.renderSheetFrame(
         i.sheet.history(this._config?.history.hours ?? 24),
         this.roomLabel(n.room),
-        this.renderHistoryBody(n.room, t),
+        this.renderHistoryBody(n.room, n.metric ?? "temperature", t),
         "history-sheet"
       );
-    if (n.kind === "air")
-      return this.renderSheetFrame(i.air, this.roomLabel(n.room), this.renderAirBody(n.room, Date.now()));
     if (n.kind === "ventilation")
       return this.renderSheetFrame(i.ventilation.title, void 0, this.renderVentilationBody(Date.now()));
     if (n.kind === "windows")
@@ -5656,7 +5784,7 @@ const ze = class ze extends Et {
    */
   renderSheetFrame(t, n, i, o = "") {
     const s = this._drag?.dragging === !0;
-    return u`
+    return m`
       <div
         class="backdrop"
         style=${`--backdrop-opacity: ${Math.max(0, 1 - this._dragY / 400).toFixed(2)}`}
@@ -5668,11 +5796,12 @@ const ze = class ze extends Et {
       >
         <div
           class="sheet ${o} ${s ? "dragging" : ""}"
-          style=${this._dragY > 0 ? `transform: translateY(${this._dragY}px)` : f}
+          style=${this._dragY > 0 ? `transform: translateY(${this._dragY}px)` : g}
           role="dialog"
           aria-modal="true"
           aria-labelledby="sheet-title"
-          @click=${(r) => r.stopPropagation()}
+          tabindex="-1"
+          @click=${(a) => a.stopPropagation()}
         >
           <div
             class="sheet-top"
@@ -5685,10 +5814,13 @@ const ze = class ze extends Et {
             <div class="sheet-head">
               <div>
                 <h2 id="sheet-title">${t}</h2>
-                ${n ? u`<div class="sheet-sub">${n}</div>` : f}
+                ${n ? m`<div class="sheet-sub">${n}</div>` : g}
               </div>
               <button type="button" class="plain-button close" aria-label=${this._i18n.t.sheet.close} @click=${() => this.closeSheet()}>
-                ✕
+                <span class="close-icon" aria-hidden="true"
+                  ><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+                    <path d="M2 2l8 8M10 2l-8 8"></path></svg
+                ></span>
               </button>
             </div>
           </div>
@@ -5699,24 +5831,24 @@ const ze = class ze extends Et {
   }
   /** Title of the Topení / Klimatizace popup: the room, or the rooms it sets together (names, or "all"). */
   hvacTitle(t) {
-    const { t: n } = this._i18n, i = this.sheetRooms().filter((r) => t === "heating" ? r.heating?.climate : r.air_conditioner);
+    const { t: n } = this._i18n, i = this.sheetRooms().filter((a) => t === "heating" ? a.heating?.climate : a.air_conditioner);
     if (i.length <= 1) {
-      const r = i[0] ?? this._sheet?.room;
-      return { title: r ? this.roomLabel(r) : "" };
+      const a = i[0] ?? this._sheet?.room;
+      return { title: a ? this.roomLabel(a) : "" };
     }
-    const o = (this._config?.rooms ?? []).filter((r) => t === "heating" ? r.heating?.climate : r.air_conditioner), s = i.length === o.length;
-    return { title: s ? n.sheet.allRooms : i.map((r) => this.roomLabel(r)).join(", "), sub: s ? i.map((r) => this.roomLabel(r)).join(", ") : void 0 };
+    const o = (this._config?.rooms ?? []).filter((a) => t === "heating" ? a.heating?.climate : a.air_conditioner), s = i.length === o.length;
+    return { title: s ? n.sheet.allRooms : i.map((a) => this.roomLabel(a)).join(", "), sub: s ? i.map((a) => this.roomLabel(a)).join(", ") : void 0 };
   }
   /** Topení / Klimatizace controls: the segmented switch on top, then the panel of the chosen system. */
   renderHvacBody(t, n, i) {
-    const o = this.sheetRooms(), s = o.filter((h) => h.heating?.climate), r = o.filter((h) => h.air_conditioner), a = i ? ["climate", "heating"] : ["heating", "climate"], l = s.length > 0 && r.length > 0, { t: d } = this._i18n, c = n === "heating" ? this.renderHeatingPanel(s) : this.renderClimatePanel(r), p = l ? u`<div
+    const o = this.sheetRooms(), s = o.filter((h) => h.heating?.climate), a = o.filter((h) => h.air_conditioner), r = i ? ["climate", "heating"] : ["heating", "climate"], l = s.length > 0 && a.length > 0, { t: d } = this._i18n, c = n === "heating" ? this.renderHeatingPanel(s) : this.renderClimatePanel(a), p = l ? m`<div
           class="segmented"
           role="tablist"
           aria-label=${d.sheet.systems}
-          @keydown=${(h) => this.segmentKeydown(h, a, n)}
+          @keydown=${(h) => this.segmentKeydown(h, r, n)}
         >
-          ${a.map(
-      (h) => u`<button
+          ${r.map(
+      (h) => m`<button
               type="button"
               role="tab"
               id=${`tab-${h}`}
@@ -5730,9 +5862,9 @@ const ze = class ze extends Et {
               ${d.system[h]}
             </button>`
     )}
-        </div>` : u`<div class="sheet-label system-name">${d.system[n]}</div>`;
-    return u`${p}
-      <div class="hvac-panel" role=${l ? "tabpanel" : f} id="hvac-panel" aria-labelledby=${l ? `tab-${n}` : f}>
+        </div>` : m`<div class="sheet-label system-name">${d.system[n]}</div>`;
+    return m`${p}
+      <div class="hvac-panel" role=${l ? "tabpanel" : g} id="hvac-panel" aria-labelledby=${l ? `tab-${n}` : g}>
         ${c}
       </div>`;
   }
@@ -5740,19 +5872,19 @@ const ze = class ze extends Et {
   roomNow(t) {
     if (t.length !== 1)
       return "";
-    const n = K(this.getState(t[0].temperature)?.state);
-    return n === void 0 ? "" : this._i18n.t.sheet.now(`${this._i18n.one(n)}${Y}°C`);
+    const n = X(this.getState(t[0].temperature)?.state);
+    return n === void 0 ? "" : this._i18n.t.sheet.now(`${this._i18n.one(n)}${tt}°C`);
   }
   renderHeatingPanel(t) {
-    const { t: n } = this._i18n, i = t[0], o = i?.heating?.climate, s = this.getState(o), r = s !== void 0 && !W(s.state.toLowerCase()), a = wt(s?.attributes.hvac_modes);
-    if (!i || !o || !r)
-      return u`<p class="sheet-message">${n.sheet.entityUnavailable}</p>${this.renderSheetTail(void 0)}`;
-    const l = this.heatControl(i, o, s), d = this.heatingOptions(o, a, bs(l));
+    const { t: n } = this._i18n, i = t[0], o = i?.heating?.climate, s = this.getState(o), a = s !== void 0 && !q(s.state.toLowerCase()), r = Et(s?.attributes.hvac_modes);
+    if (!i || !o || !a)
+      return m`<p class="sheet-message">${n.sheet.entityUnavailable}</p>${this.renderSheetTail(void 0)}`;
+    const l = this.heatControl(i, o, s), d = this.heatingOptions(o, r, Xs(l));
     if (d.length === 0 || !l)
-      return u`<p class="sheet-message">${n.sheet.noModes}</p>${this.renderSheetTail(o)}`;
-    const c = n.sheet.heatControl, p = this.timerAvailable(), h = this.wholeRange(Fn(Hn(s))), m = K(s?.attributes.temperature), w = s?.state.toLowerCase() === "auto" && m !== void 0 && m > et ? m : void 0, T = l.mode === "boost" ? g.alert : l.mode === "manual" || l.mode === "plan" ? g.warning : g.off;
-    let M;
-    l.mode === "off" ? M = this.renderDial({ id: "heat-dial", text: n.heatingMode.off, eyebrow: n.system.heating, sub: this.roomNow(t), tone: T }) : l.mode === "plan" ? M = this.renderDial({
+      return m`<p class="sheet-message">${n.sheet.noModes}</p>${this.renderSheetTail(o)}`;
+    const c = n.sheet.heatControl, p = this.timerAvailable(), h = this.wholeRange(ii(ni(s))), u = X(s?.attributes.temperature), w = s?.state.toLowerCase() === "auto" && u !== void 0 && u > at ? u : void 0, T = l.mode === "boost" ? f.alert : l.mode === "manual" || l.mode === "plan" ? f.warning : f.off;
+    let C;
+    l.mode === "off" ? C = this.renderDial({ id: "heat-dial", text: n.heatingMode.off, eyebrow: n.system.heating, sub: this.roomNow(t), tone: T }) : l.mode === "plan" ? C = this.renderDial({
       id: "heat-dial",
       value: w,
       min: h.min,
@@ -5760,15 +5892,15 @@ const ze = class ze extends Et {
       eyebrow: c.bySchedule,
       sub: this.roomNow(t),
       tone: T
-    }) : l.mode === "boost" ? M = this.renderDial({
+    }) : l.mode === "boost" ? C = this.renderDial({
       id: "heat-dial",
-      value: ne,
+      value: pe,
       min: h.min,
       max: h.max,
       eyebrow: n.heatingMode.boost,
       sub: this.roomNow(t),
       tone: T
-    }) : M = this.renderDial({
+    }) : C = this.renderDial({
       id: "heat-dial",
       value: Math.round(l.temperature),
       min: h.min,
@@ -5777,102 +5909,102 @@ const ze = class ze extends Et {
       sub: this.roomNow(t),
       tone: T,
       label: c.temperatureSlider,
-      onChange: (y) => this.editHeat(i, o, { temperature: y, mode: "manual" })
+      onChange: (x) => this.editHeat(i, o, { temperature: x, mode: "manual" })
     });
-    const $ = p, S = l.mode === "plan", C = St(l.duration), x = (l.mode === "manual" || l.mode === "boost") && C !== void 0, v = l.after ?? this.defaultAfter(), b = C !== void 0 ? `${yt(C)} · ${c.until(this._i18n.time(Date.now() + C * 6e4))}` : l.duration === ht ? c.nextPlan : c.untilResumed, E = C === void 0 ? l.duration === ht ? c.footPlan : l.mode === "off" ? c.footOffForever : c.footForever : l.mode === "off" ? c.footOffTimed(this._i18n.time(Date.now() + C * 6e4)) : c.footTimed(this._i18n.time(Date.now() + C * 6e4), v === "off" ? c.afterOffText : c.afterPlanText);
-    return u`
-      ${M}
+    const $ = p, _ = l.mode === "plan", A = Rt(l.duration), S = (l.mode === "manual" || l.mode === "boost") && A !== void 0, b = l.after ?? this.defaultAfter(), k = A !== void 0 ? `${Ot(A)} · ${c.until(this._i18n.time(Date.now() + A * 6e4))}` : l.duration === ft ? c.nextPlan : c.untilResumed, O = A === void 0 ? l.duration === ft ? c.footPlan : l.mode === "off" ? c.footOffForever : c.footForever : l.mode === "off" ? c.footOffTimed(this._i18n.time(Date.now() + A * 6e4)) : c.footTimed(this._i18n.time(Date.now() + A * 6e4), b === "off" ? c.afterOffText : c.afterPlanText);
+    return m`
+      ${C}
       <div class="options icon-options" role="group" aria-label=${n.sheet.modes(n.system.heating)}>
-        ${d.map((y) => this.renderOption(y))}
+        ${d.map((x) => this.renderOption(x))}
       </div>
-      ${$ ? u`<div class="timer-card ${S ? "dim" : ""}" ?inert=${S}>
+      ${$ ? m`<div class="timer-card ${_ ? "dim" : ""}" ?inert=${_}>
               ${this.renderTimer({
-      slot: no(l.duration),
-      last: V.length + 1,
-      readout: b,
+      slot: Oo(l.duration),
+      last: K.length + 1,
+      readout: k,
       label: c.durationSlider,
       leftLabel: c.nextPlan,
-      leftIcon: pe("auto"),
-      leftText: u`<b>${n.heatingMode.schedule}</b>`,
+      leftIcon: xe("auto"),
+      leftText: m`<b>${n.heatingMode.schedule}</b>`,
       rightLabel: c.untilResumed,
-      onSlot: (y) => this.editHeat(i, o, { duration: io(y) })
+      onSlot: (x) => this.editHeat(i, o, { duration: Lo(x) })
     })}
-              ${u`<div class="after-row ${x ? "" : "away"}" ?inert=${!x}>
+              ${m`<div class="after-row ${S ? "" : "away"}" ?inert=${!S}>
                     <span id="after-label">${c.after}</span>
                     <div class="mini-segmented" role="group" aria-labelledby="after-label">
                       ${["plan", "off"].map(
-      (y) => u`<button
+      (x) => m`<button
                           type="button"
                           class="plain-button mini-segment"
-                          aria-pressed=${v === y ? "true" : "false"}
-                          @click=${() => this.chooseAfter(i, o, y)}
+                          aria-pressed=${b === x ? "true" : "false"}
+                          @click=${() => this.chooseAfter(i, o, x)}
                         >
-                          ${y === "plan" ? n.heatingMode.schedule : n.heatingMode.off}
+                          ${x === "plan" ? n.heatingMode.schedule : n.heatingMode.off}
                         </button>`
     )}
                     </div>
                   </div>`}
             </div>
-            <p class="timer-foot">${S ? c.footIdle : E}</p>` : l.mode === "manual" && !p ? u`<p class="sheet-message">${c.noTimer}</p>` : f}
-      <p class="heat-note" role="status">${this.heatNote(i, o, s, d.filter((y) => y.unsupported).map((y) => `${y.label}: ${y.unsupported}`))}</p>
-      ${this._sheetError ? u`<p class="sheet-message error" role="alert">${this._sheetError}</p>` : f}
+            <p class="timer-foot">${_ ? c.footIdle : O}</p>` : l.mode === "manual" && !p ? m`<p class="sheet-message">${c.noTimer}</p>` : g}
+      <p class="heat-note" role="status">${this.heatNote(i, o, s, d.filter((x) => x.unsupported).map((x) => `${x.label}: ${x.unsupported}`))}</p>
+      ${this._sheetError ? m`<p class="sheet-message error" role="alert">${this._sheetError}</p>` : g}
       ${this.renderSheetTail(t.length === 1 ? o : void 0)}
     `;
   }
   renderClimatePanel(t) {
-    const { t: n } = this._i18n, i = t[0], o = i?.air_conditioner, s = this.getState(o), r = s !== void 0 && !W(s.state.toLowerCase());
-    if (!i || !o || !r)
-      return u`<p class="sheet-message">${n.sheet.entityUnavailable}</p>${this.renderSheetTail(void 0)}`;
-    const a = wt(s?.attributes.hvac_modes), l = wt(s?.attributes.preset_modes), d = s?.state.toLowerCase(), c = String(s?.attributes.preset_mode ?? "none").toLowerCase(), p = this.climateOptions(o, a, d, l, c);
+    const { t: n } = this._i18n, i = t[0], o = i?.air_conditioner, s = this.getState(o), a = s !== void 0 && !q(s.state.toLowerCase());
+    if (!i || !o || !a)
+      return m`<p class="sheet-message">${n.sheet.entityUnavailable}</p>${this.renderSheetTail(void 0)}`;
+    const r = Et(s?.attributes.hvac_modes), l = Et(s?.attributes.preset_modes), d = s?.state.toLowerCase(), c = String(s?.attributes.preset_mode ?? "none").toLowerCase(), p = this.climateOptions(o, r, d, l, c);
     if (p.length === 0)
-      return u`<p class="sheet-message">${n.sheet.noModes}</p>${this.renderSheetTail(o)}`;
-    const h = Jt(s, this._i18n), m = Math.ceil(K(s?.attributes.min_temp) ?? 16), w = Math.floor(K(s?.attributes.max_temp) ?? 30), T = this._acTarget ?? K(s?.attributes.temperature), M = T === void 0 ? void 0 : Math.round(T), $ = ["cool", "wind_free", "heat", "auto"].includes(h.mode), S = h.mode === "off" || h.mode === "fan" || h.mode === "dry" || h.mode === "unknown", C = this.renderDial({
+      return m`<p class="sheet-message">${n.sheet.noModes}</p>${this.renderSheetTail(o)}`;
+    const h = le(s, this._i18n), u = Math.ceil(X(s?.attributes.min_temp) ?? 16), w = Math.floor(X(s?.attributes.max_temp) ?? 30), T = this._acTarget ?? X(s?.attributes.temperature), C = T === void 0 ? void 0 : Math.round(T), $ = ["cool", "wind_free", "heat", "auto"].includes(h.mode), _ = h.mode === "off" || h.mode === "fan" || h.mode === "dry" || h.mode === "unknown", A = this.renderDial({
       id: "ac-dial",
-      text: S ? n.climateMode[h.mode === "unknown" ? "unknown" : h.mode] : void 0,
-      value: S ? void 0 : M,
-      min: m,
+      text: _ ? n.climateMode[h.mode === "unknown" ? "unknown" : h.mode] : void 0,
+      value: _ ? void 0 : C,
+      min: u,
       max: w,
-      eyebrow: h.mode === "off" ? n.system.climate : S ? n.sheet.mode : n.sheet.heatControl.temperature,
+      eyebrow: h.mode === "off" ? n.system.climate : _ ? n.sheet.mode : n.sheet.heatControl.temperature,
       sub: this.roomNow(t),
       tone: h.color,
       label: n.sheet.heatControl.temperatureSlider,
-      onChange: $ ? (A) => this._acTarget = A : void 0,
+      onChange: $ ? (I) => this._acTarget = I : void 0,
       onCommit: $ ? () => {
         this.runSheetAction(() => this.commitAcTarget(t));
       } : void 0
-    }), x = wt(s?.attributes.fan_modes), v = wt(s?.attributes.swing_modes), b = String(s?.attributes.fan_mode ?? "").toLowerCase(), E = String(s?.attributes.swing_mode ?? "").toLowerCase(), y = l.filter((A) => A !== "none" && A !== "wind_free"), P = h.active, N = this._ac?.duration ?? ut, L = St(N), H = n.sheet.heatControl, G = L === void 0 ? H.noLimit : `${yt(L)} · ${H.until(this._i18n.time(Date.now() + L * 6e4))}`, Z = L === void 0 ? H.acFootForever : H.acFootTimed(this._i18n.time(Date.now() + L * 6e4)), ie = !!this.hass?.callWS, k = !P;
-    return u`
-      ${C}
+    }), S = Et(s?.attributes.fan_modes), b = Et(s?.attributes.swing_modes), k = String(s?.attributes.fan_mode ?? "").toLowerCase(), O = String(s?.attributes.swing_mode ?? "").toLowerCase(), x = l.filter((I) => I !== "none" && I !== "wind_free"), M = h.active, z = this._ac?.duration ?? vt, L = Rt(z), H = n.sheet.heatControl, Y = L === void 0 ? H.noLimit : `${Ot(L)} · ${H.until(this._i18n.time(Date.now() + L * 6e4))}`, G = L === void 0 ? H.acFootForever : H.acFootTimed(this._i18n.time(Date.now() + L * 6e4)), $t = !!this.hass?.callWS, et = !M;
+    return m`
+      ${A}
       <div class="options climate-options" role="group" aria-label=${n.sheet.modes(n.system.climate)}>
-        ${p.map((A) => this.renderOption(A))}
+        ${p.map((I) => this.renderOption(I))}
       </div>
-      ${ie ? u`<div class="timer-card ${k ? "dim" : ""}" ?inert=${k}>
+      ${$t ? m`<div class="timer-card ${et ? "dim" : ""}" ?inert=${et}>
               ${this.renderTimer({
-      slot: oo(N),
-      last: V.length,
-      readout: G,
+      slot: Po(z),
+      last: K.length,
+      readout: Y,
       label: H.durationSlider,
-      leftLabel: yt(V[0]),
-      leftIcon: pn(),
-      leftText: u`<b>${yt(V[0])}</b>`,
+      leftLabel: Ot(K[0]),
+      leftIcon: On(),
+      leftText: m`<b>${Ot(K[0])}</b>`,
       rightLabel: H.noLimit,
-      onSlot: (A) => this._ac = { duration: so(A), touched: !0 }
+      onSlot: (I) => this._ac = { duration: Ro(I), touched: !0 }
     })}
             </div>
-            <p class="timer-foot">${k ? H.acFootIdle : Z}</p>` : f}
-      ${x.length > 0 ? this.renderChoice(n.sheet.climate.fan, x, b, k, (A) => this.callClimateEach(t, "set_fan_mode", { fan_mode: A }), (A) => this.fanLabel(A)) : f}
-      ${v.length > 0 ? this.renderChoice(n.sheet.climate.swing, v, E, k, (A) => this.callClimateEach(t, "set_swing_mode", { swing_mode: A }), (A) => this.swingLabel(A)) : f}
-      ${y.length > 0 ? u`<div class="sheet-label" id="preset-label">${n.sheet.presets}</div>
+            <p class="timer-foot">${et ? H.acFootIdle : G}</p>` : g}
+      ${S.length > 0 ? this.renderChoice(n.sheet.climate.fan, S, k, et, (I) => this.callClimateEach(t, "set_fan_mode", { fan_mode: I }), (I) => this.fanLabel(I)) : g}
+      ${b.length > 0 ? this.renderChoice(n.sheet.climate.swing, b, O, et, (I) => this.callClimateEach(t, "set_swing_mode", { swing_mode: I }), (I) => this.swingLabel(I)) : g}
+      ${x.length > 0 ? m`<div class="sheet-label" id="preset-label">${n.sheet.presets}</div>
             <div class="chips" role="group" aria-labelledby="preset-label">
-              ${y.map((A) => this.renderPresetChip(t, A, c, d, l))}
-            </div>` : f}
-      ${this._sheetError ? u`<p class="sheet-message error" role="alert">${this._sheetError}</p>` : f}
+              ${x.map((I) => this.renderPresetChip(t, I, c, d, l))}
+            </div>` : g}
+      ${this._sheetError ? m`<p class="sheet-message error" role="alert">${this._sheetError}</p>` : g}
       ${this.renderSheetTail(t.length === 1 ? o : void 0)}
     `;
   }
   /** Link to the standard detail of one entity; a group of rooms has none. */
   renderSheetTail(t) {
-    return t ? u`<button
+    return t ? m`<button
       type="button"
       class="plain-button sheet-link"
       @click=${() => {
@@ -5880,32 +6012,32 @@ const ze = class ze extends Et {
     }}
     >
       ${this._i18n.t.detailsAndHistory}
-    </button>` : f;
+    </button>` : g;
   }
   /** Whole-degree range of the dial (the dial moves by 1 °C). */
   wholeRange(t) {
     return { min: Math.ceil(t.min), max: Math.floor(t.max) };
   }
   fanLabel(t) {
-    return this._i18n.t.sheet.climate.fanModes[t.toLowerCase()] ?? qt(t);
+    return this._i18n.t.sheet.climate.fanModes[t.toLowerCase()] ?? ne(t);
   }
   swingLabel(t) {
-    return this._i18n.t.sheet.climate.swingModes[t.toLowerCase()] ?? qt(t);
+    return this._i18n.t.sheet.climate.swingModes[t.toLowerCase()] ?? ne(t);
   }
   /** A row of mutually exclusive choices (iOS segmented look), e.g. the fan speed. */
-  renderChoice(t, n, i, o, s, r) {
-    return u`<div class="sheet-label">${t}</div>
+  renderChoice(t, n, i, o, s, a) {
+    return m`<div class="sheet-label">${t}</div>
       <div class="mini-segmented wide ${o ? "dim" : ""}" ?inert=${o} role="group" aria-label=${t}>
         ${n.map(
-      (a) => u`<button
+      (r) => m`<button
             type="button"
             class="plain-button mini-segment"
-            aria-pressed=${a.toLowerCase() === i ? "true" : "false"}
+            aria-pressed=${r.toLowerCase() === i ? "true" : "false"}
             @click=${() => {
-        this.runSheetAction(() => s(a));
+        this.runSheetAction(() => s(r));
       }}
           >
-            ${r(a)}
+            ${a(r)}
           </button>`
     )}
       </div>`;
@@ -5915,56 +6047,56 @@ const ze = class ze extends Et {
    * the ring is a slider: drag along the ring, or use the arrow keys. Moves by whole degrees.
    */
   renderDial(t) {
-    const l = (b) => [
-      136 + 118 * Math.cos(b * Math.PI / 180),
-      136 + 118 * Math.sin(b * Math.PI / 180)
-    ], d = (b, E) => {
-      const [y, P] = l(b), [N, L] = l(E);
-      return `M${y.toFixed(2)} ${P.toFixed(2)} A118 118 0 ${E - b > 180 ? 1 : 0} 1 ${N.toFixed(2)} ${L.toFixed(2)}`;
-    }, c = t.min ?? 0, p = t.max ?? 1, h = t.text === void 0 ? t.value : void 0, m = h === void 0 || p <= c ? 0 : Math.min(1, Math.max(0, (h - c) / (p - c))), w = 135 + 270 * m, [T, M] = l(w), $ = t.onChange !== void 0 && h !== void 0, S = t.text ?? (h === void 0 ? "––" : `${this._i18n.whole(h)}°`), C = (b) => {
-      const E = b.currentTarget.getBoundingClientRect();
-      let y = Math.atan2(b.clientY - (E.top + E.height / 2), b.clientX - (E.left + E.width / 2)) * 180 / Math.PI;
-      return y < 0 && (y += 360), y < 135 && (y += 360), y > 405 && (y = y - 405 < 90 / 2 ? 405 : 135), Math.round(c + (y - 135) / 270 * (p - c));
-    }, x = (b) => {
+    const l = (k) => [
+      136 + 118 * Math.cos(k * Math.PI / 180),
+      136 + 118 * Math.sin(k * Math.PI / 180)
+    ], d = (k, O) => {
+      const [x, M] = l(k), [z, L] = l(O);
+      return `M${x.toFixed(2)} ${M.toFixed(2)} A118 118 0 ${O - k > 180 ? 1 : 0} 1 ${z.toFixed(2)} ${L.toFixed(2)}`;
+    }, c = t.min ?? 0, p = t.max ?? 1, h = t.text === void 0 ? t.value : void 0, u = h === void 0 || p <= c ? 0 : Math.min(1, Math.max(0, (h - c) / (p - c))), w = 135 + 270 * u, [T, C] = l(w), $ = t.onChange !== void 0 && h !== void 0, _ = t.text ?? (h === void 0 ? "––" : `${this._i18n.whole(h)}°`), A = (k) => {
+      const O = k.currentTarget.getBoundingClientRect();
+      let x = Math.atan2(k.clientY - (O.top + O.height / 2), k.clientX - (O.left + O.width / 2)) * 180 / Math.PI;
+      return x < 0 && (x += 360), x < 135 && (x += 360), x > 405 && (x = x - 405 < 90 / 2 ? 405 : 135), Math.round(c + (x - 135) / 270 * (p - c));
+    }, S = (k) => {
       if (!$)
         return;
-      if (b.type === "pointerdown")
-        b.currentTarget.setPointerCapture?.(b.pointerId);
-      else if (b.buttons !== 1)
+      if (k.type === "pointerdown")
+        k.currentTarget.setPointerCapture?.(k.pointerId);
+      else if (k.buttons !== 1)
         return;
-      const E = C(b);
-      E !== h && t.onChange?.(E);
-    }, v = (b) => {
+      const O = A(k);
+      O !== h && t.onChange?.(O);
+    }, b = (k) => {
       if (!$ || h === void 0)
         return;
-      const E = b.key === "ArrowUp" || b.key === "ArrowRight" ? 1 : b.key === "ArrowDown" || b.key === "ArrowLeft" ? -1 : 0, y = b.key === "Home" ? c : b.key === "End" ? p : h + E;
-      y === h && E === 0 && b.key !== "Home" && b.key !== "End" || (b.preventDefault(), t.onChange?.(Math.min(p, Math.max(c, y))), t.onCommit?.());
+      const O = k.key === "ArrowUp" || k.key === "ArrowRight" ? 1 : k.key === "ArrowDown" || k.key === "ArrowLeft" ? -1 : 0, x = k.key === "Home" ? c : k.key === "End" ? p : h + O;
+      x === h && O === 0 && k.key !== "Home" && k.key !== "End" || (k.preventDefault(), t.onChange?.(Math.min(p, Math.max(c, x))), t.onCommit?.());
     };
-    return u`
+    return m`
       <div class="dial" style=${`--tone: ${t.tone}`}>
         <div
           class="dial-ring"
           data-drag
           role=${$ ? "slider" : "img"}
-          tabindex=${$ ? "0" : f}
-          aria-label=${t.label ?? `${t.eyebrow}: ${S}`}
-          aria-valuemin=${$ ? c : f}
-          aria-valuemax=${$ ? p : f}
-          aria-valuenow=${$ ? h : f}
-          aria-valuetext=${$ ? `${S} °C` : f}
-          @pointerdown=${x}
-          @pointermove=${x}
+          tabindex=${$ ? "0" : g}
+          aria-label=${t.label ?? `${t.eyebrow}: ${_}`}
+          aria-valuemin=${$ ? c : g}
+          aria-valuemax=${$ ? p : g}
+          aria-valuenow=${$ ? h : g}
+          aria-valuetext=${$ ? `${_} °C` : g}
+          @pointerdown=${S}
+          @pointermove=${S}
           @pointerup=${() => $ && t.onCommit?.()}
-          @keydown=${v}
+          @keydown=${b}
         >
           <svg viewBox="0 0 ${272} ${232}" aria-hidden="true">
             <path class="dial-track" d=${d(135, 405)}></path>
-            ${h === void 0 || m <= 0 ? f : _`<path class="dial-value" d=${d(135, Math.max(136, w))}></path>`}
-            ${h === void 0 ? f : _`<circle class="dial-knob ${$ ? "" : "still"}" cx=${T} cy=${M} r="12"></circle>`}
+            ${h === void 0 || u <= 0 ? g : y`<path class="dial-value" d=${d(135, Math.max(136, w))}></path>`}
+            ${h === void 0 ? g : y`<circle class="dial-knob ${$ ? "" : "still"}" cx=${T} cy=${C} r="12"></circle>`}
           </svg>
           <div class="dial-text" aria-hidden="true">
             <span class="dial-eyebrow">${t.eyebrow}</span>
-            <span class="dial-big ${t.text === void 0 ? "" : "word"}">${S}</span>
+            <span class="dial-big ${t.text === void 0 ? "" : "word"}">${_}</span>
             <span class="dial-sub">${t.sub}</span>
           </div>
         </div>
@@ -5976,18 +6108,18 @@ const ze = class ze extends Et {
    * shortest time), ∞ at the right end, the chosen time above. Native range semantics via ARIA.
    */
   renderTimer(t) {
-    const { slot: n, last: i } = t, o = i > 0 ? n / i * 100 : 0, s = (a) => {
-      if (a.type === "pointerdown")
-        a.currentTarget.setPointerCapture?.(a.pointerId);
-      else if (a.buttons !== 1)
+    const { slot: n, last: i } = t, o = i > 0 ? n / i * 100 : 0, s = (r) => {
+      if (r.type === "pointerdown")
+        r.currentTarget.setPointerCapture?.(r.pointerId);
+      else if (r.buttons !== 1)
         return;
-      const l = a.currentTarget.getBoundingClientRect(), d = Math.round(Math.min(1, Math.max(0, (a.clientX - l.left) / Math.max(l.width, 1))) * i);
+      const l = r.currentTarget.getBoundingClientRect(), d = Math.round(Math.min(1, Math.max(0, (r.clientX - l.left) / Math.max(l.width, 1))) * i);
       d !== n && t.onSlot(d);
-    }, r = (a) => {
-      const l = a.key === "ArrowRight" || a.key === "ArrowUp" ? 1 : a.key === "ArrowLeft" || a.key === "ArrowDown" ? -1 : 0, d = a.key === "Home" ? 0 : a.key === "End" ? i : n + l;
-      l === 0 && a.key !== "Home" && a.key !== "End" || (a.preventDefault(), t.onSlot(Math.min(i, Math.max(0, d))));
+    }, a = (r) => {
+      const l = r.key === "ArrowRight" || r.key === "ArrowUp" ? 1 : r.key === "ArrowLeft" || r.key === "ArrowDown" ? -1 : 0, d = r.key === "Home" ? 0 : r.key === "End" ? i : n + l;
+      l === 0 && r.key !== "Home" && r.key !== "End" || (r.preventDefault(), t.onSlot(Math.min(i, Math.max(0, d))));
     };
-    return u`
+    return m`
       <div class="timer-read" role="status">${t.readout}</div>
       <div class="timer-row">
         <button
@@ -6011,7 +6143,7 @@ const ze = class ze extends Et {
           aria-valuetext=${t.readout}
           @pointerdown=${s}
           @pointermove=${s}
-          @keydown=${r}
+          @keydown=${a}
         >
           <span class="timer-track"></span>
           <span class="timer-fill" style=${`width: ${o}%`}></span>
@@ -6035,16 +6167,27 @@ const ze = class ze extends Et {
     let s;
     t.key === "ArrowRight" || t.key === "ArrowDown" ? s = n[(o + 1) % n.length] : t.key === "ArrowLeft" || t.key === "ArrowUp" ? s = n[(o - 1 + n.length) % n.length] : t.key === "Home" ? s = n[0] : t.key === "End" && (s = n[n.length - 1]), s && (t.preventDefault(), this._focusSegment = s, s === i ? this.requestUpdate() : this.switchSheet(s));
   }
+  /** "Teď" of the air chart is the reading of the room card (CO₂ and PM2.5), so a stale value is grey there too. */
+  liveReading(t, n) {
+    if (n === "temperature")
+      return;
+    const i = Date.now(), o = this.reading(t.carbon_dioxide, t.thresholds.stale_minutes, i), s = this.pm25Reading(t, i), a = n === "pm25" ? s : o;
+    return {
+      value: a.value,
+      stale: a.stale === !0,
+      secondary: n === "co2" ? { value: s.value, stale: s.stale === !0 } : void 0
+    };
+  }
   /** „Historie místnosti – 24 h“ with a readout that follows the finger (or the arrow keys). */
-  renderHistoryBody(t, n) {
-    const i = this._config?.history.hours ?? 24, { t: o } = this._i18n;
-    let s;
+  renderHistoryBody(t, n, i) {
+    const o = this._config?.history.hours ?? 24, { t: s } = this._i18n;
+    let a;
     const r = this._historyModel;
-    this._historyStatus === "loading" ? s = u`<p class="sheet-message">${o.sheet.loading}</p>` : this._historyStatus === "error" || !r ? s = u`<p class="sheet-message error" role="alert">${o.sheet.historyFailed}</p>` : So(r) ? s = u`<div
+    return this._historyStatus === "loading" ? a = m`<p class="sheet-message">${s.sheet.loading}</p>` : this._historyStatus === "error" || !r ? a = m`<p class="sheet-message error" role="alert">${s.sheet.historyFailed}</p>` : Qo(r, n) ? a = m`<div
         class="chart-wrap"
         tabindex="0"
         role="group"
-        aria-label=${o.sheet.chart(this.historyPeriod())}
+        aria-label=${s.sheet.chart(this.historyPeriod())}
         @pointerdown=${this.chartPointer}
         @pointermove=${this.chartPointer}
         @pointerup=${this.chartPointerEnd}
@@ -6052,26 +6195,12 @@ const ze = class ze extends Et {
         @pointerleave=${this.chartPointerLeave}
         @keydown=${this.chartKeydown}
       >
-        ${Do(r, this.chartWidth(), this._scrubTime, this._i18n, n)}
-      </div>` : s = u`<p class="sheet-message">${o.sheet.noHistory(i)}</p>`;
-    const a = t.temperature ?? t.humidity;
-    return u`
-      ${s}
-      <button
-        type="button"
-        class="plain-button sheet-link"
-        ?disabled=${!a}
-        @click=${() => {
-      this.closeSheet(!1), this.showMoreInfo(a);
-    }}
-      >
-        ${o.sheet.temperatureDetails}
-      </button>
-    `;
+        ${hs(r, n, this.chartWidth(), this._scrubTime, this._i18n, i, this.liveReading(t, n))}
+      </div>` : a = m`<p class="sheet-message">${s.sheet.noHistory(o)}</p>`, a;
   }
   /** The chart is drawn 1:1 in CSS pixels at the inner width of the popup. */
   chartWidth() {
-    const t = window.matchMedia?.(ms).matches === !0;
+    const t = window.matchMedia?.(Ws).matches === !0;
     return Math.max(280, Math.min(t ? 960 : 460, window.innerWidth) - 32);
   }
   /** `movement` > 0 pulls the content down (towards its top), < 0 up. */
@@ -6080,7 +6209,7 @@ const ze = class ze extends Et {
     return !i || !t.composedPath().includes(i) ? !0 : !(i.scrollHeight > i.clientHeight + 1) || n > 0 && i.scrollTop <= 0 || n < 0 && i.scrollTop + i.clientHeight >= i.scrollHeight - 1;
   }
   renderOption(t) {
-    return u`
+    return m`
       <button
         type="button"
         class="plain-button option"
@@ -6094,23 +6223,23 @@ const ze = class ze extends Et {
         <span class="option-icon">${t.icon}</span>
         <span class="option-text">
           ${t.label}
-          ${t.unsupported ? u`<span class="option-hint">${t.unsupported}</span>` : f}
+          ${t.unsupported ? m`<span class="option-hint">${t.unsupported}</span>` : g}
         </span>
       </button>
     `;
   }
   renderPresetChip(t, n, i, o, s) {
-    const r = i === n && o !== "off", a = r && s.includes("none") ? "none" : n;
-    return u`
+    const a = i === n && o !== "off", r = a && s.includes("none") ? "none" : n;
+    return m`
       <button
         type="button"
         class="plain-button chip-button"
-        aria-pressed=${r ? "true" : "false"}
+        aria-pressed=${a ? "true" : "false"}
         @click=${() => {
-      this.runSheetAction(() => this.callClimateEach(t, "set_preset_mode", { preset_mode: a }));
+      this.runSheetAction(() => this.callClimateEach(t, "set_preset_mode", { preset_mode: r }));
     }}
       >
-        ${qt(n)}
+        ${ne(n)}
       </button>
     `;
   }
@@ -6121,18 +6250,18 @@ const ze = class ze extends Et {
    * A choice is applied when the popup closes.
    */
   heatingOptions(t, n, i) {
-    const o = [], s = this._i18n.t.heatingMode, r = this.timerAvailable(), a = (l, d, c, p, h) => {
+    const o = [], s = this._i18n.t.heatingMode, a = this.timerAvailable(), r = (l, d, c, p, h) => {
       o.push({
         id: l,
         label: d,
-        icon: pe(l),
+        icon: xe(l),
         color: c,
         active: i === l,
         run: () => this.chooseHeating(t, p),
         unsupported: h
       });
     };
-    return n.includes("off") && a("off", s.off, g.off, "off"), n.includes("auto") && a("auto", s.schedule, g.plan, "plan"), n.includes("heat") && a("heat", s.manual, g.warning, "manual"), o.length > 0 && a("boost", s.boost, g.alert, "boost", r ? void 0 : this._i18n.t.sheet.notOffered), o;
+    return n.includes("off") && r("off", s.off, f.off, "off"), n.includes("auto") && r("auto", s.schedule, f.plan, "plan"), n.includes("heat") && r("heat", s.manual, f.warning, "manual"), o.length > 0 && r("boost", s.boost, f.alert, "boost", a ? void 0 : this._i18n.t.sheet.notOffered), o;
   }
   /** The Tado CE timer action exists in this Home Assistant (Home Assistant lists the registered actions). */
   timerAvailable() {
@@ -6140,7 +6269,7 @@ const ze = class ze extends Et {
   }
   /** What the controls show: the person's change, otherwise what the climate entity reports. */
   heatControl(t, n, i) {
-    return this._heat?.entityId === n ? this._heat : dn(t.name, n, i);
+    return this._heat?.entityId === n ? this._heat : An(t.name, n, i);
   }
   /** Choosing the mode the entity already has drops the change; otherwise it waits for the popup to close. */
   async chooseHeating(t, n) {
@@ -6148,18 +6277,18 @@ const ze = class ze extends Et {
     if (!i)
       return;
     const o = this.getState(t);
-    if (dn(i.name, t, o)?.mode === n && this.sheetRooms().length === 1) {
+    if (An(i.name, t, o)?.mode === n && this.sheetRooms().length === 1) {
       this._heat = void 0;
       return;
     }
-    const r = this.heatControl(i, t, o);
+    const a = this.heatControl(i, t, o);
     this._heat = {
       room: i.name,
       entityId: t,
       mode: n,
-      temperature: r?.temperature ?? 21,
-      duration: In(n),
-      after: r?.after
+      temperature: a?.temperature ?? 21,
+      duration: ei(n),
+      after: a?.after
     };
   }
   /** Sends the changes made in the popup (closing, switching system, leaving for the detail). */
@@ -6176,11 +6305,11 @@ const ze = class ze extends Et {
   flushAc() {
     const t = this._ac;
     this._ac = void 0, this._acTarget = void 0;
-    const n = t?.touched ? St(t.duration) : void 0;
+    const n = t?.touched ? Rt(t.duration) : void 0;
     if (n !== void 0)
       for (const i of this.sheetRooms()) {
         const o = i.air_conditioner, s = this.getState(o)?.state.toLowerCase();
-        o && s && s !== "off" && !W(s) && this.runDelayedOff(ln(o, n, s));
+        o && s && s !== "off" && !q(s) && this.runDelayedOff(En(o, n, s));
       }
   }
   async runDelayedOff(t) {
@@ -6191,14 +6320,14 @@ const ze = class ze extends Et {
     }
   }
   async applyHeat(t, n) {
-    const i = St(t.duration), o = (t.mode === "manual" || t.mode === "boost") && i !== void 0 && (t.after ?? this.defaultAfter()) === "off";
+    const i = Rt(t.duration), o = (t.mode === "manual" || t.mode === "boost") && i !== void 0 && (t.after ?? this.defaultAfter()) === "off";
     for (const s of n) {
-      const r = s.heating?.climate;
-      if (r)
+      const a = s.heating?.climate;
+      if (a)
         try {
-          await this.callCommand(lo(r, { ...t, entityId: r, room: s.name }, this.timerAvailable())), o && i !== void 0 && this.runDelayedOff(ln(r, i, "auto", 15));
-        } catch (a) {
-          console.error("Klima Dashboard: the heating command failed", a), this.haptic("failure");
+          await this.callCommand(No(a, { ...t, entityId: a, room: s.name }, this.timerAvailable())), o && i !== void 0 && this.runDelayedOff(En(a, i, "auto", 15));
+        } catch (r) {
+          console.error("Klima Dashboard: the heating command failed", r), this.haptic("failure");
         }
     }
   }
@@ -6218,17 +6347,17 @@ const ze = class ze extends Et {
     const s = this._i18n.t.sheet.heatControl;
     if (this._heat)
       return s.appliesOnClose;
-    const r = jn(i), a = K(this.getState(t.heating?.overlay)?.attributes.overlay_remaining_seconds);
-    return n && r !== void 0 && r !== "auto" && a !== void 0 && a > 0 ? s.remaining(yt(Math.ceil(a / 60))) : o.join(" · ");
+    const a = oi(i), r = X(this.getState(t.heating?.overlay)?.attributes.overlay_remaining_seconds);
+    return n && a !== void 0 && a !== "auto" && r !== void 0 && r > 0 ? s.remaining(Ot(Math.ceil(r / 60))) : o.join(" · ");
   }
   isSummerNow() {
     const t = this._config;
-    return t !== void 0 && tt(this.entityState(t.houseModeEntity) ?? "") === tt(t.houseModes.summer);
+    return t !== void 0 && st(this.entityState(t.houseModeEntity) ?? "") === st(t.houseModes.summer);
   }
   /** After-timer choice: the person's last pick, otherwise by season (winter Plán, summer Vypnuto). */
   defaultAfter() {
     try {
-      const t = window.localStorage.getItem(kn);
+      const t = window.localStorage.getItem(Hn);
       if (t === "plan" || t === "off")
         return t;
     } catch {
@@ -6237,7 +6366,7 @@ const ze = class ze extends Et {
   }
   chooseAfter(t, n, i) {
     try {
-      window.localStorage.setItem(kn, i);
+      window.localStorage.setItem(Hn, i);
     } catch {
     }
     this.editHeat(t, n, { after: i });
@@ -6258,22 +6387,22 @@ const ze = class ze extends Et {
    * air conditioner of every room in the popup.
    */
   climateOptions(t, n, i, o, s) {
-    const r = this.sheetRooms().filter((m) => m.air_conditioner), a = o.includes("wind_free"), l = o.includes("none"), d = this._i18n.t.climateMode, c = (m, w, T, M) => ({
-      id: m,
+    const a = this.sheetRooms().filter((u) => u.air_conditioner), r = o.includes("wind_free"), l = o.includes("none"), d = this._i18n.t.climateMode, c = (u, w, T, C) => ({
+      id: u,
       label: d[w],
-      icon: Tt(w, zt[w], !1),
-      color: zt[w],
+      icon: xt(w, Ut[w], !1),
+      color: Ut[w],
       active: T,
-      run: M
-    }), p = (m, w) => async () => {
-      await this.callClimateEach(r, "set_hvac_mode", { hvac_mode: m }), w !== void 0 && await this.callClimateEach(r, "set_preset_mode", { preset_mode: w });
+      run: C
+    }), p = (u, w) => async () => {
+      await this.callClimateEach(a, "set_hvac_mode", { hvac_mode: u }), w !== void 0 && await this.callClimateEach(a, "set_preset_mode", { preset_mode: w });
     }, h = [];
     if (n.includes("off") && h.push(c("off", "off", i === "off", p("off"))), n.includes("cool")) {
-      const m = i === "cool" && s !== "wind_free";
-      h.push(c("cool", "cool", m, p("cool", s === "wind_free" && l ? "none" : void 0))), a && h.push(c("wind_free", "wind_free", i === "cool" && s === "wind_free", p("cool", "wind_free")));
+      const u = i === "cool" && s !== "wind_free";
+      h.push(c("cool", "cool", u, p("cool", s === "wind_free" && l ? "none" : void 0))), r && h.push(c("wind_free", "wind_free", i === "cool" && s === "wind_free", p("cool", "wind_free")));
     }
-    for (const [m, w] of [["heat", "heat"], ["fan_only", "fan"], ["dry", "dry"], ["auto", "auto"]])
-      n.includes(m) && h.push(c(m, w, i === m, p(m)));
+    for (const [u, w] of [["heat", "heat"], ["fan_only", "fan"], ["dry", "dry"], ["auto", "auto"]])
+      n.includes(u) && h.push(c(u, w, i === u, p(u)));
     return h;
   }
   async callClimate(t, n) {
@@ -6289,12 +6418,12 @@ const ze = class ze extends Et {
       console.error("Klima Dashboard: the climate command failed", n), this._sheetError = this._i18n.t.sheet.commandFailed;
     }
   }
-  openSheet(t, n, i) {
-    this._opener = i.currentTarget instanceof HTMLElement ? i.currentTarget : void 0, this._sheetError = void 0, this._announcement = "", this._dragY = 0, this._acTarget = void 0, this._ac = void 0, this._sheet = { kind: t, room: n }, window.addEventListener("resize", this.handleResize, { passive: !0 }), t === "history" && (this._scrubTime = void 0, this.loadRoomHistory(n));
+  openSheet(t, n, i, o) {
+    this._opener = i.currentTarget instanceof HTMLElement ? i.currentTarget : void 0, this._sheetError = void 0, this._announcement = "", this._dragY = 0, this._acTarget = void 0, this._ac = void 0, this._sheet = { kind: t, room: n, metric: t === "history" ? o ?? "temperature" : void 0 }, window.addEventListener("resize", this.handleResize, { passive: !0 }), t === "history" && (this._scrubTime = void 0, this.loadRoomHistory(n));
   }
   /** The name of a room in the language of the card. */
   roomLabel(t) {
-    return Rn(t, this._i18n.language);
+    return Qn(t, this._i18n.language);
   }
   /** Summary chip: the Topení / Klimatizace popup for the rooms the chip names. */
   openGroupSheet(t, n, i) {
@@ -6327,15 +6456,18 @@ const ze = class ze extends Et {
       t.heating?.intensity,
       t.heating?.target,
       t.air_conditioner,
-      ...t.windows.map((a) => a.entity)
-    ].filter((a) => !!a), o = this._config.history, s = Date.now(), r = s - o.hours * pt;
+      t.carbon_dioxide,
+      t.pm25,
+      this.ventilationRooms().includes(t) ? this._config?.ventilationEntity : void 0,
+      ...t.windows.map((r) => r.entity)
+    ].filter((r) => !!r), o = this._config.history, s = Date.now(), a = s - o.hours * gt;
     try {
-      const a = await Ht(this.hass, i, r, s);
+      const r = await Yt(this.hass, i, a, s);
       if (n !== this._historyRequest)
         return;
-      this._historyModel = xo(a, t, { startMs: r, endMs: s }, o), this._historyStatus = "ready";
-    } catch (a) {
-      console.error("Klima Dashboard: loading the room history failed", a), n === this._historyRequest && (this._historyStatus = "error");
+      this._historyModel = Jo(r, t, { startMs: a, endMs: s }, o, this.ventilationRooms().includes(t) ? this._config?.ventilationEntity : void 0), this._historyStatus = "ready";
+    } catch (r) {
+      console.error("Klima Dashboard: loading the room history failed", r), n === this._historyRequest && (this._historyStatus = "error");
     }
   }
   // ---------------------------------------------------------------- trends
@@ -6345,7 +6477,7 @@ const ze = class ze extends Et {
   async loadTrends() {
     if (!this.hass || !this._config || this._trendsLoading)
       return;
-    const t = Di(this._config);
+    const t = lo(this._config);
     if (t.length === 0) {
       this._trendsLoaded = !0;
       return;
@@ -6353,12 +6485,12 @@ const ze = class ze extends Et {
     this._trendsLoading = !0;
     const { minutes: n, samples: i } = this._config.trends, o = Date.now(), s = o - n * 6e4;
     try {
-      const r = await Ht(this.hass, t, s, o), a = {};
+      const a = await Yt(this.hass, t, s, o), r = {};
       for (const l of t)
-        a[l] = po(r[l], s, o, i);
-      this._trends = a;
-    } catch (r) {
-      console.error("Klima Dashboard: loading the history of the micro trends failed", r);
+        r[l] = Fo(a[l], s, o, i);
+      this._trends = r;
+    } catch (a) {
+      console.error("Klima Dashboard: loading the history of the micro trends failed", a);
     } finally {
       this._trendsLoading = !1, this._trendsLoaded = !0;
     }
@@ -6372,15 +6504,15 @@ const ze = class ze extends Et {
     const t = this.hass;
     if (!t?.callApi || !this._config)
       return;
-    const n = Ni(this._config), i = await Promise.allSettled(
+    const n = po(this._config), i = await Promise.allSettled(
       n.map(
         (s) => t.callApi("GET", `states/${s}`)
       )
     ), o = {};
-    i.forEach((s, r) => {
+    i.forEach((s, a) => {
       if (s.status === "fulfilled") {
-        const a = Date.parse(s.value?.last_reported ?? s.value?.last_updated ?? "");
-        Number.isFinite(a) && (o[n[r]] = a);
+        const r = Date.parse(s.value?.last_reported ?? s.value?.last_updated ?? "");
+        Number.isFinite(r) && (o[n[a]] = r);
       }
     }), this._reported = o;
   }
@@ -6393,10 +6525,10 @@ const ze = class ze extends Et {
     const s = this.numberState(t);
     if (s === void 0 || !t)
       return {};
-    const r = this._reported[t];
-    if (r === void 0)
+    const a = this._reported[t];
+    if (a === void 0)
       return { value: s };
-    const a = Date.parse(this.getState(t)?.last_updated ?? ""), l = Math.max(r, Number.isFinite(a) ? a : 0), d = Math.max(0, (i - l) / 6e4);
+    const r = Date.parse(this.getState(t)?.last_updated ?? ""), l = Math.max(a, Number.isFinite(r) ? r : 0), d = Math.max(0, (i - l) / 6e4);
     return { value: s, ageMinutes: d, stale: !(o && s === 0) && d > n };
   }
   /**
@@ -6414,10 +6546,10 @@ const ze = class ze extends Et {
   }
   /** Grey clock behind a stale value; the age is in the tooltip and for screen readers (CURRENT_SPEC.md, Chybějící data). */
   staleMark(t) {
-    return t.stale ? u`<span class="stale-mark" aria-hidden="true">${pn()}</span>` : f;
+    return t.stale ? m`<span class="stale-mark" aria-hidden="true">${On()}</span>` : g;
   }
   staleTitle(t) {
-    return t.stale && t.ageMinutes !== void 0 ? this._i18n.t.lastSeen(zn(t.ageMinutes)) : void 0;
+    return t.stale && t.ageMinutes !== void 0 ? this._i18n.t.lastSeen(Jn(t.ageMinutes)) : void 0;
   }
   staleSpoken(t) {
     const n = this.staleTitle(t);
@@ -6425,7 +6557,7 @@ const ze = class ze extends Et {
   }
   numberState(t) {
     const n = this.entityState(t);
-    if (n === void 0 || W(n.toLowerCase()))
+    if (n === void 0 || q(n.toLowerCase()))
       return;
     const i = Number.parseFloat(n);
     return Number.isFinite(i) ? i : void 0;
@@ -6446,76 +6578,76 @@ const ze = class ze extends Et {
     );
   }
 };
-ze.styles = os;
-let D = ze;
-z([
-  R()
+Ye.styles = zs;
+let D = Ye;
+F([
+  j()
 ], D.prototype, "_config");
-z([
-  An({ attribute: !1 })
+F([
+  qn({ attribute: !1 })
 ], D.prototype, "hass");
-z([
-  R()
+F([
+  j()
 ], D.prototype, "_sheet");
-z([
-  R()
+F([
+  j()
 ], D.prototype, "_sheetError");
-z([
-  R()
+F([
+  j()
 ], D.prototype, "_ventilationEnding");
-z([
-  R()
+F([
+  j()
 ], D.prototype, "_announcement");
-z([
-  R()
+F([
+  j()
 ], D.prototype, "_vent");
-z([
-  R()
+F([
+  j()
 ], D.prototype, "_heat");
-z([
-  R()
+F([
+  j()
 ], D.prototype, "_acTarget");
-z([
-  R()
+F([
+  j()
 ], D.prototype, "_ac");
-z([
-  R()
+F([
+  j()
 ], D.prototype, "_historyStatus");
-z([
-  R()
+F([
+  j()
 ], D.prototype, "_historyModel");
-z([
-  R()
+F([
+  j()
 ], D.prototype, "_scrubTime");
-z([
-  R()
+F([
+  j()
 ], D.prototype, "_dragY");
-z([
-  R()
+F([
+  j()
 ], D.prototype, "_flash");
-z([
-  R()
+F([
+  j()
 ], D.prototype, "_moving");
-z([
-  R()
+F([
+  j()
 ], D.prototype, "_prefersDark");
-z([
-  R()
+F([
+  j()
 ], D.prototype, "_hint");
-z([
-  R()
+F([
+  j()
 ], D.prototype, "_trends");
-z([
-  R()
+F([
+  j()
 ], D.prototype, "_trendsLoaded");
-z([
-  R()
+F([
+  j()
 ], D.prototype, "_reported");
-z([
-  R()
+F([
+  j()
 ], D.prototype, "_historyRequest");
-z([
-  R()
+F([
+  j()
 ], D.prototype, "_clock");
 customElements.get("ha-klima-dashboard") || customElements.define("ha-klima-dashboard", D);
 window.customCards = window.customCards ?? [];
@@ -6523,6 +6655,6 @@ window.customCards.some((e) => e.type === "ha-klima-dashboard") || window.custom
   type: "ha-klima-dashboard",
   name: "Klima Dashboard",
   // The card picker has no `hass` yet: the language Home Assistant set on the page.
-  description: _e(Ko()).t.cardDescription,
+  description: De(xs()).t.cardDescription,
   preview: !1
 });

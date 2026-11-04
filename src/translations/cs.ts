@@ -48,12 +48,11 @@ export const cs = {
   link: { page: "Otevře stránku místnosti.", web: "Otevře odkaz." },
 
   // CO₂ and PM2.5
-  air: "Kvalita vzduchu",
   /** "CO₂ 656 ppm, za 2 hodiny stoupá, naposledy před 2 h". */
   airSensor: (label: string, value: string | undefined, trend: string | undefined, stale: string) =>
     `${label} ${value ?? "neznámé"}${trend ? `, ${trend}` : ""}${stale}`,
-  airDescription: (room: string, sensors: string, popup: boolean) =>
-    `${room}: kvalita vzduchu, ${sensors || "bez čidla"}. ${popup ? "Otevře detaily." : "Otevře detail a historii."}`,
+  airDescription: (room: string, sensors: string, period: string) =>
+    `${room}: kvalita vzduchu, ${sensors || "bez čidla"}. Otevře graf za ${period}.`,
   detailsAndHistory: "Detail a historie",
   /** A value that is not known, for screen readers ("––" on screen). */
   unknownValue: "neznámé",
@@ -181,13 +180,14 @@ export const cs = {
       `Za ${hours === 1 ? "poslední hodinu" : hours >= 2 && hours <= 4 ? `poslední ${hours} hodiny` : `posledních ${hours} hodin`} nejsou k dispozici data.`,
     chart: (period: string) =>
       `Graf za ${period}. Šipkami vlevo a vpravo procházíte čas, klávesou End se vrátíte na teď.`,
-    temperatureDetails: "Detail teploty",
   },
 
   // Room history chart (Historie a grafy)
   chart: {
     now: "Teď",
     yesterday: "včera",
+    ventilationOn: "běží",
+    ventilationOff: "vypnuto",
   },
 
   // House summary chips (Dashboard Domov, Konflikty)

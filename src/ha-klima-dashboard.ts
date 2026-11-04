@@ -4,6 +4,7 @@ import type { PropertyValues, TemplateResult } from "lit";
 import { BLIND_HEIGHT, BLIND_WIDTH, renderBlindShape } from "./blind";
 import { normalizeConfig, plainText } from "./config";
 import { SCRUB_STEP_MS, buildRoomChart, hasChartData, renderRoomChart, timeAtX } from "./charts";
+import type { LiveReading } from "./charts";
 import type { RoomChartModel } from "./charts";
 import {
   renderClimateIcon,
@@ -60,6 +61,7 @@ import type {
   Reading,
   Room,
   Settings,
+  HistoryMetric,
   SheetKind,
   SheetState,
   Theme,
@@ -387,9 +389,10 @@ export class HaKlimaDashboard extends LitElement {
       this._focusSegment = undefined;
     }
     if (changedProperties.has("_sheet") && this._sheet && !changedProperties.get("_sheet")) {
+      // The focus goes into the popup: onto the chosen option, otherwise onto the popup itself (a ring on the ✕ would be noise).
       const first =
         this.renderRoot.querySelector<HTMLElement>(".sheet .option[aria-pressed='true']") ??
-        this.renderRoot.querySelector<HTMLElement>(".sheet button:not([disabled])");
+        this.renderRoot.querySelector<HTMLElement>(".sheet");
       first?.focus();
     }
   }
@@ -768,11 +771,6 @@ export class HaKlimaDashboard extends LitElement {
     return spokenPeriod(this._config?.trends.minutes ?? 120, this._i18n.t);
   }
 
-  /** On the lighter ground of the popup options the critical red needs a lighter shade to stay readable. */
-  private popupColor(color: string): string {
-    return color === COLORS.alert ? COLORS.alertOnPopup : color;
-  }
-
   /** Colour of a CO₂ / PM2.5 number: white, orange from the warning limit, red from the critical one; grey without a fresh value. */
   private airColor(reading: Reading, warning: number, critical: number): string {
     if (reading.value === undefined || reading.stale) {
@@ -782,10 +780,10 @@ export class HaKlimaDashboard extends LitElement {
   }
 
   /**
-   * CO₂ and PM2.5 are one touch target over both rows (52 px). With both sensors it
-   * opens the popup "Kvalita vzduchu" with a link to each detail; with one it opens that
-   * detail at once. A sensor the room does not have (`carbon_dioxide: false`) has no row; without
-   * both the place stays empty, so the rows below keep their position (CURRENT_SPEC.md, Room Card).
+   * CO₂ and PM2.5 are one touch target over both rows (52 px). It opens the room history with the CO₂ curve
+   * and PM2.5 as the weaker dashed line (without a CO₂ sensor the PM2.5 curve is the main one). A sensor the room
+   * does not have (`carbon_dioxide: false`) has no row; without both the place stays empty, so the rows below
+   * keep their position (CURRENT_SPEC.md, Room Card).
    */
   private renderAirBlock(
     room: Room,
@@ -800,7 +798,6 @@ export class HaKlimaDashboard extends LitElement {
     const { thresholds } = room;
     const { t } = this._i18n;
     const trends = this._config!.trends;
-    const configured = [room.carbon_dioxide, room.pm25].filter((entityId): entityId is EntityId => Boolean(entityId));
     const spoken = (label: string, present: boolean, entityId: EntityId | undefined, reading: Reading, unit: string, slot: "co2" | "pm25") => {
       if (!present || !entityId) {
         return undefined;
@@ -820,7 +817,6 @@ export class HaKlimaDashboard extends LitElement {
     ]
       .filter(Boolean)
       .join("; ");
-    const popup = configured.length > 1;
     const descriptionId = `air-description-${index}`;
 
     // Like the HVAC button: the accessible name is the visible text (WCAG 2.5.3 Label in Name);
@@ -829,10 +825,10 @@ export class HaKlimaDashboard extends LitElement {
       <button
         type="button"
         class="plain-button air-block"
-        ?disabled=${configured.length === 0}
-        aria-haspopup=${popup ? "dialog" : nothing}
+        ?disabled=${!room.carbon_dioxide && !room.pm25}
+        aria-haspopup="dialog"
         aria-describedby=${descriptionId}
-        @click=${(event: Event) => (popup ? this.openSheet("air", room, event) : this.showMoreInfo(configured[0]))}
+        @click=${(event: Event) => this.openSheet("history", room, event, room.hasCo2 ? "co2" : "pm25")}
       >
         ${room.hasCo2
           ? this.renderAirRow("co2", room.carbon_dioxide, html`<ha-icon icon="mdi:molecule-co2"></ha-icon>`,
@@ -843,50 +839,7 @@ export class HaKlimaDashboard extends LitElement {
               pm25, "µg/m³", thresholds.pm25_warning, thresholds.pm25_critical, axes.pm25)
           : nothing}
       </button>
-      <span class="sr-only" id=${descriptionId}>${t.airDescription(this.roomLabel(room), description, popup)}</span>
-    `;
-  }
-
-  /** Popup "Kvalita vzduchu": CO₂ and PM2.5 with their values, each opens the standard entity detail. */
-  private renderAirBody(room: Room, now: number): TemplateResult {
-    const { thresholds } = room;
-    const stale = thresholds.stale_minutes;
-    const rows = [
-      { slot: "co2" as const, label: "CO₂", unit: "ppm", present: room.hasCo2, entityId: room.carbon_dioxide, warning: thresholds.co2_warning, critical: thresholds.co2_critical },
-      { slot: "pm25" as const, label: "PM2.5", unit: "µg/m³", present: room.hasPm25, entityId: room.pm25, warning: thresholds.pm25_warning, critical: thresholds.pm25_critical },
-    ].filter((row) => row.present);
-    return html`
-      <div class="options list-options" role="group" aria-label=${this._i18n.t.air}>
-        ${rows.map(({ slot, label, unit, entityId, warning, critical }) => {
-          const reading = slot === "pm25" ? this.pm25Reading(room, now) : this.reading(entityId, stale, now);
-          const hasValue = reading.value !== undefined;
-          const accent = hasValue && !reading.stale ? COLORS[slot] : COLORS.off;
-          return html`<button
-            type="button"
-            class="plain-button option list-option"
-            ?disabled=${!entityId}
-            @click=${() => {
-              this.closeSheet(false);
-              this.showMoreInfo(entityId);
-            }}
-          >
-            <span class="option-icon" style=${`color: ${accent}`} aria-hidden="true">
-              ${slot === "co2" ? html`<ha-icon icon="mdi:molecule-co2"></ha-icon>` : renderParticlesIcon()}
-            </span>
-            <span class="option-text">
-              <span>${label}</span>
-              <span class="option-hint">${this._i18n.t.detailsAndHistory}</span>
-            </span>
-            <span class="list-value" style=${`color: ${this.popupColor(this.airColor(reading, warning, critical))}`}>
-              ${hasValue
-                ? `${this._i18n.whole(reading.value as number)} ${unit}`
-                : html`<span aria-hidden="true">––</span><span class="sr-only">${this._i18n.t.unknownValue}</span>`}
-            </span>
-            ${entityId ? html`<span class="list-chevron" aria-hidden="true">›</span>` : nothing}
-            ${reading.stale ? html`<span class="sr-only">${this.staleSpoken(reading)}</span>` : nothing}
-          </button>`;
-        })}
-      </div>
+      <span class="sr-only" id=${descriptionId}>${t.airDescription(this.roomLabel(room), description, this.historyPeriod())}</span>
     `;
   }
 
@@ -1788,12 +1741,9 @@ export class HaKlimaDashboard extends LitElement {
       return this.renderSheetFrame(
         t.sheet.history(this._config?.history.hours ?? 24),
         this.roomLabel(sheet.room),
-        this.renderHistoryBody(sheet.room, isSummer),
+        this.renderHistoryBody(sheet.room, sheet.metric ?? "temperature", isSummer),
         "history-sheet",
       );
-    }
-    if (sheet.kind === "air") {
-      return this.renderSheetFrame(t.air, this.roomLabel(sheet.room), this.renderAirBody(sheet.room, Date.now()));
     }
     if (sheet.kind === "ventilation") {
       return this.renderSheetFrame(t.ventilation.title, undefined, this.renderVentilationBody(Date.now()));
@@ -1832,6 +1782,7 @@ export class HaKlimaDashboard extends LitElement {
           role="dialog"
           aria-modal="true"
           aria-labelledby="sheet-title"
+          tabindex="-1"
           @click=${(event: Event) => event.stopPropagation()}
         >
           <div
@@ -1848,7 +1799,10 @@ export class HaKlimaDashboard extends LitElement {
                 ${sub ? html`<div class="sheet-sub">${sub}</div>` : nothing}
               </div>
               <button type="button" class="plain-button close" aria-label=${this._i18n.t.sheet.close} @click=${() => this.closeSheet()}>
-                ✕
+                <span class="close-icon" aria-hidden="true"
+                  ><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
+                    <path d="M2 2l8 8M10 2l-8 8"></path></svg
+                ></span>
               </button>
             </div>
           </div>
@@ -2418,8 +2372,24 @@ export class HaKlimaDashboard extends LitElement {
     }
   }
 
+  /** "Teď" of the air chart is the reading of the room card (CO₂ and PM2.5), so a stale value is grey there too. */
+  private liveReading(room: Room, metric: HistoryMetric): LiveReading | undefined {
+    if (metric === "temperature") {
+      return undefined;
+    }
+    const now = Date.now();
+    const co2 = this.reading(room.carbon_dioxide, room.thresholds.stale_minutes, now);
+    const pm25 = this.pm25Reading(room, now);
+    const primary = metric === "pm25" ? pm25 : co2;
+    return {
+      value: primary.value,
+      stale: primary.stale === true,
+      secondary: metric === "co2" ? { value: pm25.value, stale: pm25.stale === true } : undefined,
+    };
+  }
+
   /** „Historie místnosti – 24 h“ with a readout that follows the finger (or the arrow keys). */
-  private renderHistoryBody(room: Room, isSummer: boolean): TemplateResult {
+  private renderHistoryBody(room: Room, metric: HistoryMetric, isSummer: boolean): TemplateResult {
     const hours = this._config?.history.hours ?? 24;
     const { t } = this._i18n;
     let body: TemplateResult;
@@ -2428,7 +2398,7 @@ export class HaKlimaDashboard extends LitElement {
       body = html`<p class="sheet-message">${t.sheet.loading}</p>`;
     } else if (this._historyStatus === "error" || !model) {
       body = html`<p class="sheet-message error" role="alert">${t.sheet.historyFailed}</p>`;
-    } else if (!hasChartData(model)) {
+    } else if (!hasChartData(model, metric)) {
       body = html`<p class="sheet-message">${t.sheet.noHistory(hours)}</p>`;
     } else {
       body = html`<div
@@ -2443,24 +2413,10 @@ export class HaKlimaDashboard extends LitElement {
         @pointerleave=${this.chartPointerLeave}
         @keydown=${this.chartKeydown}
       >
-        ${renderRoomChart(model, this.chartWidth(), this._scrubTime, this._i18n, isSummer)}
+        ${renderRoomChart(model, metric, this.chartWidth(), this._scrubTime, this._i18n, isSummer, this.liveReading(room, metric))}
       </div>`;
     }
-    const detail = room.temperature ?? room.humidity;
-    return html`
-      ${body}
-      <button
-        type="button"
-        class="plain-button sheet-link"
-        ?disabled=${!detail}
-        @click=${() => {
-          this.closeSheet(false);
-          this.showMoreInfo(detail);
-        }}
-      >
-        ${t.sheet.temperatureDetails}
-      </button>
-    `;
+    return body;
   }
 
   /** The chart is drawn 1:1 in CSS pixels at the inner width of the popup. */
@@ -2952,14 +2908,14 @@ export class HaKlimaDashboard extends LitElement {
     }
   };
 
-  private openSheet(kind: SheetKind, room: Room, event: Event): void {
+  private openSheet(kind: SheetKind, room: Room, event: Event, metric?: HistoryMetric): void {
     this._opener = event.currentTarget instanceof HTMLElement ? event.currentTarget : undefined;
     this._sheetError = undefined;
     this._announcement = "";
     this._dragY = 0;
     this._acTarget = undefined;
     this._ac = undefined;
-    this._sheet = { kind, room };
+    this._sheet = { kind, room, metric: kind === "history" ? metric ?? "temperature" : undefined };
     window.addEventListener("resize", this.handleResize, { passive: true });
     if (kind === "history") {
       this._scrubTime = undefined;
@@ -3036,6 +2992,9 @@ export class HaKlimaDashboard extends LitElement {
       room.heating?.intensity,
       room.heating?.target,
       room.air_conditioner,
+      room.carbon_dioxide,
+      room.pm25,
+      this.ventilationRooms().includes(room) ? this._config?.ventilationEntity : undefined,
       ...room.windows.map((window) => window.entity),
     ].filter((entityId): entityId is EntityId => Boolean(entityId));
     const settings = this._config!.history;
@@ -3046,7 +3005,7 @@ export class HaKlimaDashboard extends LitElement {
       if (request !== this._historyRequest) {
         return;
       }
-      this._historyModel = buildRoomChart(history, room, { startMs, endMs }, settings);
+      this._historyModel = buildRoomChart(history, room, { startMs, endMs }, settings, this.ventilationRooms().includes(room) ? this._config?.ventilationEntity : undefined);
       this._historyStatus = "ready";
     } catch (error) {
       console.error("Klima Dashboard: loading the room history failed", error);

@@ -348,7 +348,7 @@ async function historyChart(page: Page, history: History) {
   const chart = await page.evaluate(() => {
     const svg = document.querySelector("ha-klima-dashboard")!.shadowRoot!.querySelector("svg.chart")!;
     const ys = (path: Element | undefined) => [...(path?.getAttribute("d") ?? "").matchAll(/[ML]([\d.]+) ([\d.]+)/g)].map((m) => Number(m[2]));
-    const curve = [...svg.querySelectorAll("path")].find((path) => path.getAttribute("stroke-width") === "2");
+    const curve = [...svg.querySelectorAll("path")].find((path) => path.getAttribute("stroke-width") === "2.5");
     const target = [...svg.querySelectorAll("path")].find((path) => path.getAttribute("stroke-dasharray") === "3 3");
     const plot = svg.querySelector("clipPath#history-plot rect")!;
     return {
@@ -643,7 +643,7 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
       await expect(page.locator(".sheet .timer-foot")).toHaveText("Dřív skončí zavřením posledního okna.");
       const end = page.getByRole("button", { name: "Ukončit" });
       expect((await end.boundingBox())?.height ?? 0, "Ukončit 48 px").toBeGreaterThanOrEqual(48);
-      await expect(page.locator(".sheet .close")).toBeFocused();
+      await expect(page.locator(".sheet")).toBeFocused();
     });
 
     await test.step("čerstvé hlášení: odhad „asi 17 min“ celými minutami; pod 450 ppm lze zavřít okna a procento je 100 %", async () => {
@@ -1053,11 +1053,13 @@ test.describe("scénáře: stav místnosti, souhrn, barvy a konflikty (Stavový 
       for (let index = 0; index < 5; index++) {
         await expect(rooms(page).nth(index).locator(".air-block")).toBeEnabled();
       }
-      // With a single sensor the block opens its detail at once (no popup).
+      // The block opens the CO₂ chart; a room without the PM2.5 entity has no second line.
       await reconfigure(page, {}, { 0: { pm25: undefined } });
       await rooms(page).first().locator(".air-block").click();
-      await expect(page.locator(".sheet")).toHaveCount(0);
-      expect(await hook(page, "moreInfo")).toEqual([CO2]);
+      await expect(page.locator("#sheet-title")).toHaveText("Historie místnosti – 24 h");
+      await expect(page.locator(".readout-temp")).toContainText("ppm");
+      await expect(page.locator(".segment"), "žádné záložky").toHaveCount(0);
+      await closePopup(page);
     });
     await test.step("full: Příjemné, 11 lamel podle polohy a naklopení, písmo hodnot", async () => {
       // Steps share one page: what an earlier step stored in the browser must not leak into this one.
@@ -1153,12 +1155,9 @@ test.describe("scénáře: stav místnosti, souhrn, barvy a konflikty (Stavový 
     test.setTimeout(90000);
     await test.step("PM2.5 se hlásí jen při změně: čerstvé CO₂ ze stejného čidla drží PM2.5 čerstvé, bez něj zastarává", async () => {
       await open(page, "stale");
-      // Ložnice: PM2.5 unchanged for 3 h, CO₂ fresh → no "Bez dat", no clock, in the card and in the popup "Kvalita vzduchu".
+      // Ložnice: PM2.5 unchanged for 3 h, CO₂ fresh → no "Bez dat", no clock in the card.
       await expect(rooms(page).first().locator(".status-line")).not.toContainText("Bez dat");
       await expect(rooms(page).first().locator(".slot-pm25 .stale-mark")).toHaveCount(0);
-      await rooms(page).first().locator(".air-block").click();
-      await expect(page.locator(".list-option").nth(1).locator(".stale-mark, .sr-only")).toHaveCount(0);
-      await closePopup(page);
       // The same Ložnice without a CO₂ sensor has no device to vouch for the PM2.5, which is stale after 30 minutes.
       await reconfigure(page, {}, { 0: { carbon_dioxide: false } });
       expect(tidy(await statuses(page))[0]).toBe("Bez dat · PM2.5 (před 3 h)");
@@ -1219,7 +1218,7 @@ test.describe("scénáře: stav místnosti, souhrn, barvy a konflikty (Stavový 
 test.describe("přístupnost", () => {
   /** What each popup shows once it is ready. */
   const POPUP_CONTENT: Record<string, string> = {
-    ".air-block": ".list-options",
+    ".air-block": ".chart",
     ".hvac": ".hvac-panel",
     ".temperature": ".readout",
     ".slot-window": ".list-options",
@@ -1260,7 +1259,7 @@ test.describe("přístupnost", () => {
       await open(page, "full");
       const block = page.locator(".air-block").first();
       await expect(block).toHaveAccessibleName(/^656\s+ppm\s+2\s+µg\/m³$/);
-      await expect(block).toHaveAccessibleDescription(/^Ložnice: kvalita vzduchu, CO₂ 656 ppm, za 2 hodiny .*; PM2\.5 2 µg\/m³.*Otevře detaily\.$/);
+      await expect(block).toHaveAccessibleDescription(/^Ložnice: kvalita vzduchu, CO₂ 656 ppm, za 2 hodiny .*; PM2\.5 2 µg\/m³.*Otevře graf za 24 hodin\.$/);
       const hvac = page.locator(".hvac").first();
       await expect(hvac).toHaveAccessibleName(/^Plán · 21 °C\s+Vypnuto$/);
       await expect(hvac).toHaveAccessibleDescription("Ložnice: Topení Plán 21 °C, Klimatizace Vypnuto. Otevře ovládání Topení.");
@@ -1602,6 +1601,62 @@ test.describe("historie místnosti (Historie a grafy)", () => {
       expect(chart.targetPieces).toBe(2);
     });
   });
+
+  test("historie CO₂ a PM2.5: hranice z místnosti, barva křivky, pásma oken a větrání, údaje, Obývák bez větrání", async ({ page }) => {
+    test.setTimeout(90000);
+    await open(page, "vent");
+    // CO₂ of Pracovna: 500 → 1 300 ppm (over the warning limit), 600 after airing; the window and the ventilation mode open for a while.
+    await page.evaluate(() => {
+      // @ts-expect-error test hook
+      const test = window.__test;
+      const now = Date.now() / 1000;
+      const h = 3600;
+      const data: Record<string, Array<{ s: string; lu: number }>> = {
+        "sensor.pracovna_teplomer_pracovna_carbon_dioxide": [
+          { s: "500", lu: now - 20 * h }, { s: "1300", lu: now - 10 * h }, { s: "600", lu: now - 9 * h }, { s: "700", lu: now - 2 * h },
+        ],
+        "sensor.pracovna_teplomer_pracovna_pm2_5": [
+          { s: "3", lu: now - 20 * h }, { s: "0", lu: now - 15 * h }, { s: "18", lu: now - 5 * h },
+        ],
+        "binary_sensor.pracovna_okno_pracovna": [{ s: "off", lu: now - 20 * h }, { s: "on", lu: now - 9.6 * h }, { s: "off", lu: now - 9 * h }],
+        "input_boolean.ventilation_mode": [{ s: "off", lu: now - 20 * h }, { s: "on", lu: now - 9.5 * h }, { s: "off", lu: now - 9.1 * h }],
+      };
+      test.historyFor = (id: string) => data[id];
+    });
+    await test.step("CO₂: hranice 1 000 a 1 500 (kritická, protože hodnota přesáhla varování), křivka s tvrdými zarážkami, pásma a pruhy", async () => {
+      await rooms(page).nth(1).locator(".air-block .slot-co2").click();
+      await expect(page.locator(".limit-line")).toHaveCount(2);
+      await expect(page.locator(".limit-label")).toHaveText(["1 000", "1 500"]);
+      await expect(page.locator(".temperature-curve")).toHaveAttribute("style", /url\(#history-curve\)/);
+      await expect(page.locator("#history-curve stop")).toHaveCount(6);
+      await expect(page.locator(".window-band")).toHaveCount(1);
+      await expect(page.locator(".ventilation-band")).toHaveCount(1);
+      await expect(page.locator(".strip-row")).toHaveClass([/ventilation/, /windows/]);
+    });
+    await test.step("PM2.5: slabší schodová čára (čidlo hlásí jen změnu) pod CO₂, přesná 0 je platná hodnota", async () => {
+      const path = (await page.locator(".pm25-line").getAttribute("d")) ?? "";
+      // Step: every change has a vertical piece (two points with the same x).
+      expect(path.match(/L/g)?.length, "schodová čára").toBeGreaterThan(4);
+      // "Teď" is the reading of the card (9 µg/m³), not the last recorded value (18).
+      await expect(page.locator(".readout-hum.pm25")).toContainText("9 µg/m³");
+    });
+    await test.step("prohlížení: hodnota a čas pod prstem, údaje o okně a větrání v tom čase", async () => {
+      const box = await page.locator("svg.chart").boundingBox();
+      // 9.3 h ago of 24 h: the window and the ventilation mode were on.
+      await page.mouse.move((box?.x ?? 0) + 4 + (313 * (24 - 9.3)) / 24, (box?.y ?? 0) + 60);
+      await expect(page.locator(".readout-system").nth(0)).toContainText("běží");
+      await expect(page.locator(".readout-system").nth(1)).toContainText("Otevřeno");
+      await expect(page.locator(".readout-time")).not.toHaveText("Teď");
+    });
+    await test.step("Obývák není v režimu: bez pásma a pruhu větrání, okno zůstává", async () => {
+      await closePopup(page);
+      await rooms(page).nth(4).locator(".air-block .slot-co2").click();
+      await expect(page.locator(".ventilation-band")).toHaveCount(0);
+      await expect(page.locator(".strip-row.ventilation")).toHaveCount(0);
+      await expect(page.locator(".strip-row.windows")).toHaveCount(1);
+      await expect(page.locator(".readout-system")).toHaveCount(1);
+    });
+  });
 });
 
 // ---------------------------------------------------------- air and window
@@ -1609,17 +1664,27 @@ test.describe("historie místnosti (Historie a grafy)", () => {
 test.describe("kvalita vzduchu, okno a hlavička (Room Card, Vizuální pravidla, Dashboard Domov)", () => {
   test("kvalita vzduchu, doba otevření na 320 px a title: \"\"", async ({ page }) => {
     test.setTimeout(90000);
-    await test.step("blok CO₂ / PM2.5 otevře popup Kvalita vzduchu a z něj detail každé veličiny", async () => {
+    await test.step("blok CO₂ / PM2.5 otevře rovnou graf CO₂ s PM2.5 jako slabší čarou; teplota a vlhkost mají vlastní graf; žádné záložky", async () => {
       await open(page, "full");
-      await rooms(page).first().locator(".air-block").click();
-      const options = page.locator(".list-option");
-      await expect(options).toHaveCount(2);
-      await expect(options.nth(0)).toContainText("CO₂");
-      await expect(options.nth(0).locator(".list-value")).toHaveText("656 ppm");
-      await expect(options.nth(1).locator(".list-value")).toHaveText("2 µg/m³");
-      await options.nth(0).click();
-      await expect(page.locator(".sheet")).toHaveCount(0);
-      expect(await hook(page, "moreInfo")).toEqual([CO2]);
+      await rooms(page).first().locator(".air-block .slot-pm25").click();
+      await expect(page.locator("#sheet-title")).toHaveText("Historie místnosti – 24 h");
+      await expect(page.locator(".segment"), "žádné záložky").toHaveCount(0);
+      await expect(page.locator(".readout-temp")).toContainText("ppm");
+      await expect(page.locator(".readout-hum.pm25")).toContainText("µg/m³");
+      await expect(page.locator(".pm25-line")).toHaveCount(1);
+      await expect(page.locator(".chart")).toBeVisible();
+      // The warning limit of the room is a dashed line inside the plot; the critical one only once a value reaches the warning one.
+      await expect(page.locator(".limit-line")).toHaveCount(1);
+      await expect(page.locator(".limit-label")).toHaveText("1 000");
+      await expect(page.locator(".sheet-link"), "žádný odkaz na detail").toHaveCount(0);
+      await closePopup(page);
+      // The temperature and its micro trend open the temperature and humidity chart, as before.
+      await rooms(page).first().locator(".temperature").click();
+      await expect(page.locator(".readout-temp")).toContainText("°C");
+      await expect(page.locator(".readout-hum")).toContainText("%");
+      await expect(page.locator(".pm25-line")).toHaveCount(0);
+      await expect(page.locator(".sheet-link")).toHaveCount(0);
+      await closePopup(page);
     });
     await test.step("doba otevření se vejde i na 320 px s tečkou konfliktu a nic se neořízne", async () => {
       // Steps share one page: what an earlier step stored in the browser must not leak into this one.
@@ -1921,8 +1986,8 @@ test.describe("jazyky (CURRENT_SPEC.md, Jazyky)", () => {
         await noCzech("Klimatizace");
         await closePopup(page);
         await openPopup(page, ".air-block");
-        await expect(page.locator("#sheet-title")).toHaveText(expected.air);
-        await noCzech("Kvalita vzduchu");
+        await expect(page.locator("#sheet-title")).toHaveText(expected.history);
+        await noCzech("Historie CO₂");
         await closePopup(page);
         await openPopup(page, ".temperature");
         await expect(page.locator("#sheet-title")).toHaveText(expected.history);
@@ -2027,7 +2092,7 @@ test.describe("jazyky (CURRENT_SPEC.md, Jazyky)", () => {
         // Popups on the narrowest phone: the switch, the options, the readout fit.
         await open(page, "full", 320, 852, theme, language);
         expect(await axeViolations(page), language).toEqual([]);
-        for (const trigger of [".hvac", ".temperature"]) {
+        for (const trigger of [".hvac", ".temperature", ".air-block"]) {
           await openPopup(page, trigger);
           await expect(page.locator(trigger === ".hvac" ? ".hvac-panel" : ".readout")).toBeVisible();
           const cut = await page.evaluate(() => {
@@ -2058,7 +2123,6 @@ test.describe("jazyky (CURRENT_SPEC.md, Jazyky)", () => {
       hvac: "R1: Värme Schema 21 °C, Luftkonditionering Av. Öppnar styrningen av värmen.",
       windowDescription: "R2: fönstret öppet i 3 minuter. Öppnar detaljer och historik.",
       systems: ["Värme", "Luftkonditionering"],
-      air: "Luftkvalitet",
       history: "Rumshistorik – 24 h",
       now: "Nu",
       windows: ["Fönster 1", "Fönster 2"],
@@ -2077,7 +2141,6 @@ test.describe("jazyky (CURRENT_SPEC.md, Jazyky)", () => {
       hvac: "R1: Heating Schedule 21 °C, Air conditioning Off. Opens the heating controls.",
       windowDescription: "R2: window open for 3 minutes. Opens details and history.",
       systems: ["Heating", "Air conditioning"],
-      air: "Air quality",
       history: "Room history – 24 h",
       now: "Now",
       windows: ["Window 1", "Window 2"],
@@ -2824,7 +2887,7 @@ test.describe("historie místnosti: pruhy Topení, Klimatizace a okna pod grafem
 
   test("historie: pruhy Topení, Klimatizace a okna", async ({ page }) => {
     test.setTimeout(120000);
-    await test.step("řádky jako na kartě (Topení, Klimatizace, okna; v létě Klimatizace první), bez popisků, s ikonou na začátku a zeslabením kolem ní", async () => {
+    await test.step("řádky jako na kartě (Topení, Klimatizace, okna; v létě Klimatizace první), bez popisků, s ikonou vpravo v okraji", async () => {
       await openHistory(page);
       const rows = () =>
         page.evaluate(() => {
@@ -2836,14 +2899,12 @@ test.describe("historie místnosti: pruhy Topení, Klimatizace a okna pod grafem
             iconPaint: [...svg.querySelectorAll(".strip-icon")].map((icon) => icon.querySelectorAll("path, rect, circle").length > 0),
             tracks: [...svg.querySelectorAll(".strip-row")].map((row) => rects(row)[0]),
             texts: [...svg.querySelectorAll("text")].map((text) => text.textContent?.trim() ?? ""),
-            fade: svg.querySelectorAll("linearGradient stop").length,
           };
         });
       const winter = await rows();
       expect(winter.order).toEqual(["heating", "climate", "windows"]);
       expect(winter.icons).toBe(3);
       expect(winter.iconPaint).toEqual([true, true, true]);
-      expect(winter.fade).toBeGreaterThanOrEqual(2);
       // No labels: only the temperatures (°) and the clock times are text.
       expect(winter.texts.filter((text) => !/°$|^\d{1,2}(:\d{2})?$/.test(text))).toEqual([]);
       // Compact: the gap between the bars is at most 4 px.
@@ -2896,8 +2957,8 @@ test.describe("historie místnosti: pruhy Topení, Klimatizace a okna pod grafem
         const fills = await page.evaluate(() => {
           const svg = document.querySelector("ha-klima-dashboard")!.shadowRoot!.querySelector("svg.chart")!;
           const fillOf = (row: string) => {
-            // Rects of a row: the track, the bars of the periods, the fade around the icon; the last bar is the "off" one.
-            const bars = [...svg.querySelectorAll(`.strip-row.${row} > rect`)].slice(1, -1);
+            // Rects of a row: the track, then the bars of the periods; the last bar is the "off" one.
+            const bars = [...svg.querySelectorAll(`.strip-row.${row} > rect`)].slice(1);
             const bar = bars[bars.length - 1];
             return bar ? getComputedStyle(bar).fill : "";
           };
