@@ -52,7 +52,7 @@ const rowCount = (model: Pick<RoomChartModel, "windows">): number => 2 + (model.
 const rowsBottom = (model: Pick<RoomChartModel, "windows">): number => ROWS_TOP + rowCount(model) * ROW_PITCH;
 export const chartHeight = (model: Pick<RoomChartModel, "windows">): number =>
   rowsBottom(model) + AXIS_GAP + AXIS_DESCENT;
-const FONT = 11;
+const FONT = 12;
 const INTENSITY_OPACITY = [0, 0.24, 0.44, 0.68];
 const CLIP_ID = "history-under-temperature";
 const PLOT_CLIP_ID = "history-plot";
@@ -374,7 +374,8 @@ function climateStripColor(mode: ClimateMode): string {
 function tickLabel(tick: number, range: ChartRange, i18n: I18n): string {
   // A midnight on a chart of more than a day and a half shows the date, so the change of the day is visible between the hours.
   const midnight = new Date(tick).getHours() === 0;
-  return tickHours(range) >= 24 || (midnight && range.endMs - range.startMs > 36 * HOUR_MS) ? i18n.day(tick) : i18n.hour(tick);
+  // Whole hours without the minutes ("18", "03"), like the charts of the Energie card; a 12 h clock keeps its text ("6 PM").
+  return tickHours(range) >= 24 || (midnight && range.endMs - range.startMs > 36 * HOUR_MS) ? i18n.day(tick) : i18n.hour(tick).replace(/^(\d{1,2}):00$/, "$1");
 }
 
 /** Values under the finger (or now): time, temperature, humidity, Topení and Klimatizace. */

@@ -852,14 +852,14 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
         await rooms(page).first().locator(".temperature").click();
         await expect(page.locator("svg.chart")).toBeVisible();
         return page.locator("svg.chart").evaluate((chart) => ({
-          ticks: [...chart.querySelectorAll("text")].map((text) => text.textContent ?? "").filter((text) => text.includes(":")),
+          ticks: [...chart.querySelectorAll("text.tick")].map((text) => text.textContent ?? ""),
           nights: [...chart.querySelectorAll("rect.night")].map((rect) => Number(rect.getAttribute("width"))),
         }));
       };
       const shifted = await measure("2026-10-25T10:00:00+01:00");
       const normal = await measure("2026-10-24T10:00:00+02:00");
-      expect(shifted.ticks).toEqual(["12:00", "15:00", "18:00", "21:00", "00:00", "03:00", "06:00", "09:00"]);
-      expect(normal.ticks).toEqual(["12:00", "15:00", "18:00", "21:00", "00:00", "03:00", "06:00", "09:00"]);
+      expect(shifted.ticks).toEqual(["12", "15", "18", "21", "00", "03", "06", "09"]);
+      expect(normal.ticks).toEqual(["12", "15", "18", "21", "00", "03", "06", "09"]);
       expect(shifted.nights[0] / normal.nights[0]).toBeCloseTo(9 / 8, 1);
     });
     await test.step("formát času: 12 / 24 h z profilu i z jazyka; osa grafu má celé hodiny", async () => {
@@ -880,20 +880,20 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
       expect(await readout()).toMatch(/^[\p{L}]+ \d{1,2}:\d{2} [AP]M$/u);
       // 24 h from the profile: 18:00 and "yesterday 09:00".
       await setLocale(page, { time_format: "24" });
-      await expect.poll(axis).toEqual(["09:00", "12:00", "15:00", "18:00", "21:00", "00:00", "03:00", "06:00", "09:00"]);
+      await expect.poll(axis).toEqual(["09", "12", "15", "18", "21", "00", "03", "06", "09"]);
       // 12 h from the profile in Czech.
       await setLocale(page, { time_format: "12" });
       await expect.poll(async () => (await axis()).some((label) => /:/.test(label))).toBe(false);
       // System: the browser of the test is Czech, i.e. 24 h although the card speaks English.
       await setLocale(page, { time_format: "system" });
-      await expect.poll(axis).toEqual(["09:00", "12:00", "15:00", "18:00", "21:00", "00:00", "03:00", "06:00", "09:00"]);
+      await expect.poll(axis).toEqual(["09", "12", "15", "18", "21", "00", "03", "06", "09"]);
       // Language (the default): English → 12 h; the same Czech card → 24 h.
       await setLocale(page, { time_format: "language" });
       await expect.poll(async () => (await axis()).every((label) => /[AP]M$/i.test(label))).toBe(true);
       await page.keyboard.press("Escape");
       await open(page, "full", 393, 852, "dark", "cs");
       await rooms(page).first().locator(".temperature").click();
-      await expect.poll(axis).toEqual(["09:00", "12:00", "15:00", "18:00", "21:00", "00:00", "03:00", "06:00", "09:00"]);
+      await expect.poll(axis).toEqual(["09", "12", "15", "18", "21", "00", "03", "06", "09"]);
     });
     await test.step("pořadí dne a měsíce: z jazyka, DMY, MDY, YMD", async () => {
       // Steps share one page: what an earlier step stored in the browser must not leak into this one.
@@ -905,7 +905,7 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
       await rooms(page).first().locator(".temperature").click();
       await expect(page.locator(".chart")).toBeVisible();
       // The first date among the labels (the hours between the midnights have the clock).
-      const first = async () => (await page.locator(".chart .tick").allTextContents()).map(clean).find((label) => !label.includes(":")) ?? "";
+      const first = async () => (await page.locator(".chart .tick").allTextContents()).map(clean).find((label) => label.includes(".")) ?? "";
       // Czech writes the day first ("22. 10."); the month 10 is the second number.
       await expect.poll(first).toMatch(/^\d{1,2}\. 10\.$/);
       for (const [format, monthFirst] of [["MDY", true], ["YMD", true], ["DMY", false], ["language", false]] as const) {
@@ -2845,7 +2845,7 @@ test.describe("historie místnosti: pruhy Topení, Klimatizace a okna pod grafem
       expect(winter.iconPaint).toEqual([true, true, true]);
       expect(winter.fade).toBeGreaterThanOrEqual(2);
       // No labels: only the temperatures (°) and the clock times are text.
-      expect(winter.texts.filter((text) => !/°$|^\d{1,2}:\d{2}$/.test(text))).toEqual([]);
+      expect(winter.texts.filter((text) => !/°$|^\d{1,2}(:\d{2})?$/.test(text))).toEqual([]);
       // Compact: the gap between the bars is at most 4 px.
       for (let index = 1; index < winter.tracks.length; index += 1) {
         const gap = winter.tracks[index].y - (winter.tracks[index - 1].y + winter.tracks[index - 1].height);
