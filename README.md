@@ -59,7 +59,7 @@ V zobrazení Masonry lze dosáhnout dvou sloupců dvěma kartami vedle sebe: ka�
 
 ```yaml
 - type: custom:ha-klima-dashboard
-  title: Domov
+  title: {cs: Domov, en: Home, sv: Hem}
   house_mode_entity: input_select.house_mode
   rooms:
     - name: {cs: Ložnice, en: Bedroom, sv: Sovrum}   # … celá konfigurace místnosti z examples/
