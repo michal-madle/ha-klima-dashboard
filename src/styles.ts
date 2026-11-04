@@ -1318,6 +1318,12 @@ export const styles = css`
       line-height: 18px;
     }
 
+    /* Okna: state and duration under the name ("Otevřeno · 12 min"), in the colour of the state. */
+    .list-option .window-state {
+      font-size: 15px;
+      line-height: 20px;
+    }
+
     .option-text {
       flex: 1;
     }
@@ -1327,12 +1333,6 @@ export const styles = css`
       font-size: 17px;
       font-variant-numeric: tabular-nums;
       white-space: nowrap;
-    }
-
-    /* How long a window has been open, faintly after its state. */
-    .list-extra {
-      color: var(--kd-label);
-      font-size: 15px;
     }
 
     /* Větrací režim: fakta bez ovládání jako jedna skupina s oddělovačem (kit, Seznam), ne dlaždice jako klikací řádky. */

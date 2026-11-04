@@ -1208,16 +1208,13 @@ export class HaKlimaDashboard extends LitElement {
             <span class="option-icon" aria-hidden="true">${renderWindowIcon(unknown ? COLORS.off : color, unknown)}</span>
             <span class="option-text">
               <span>${this.windowName(room, window)}</span>
-              <span class="option-hint">${t.detailsAndHistory}</span>
-            </span>
-            <span class="list-value" style=${`color: ${color}`}>
-              ${unknown
-                ? html`<span aria-hidden="true">––</span><span class="sr-only">${t.unknownValue}</span>`
-                : state === "open"
-                  ? t.window.open
-                  : t.window.closed}${minutesOpen === undefined
-                ? nothing
-                : html`<span class="list-extra">${NBSP}·${NBSP}${formatDuration(minutesOpen)}</span>`}
+              <span class="option-hint window-state" style=${`color: ${color}`}>
+                ${unknown
+                  ? html`<span aria-hidden="true">––</span><span class="sr-only">${t.unknownValue}</span>`
+                  : state === "open"
+                    ? t.window.open
+                    : t.window.closed}${minutesOpen === undefined ? nothing : html`${NBSP}·${NBSP}${formatDuration(minutesOpen)}`}
+              </span>
             </span>
             <span class="list-chevron" aria-hidden="true">›</span>
           </button>`;
