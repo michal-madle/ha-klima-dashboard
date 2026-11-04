@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Klima Dashboard – test</title>
+  <style>
+    /* Roboto like the Home Assistant frontend, so text widths match the app. */
+    @font-face { font-family: Roboto; font-weight: 400; src: url(/node_modules/@fontsource/roboto/files/roboto-latin-400-normal.woff2) format("woff2"); unicode-range: U+0000-00FF, U+2000-206F, U+2190-21FF; }
+    @font-face { font-family: Roboto; font-weight: 400; src: url(/node_modules/@fontsource/roboto/files/roboto-latin-ext-400-normal.woff2) format("woff2"); unicode-range: U+0100-024F, U+1E00-1EFF; }
+    @font-face { font-family: Roboto; font-weight: 500; src: url(/node_modules/@fontsource/roboto/files/roboto-latin-500-normal.woff2) format("woff2"); unicode-range: U+0000-00FF, U+2000-206F; }
+    @font-face { font-family: Roboto; font-weight: 500; src: url(/node_modules/@fontsource/roboto/files/roboto-latin-ext-500-normal.woff2) format("woff2"); unicode-range: U+0100-024F, U+1E00-1EFF; }
+    html { background: #000; }
+    body {
+      margin: 0;
+      background: #000;
+      color: #fff;
+      font-family: Roboto, sans-serif;
+      --primary-text-color: #fff;
+      --secondary-text-color: #9a9aa0;
+    }
+    main { padding: 4px 8px; }
+  </style>
+  <script>
+    // Minimal stand-ins for the Home Assistant elements the card uses.
+    customElements.define("ha-card", class extends HTMLElement {
+      constructor() { super(); this.attachShadow({ mode: "open" }).innerHTML = "<slot></slot>"; }
+    });
+    customElements.define("ha-icon", class extends HTMLElement {
+      connectedCallback() {
+        const size = getComputedStyle(this).getPropertyValue("--mdc-icon-size").trim() || "24px";
+        this.style.display = "inline-flex";
+        this.innerHTML = `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="currentColor" aria-hidden="true"><path d="M5 7a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h3v-2H5V9h3V7H5m6 0a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2m0 2h2v6h-2V9m5 1.5V12h3v1h-2a1 1 0 0 0-1 1v3h4v-1.5h-2.5v-1h2a1 1 0 0 0 1-1v-2a1 1 0 0 0-1-1H16Z"/></svg>`;
+      }
+    });
+  </script>
+  <script type="module" src="/tests/scenarios.js"></script>
+</head>
+<body>
+  <main></main>
+</body>
+</html>

@@ -1,0 +1,23 @@
+{
+  "name": "ha-klima-dashboard",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc --noEmit && vite build && node node_modules/ha-dashboard-kit/build/copy-build.mjs ha-klima-dashboard",
+    "dev": "vite build --watch",
+    "test": "npm run build && playwright test",
+    "coverage": "node tests/coverage.mjs"
+  },
+  "dependencies": {
+    "ha-dashboard-kit": "git+https://github.com/michal-madle/ha-dashboard-kit.git#e96c7814d57fe664fd380e22edbb0196a7e4704d",
+    "lit": "^3.3.1"
+  },
+  "devDependencies": {
+    "@fontsource/roboto": "^5.3.0",
+    "@playwright/test": "^1.63.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.1.12",
+    "yaml": "^2.9.1"
+  }
+}
