@@ -38,7 +38,9 @@ import {
 } from "./heating-control";
 import type { AfterTimer, HeatingControl, HeatingControlMode, ServiceCall } from "./heating-control";
 import { renderScene, sceneTone } from "./scenes";
-import { HOUR_MS, fetchHistory, normalizeToAxis, sampleNumeric, sharedAxis } from "./history";
+import { HOUR_MS, fetchHistory, normalizeToAxis, sampleNumeric, sharedAxis, stateAt } from "./history";
+import { co2Value, estimateMinutes, lastSession, openDuring, progress } from "./ventilation";
+import type { VentilationSession } from "./ventilation";
 import { pickText } from "ha-dashboard-kit/config";
 import { HoldOrDoubleTap } from "ha-dashboard-kit/gesture";
 import { cardLanguage, getI18n, hassLanguage } from "./i18n";
@@ -94,6 +96,13 @@ const AFTER_KEY = "klima-dashboard.after-timer";
 const TREND_REFRESH_MS = 5 * 60_000;
 const CLOCK_TICK_MS = 30_000;
 const NBSP = " ";
+
+/** What the ventilation popup learned from the history (see loadVentilation). */
+interface VentilationData {
+  session?: VentilationSession;
+  rooms: Array<{ name: string; opened: boolean; start?: number; end?: number }>;
+  failed?: boolean;
+}
 
 /** Blind presets are sent only by a long press or a double tap, never by a single tap. */
 const LONG_PRESS_MS = 550;
@@ -168,8 +177,12 @@ export class HaKlimaDashboard extends LitElement {
   @state()
   private _announcement = "";
 
-  /** The ventilation popup closed by itself and its chip is gone: focus goes to the summary. */
-  private _focusSummary = false;
+  /** The ventilation popup: the last run of the mode and the CO₂ of the rooms at its start and end, from the history. */
+  @state()
+  private _vent?: VentilationData;
+  private _ventRequest = 0;
+  /** The ventilation mode was on at the last render (a change reloads the popup). */
+  private _ventOn = false;
 
   /** Topení popup: what the person has changed; it is sent when the popup closes. Undefined = no change. */
   @state()
@@ -332,11 +345,15 @@ export class HaKlimaDashboard extends LitElement {
     if (this.lang !== this._i18n.language) {
       this.lang = this._i18n.language;
     }
-    // The mode ended (button, last window closed, timer ...): the popup has nothing left to show.
-    if (this._sheet?.kind === "ventilation" && !this.ventilationOn()) {
-      this.closeSheet(false);
-      this._announcement = this._i18n.t.ventilation.ended;
-      this._focusSummary = true;
+    // The mode started or ended (button, last window closed, timer ...): the popup stays and shows the result.
+    const ventilationOn = this.ventilationOn();
+    if (ventilationOn !== this._ventOn) {
+      this._ventOn = ventilationOn;
+      this._ventilationEnding = false;
+      if (this._sheet?.kind === "ventilation") {
+        this._announcement = ventilationOn ? "" : this._i18n.t.ventilation.ended;
+        void this.loadVentilation();
+      }
     }
   }
 
@@ -368,15 +385,6 @@ export class HaKlimaDashboard extends LitElement {
     if (this._focusSegment) {
       this.renderRoot.querySelector<HTMLElement>(`.segment[data-system="${this._focusSegment}"]`)?.focus();
       this._focusSegment = undefined;
-    }
-    if (this._focusSummary) {
-      this._focusSummary = false;
-      const target =
-        this.renderRoot.querySelector<HTMLElement>(".summary") ??
-        this.renderRoot.querySelector<HTMLElement>(".dashboard-header") ??
-        this.renderRoot.querySelector<HTMLElement>(".room");
-      target?.setAttribute("tabindex", "-1");
-      target?.focus();
     }
     if (changedProperties.has("_sheet") && this._sheet && !changedProperties.get("_sheet")) {
       const first =
@@ -432,7 +440,7 @@ export class HaKlimaDashboard extends LitElement {
       (entityId) => this.getState(entityId),
       this.coldRooms(isSummer, modeKnown, now),
       this._i18n,
-      this.ventilationOn(),
+      this.ventilationState(),
     );
     const hasHeader = title !== "" || outside !== nothing || chips.length > 0;
 
@@ -601,7 +609,7 @@ export class HaKlimaDashboard extends LitElement {
       return renderWindowIcon(chip.color, false);
     }
     if (chip.kind === "ventilation") {
-      return renderClimateIcon("fan", chip.color, false);
+      return renderClimateIcon("fan", chip.color, false, chip.inactive === true);
     }
     if (chip.kind === "climate" || chip.kind === "conflict-cooling") {
       return renderClimateIcon("cool", chip.color, false);
@@ -1230,40 +1238,167 @@ export class HaKlimaDashboard extends LitElement {
 
   // ------------------------------------------------------------ ventilation
 
-  /** The ventilation mode is on; unknown, unavailable or unconfigured is never on (CURRENT_SPEC.md, Větrací režim). */
-  private ventilationOn(): boolean {
-    return this.entityState(this._config?.ventilationEntity)?.toLowerCase() === "on";
+  /** The ventilation mode: "on" or "off"; unknown, unavailable or unconfigured is undefined (no chip). */
+  private ventilationState(): "on" | "off" | undefined {
+    const state = this.entityState(this._config?.ventilationEntity)?.toLowerCase();
+    return state === "on" || state === "off" ? state : undefined;
   }
 
-  /** Summary chip: the house-wide popup of the ventilation mode (it has no room; the first one stands in). */
+  private ventilationOn(): boolean {
+    return this.ventilationState() === "on";
+  }
+
+  /** The rooms of the mode: those with a blind, a window and a CO₂ sensor (Obývák with the garden door is not one). */
+  private ventilationRooms(): Room[] {
+    return (this._config?.rooms ?? []).filter((room) => room.cover && room.windows.length > 0 && room.carbon_dioxide);
+  }
+
+  /** Summary chip: the house-wide ventilation popup (it has no room; the first one stands in). */
   private openVentilationSheet(event: Event): void {
     const room = this._config?.rooms[0];
     if (!room) {
       return;
     }
     this._ventilationEnding = false;
+    this._announcement = "";
     this.openSheet("ventilation", room, event);
+    void this.loadVentilation();
   }
 
   /**
-   * The ventilation popup (CURRENT_SPEC.md, Větrací režim): how long it has run (from the last
-   * change of the mode), the latest end (`finishes_at` of the timer, "––" when the timer does not
-   * run), one sentence and "Ukončit". The rows and the sentence keep their height, so nothing moves.
+   * The last run of the mode and, per room, the CO₂ at its start and end and whether a window was
+   * open during it: from the history of Home Assistant (the mode over a week, then the CO₂ and the
+   * windows over that run). Nothing is stored.
+   */
+  private async loadVentilation(): Promise<void> {
+    const hass = this.hass;
+    const modeId = this._config?.ventilationEntity;
+    if (!hass || !modeId) {
+      return;
+    }
+    const request = ++this._ventRequest;
+    const now = Date.now();
+    try {
+      const modeHistory = await fetchHistory(hass, [modeId], now - 7 * 24 * HOUR_MS, now);
+      const session = lastSession(modeHistory[modeId]);
+      if (request !== this._ventRequest) {
+        return;
+      }
+      if (!session) {
+        this._vent = { rooms: [] };
+        return;
+      }
+      const rooms = this.ventilationRooms();
+      const to = session.end ?? now;
+      const ids = rooms.flatMap((room) => [room.carbon_dioxide, ...room.windows.map((window) => window.entity)]);
+      const history = await fetchHistory(
+        hass,
+        ids.filter((id): id is string => id !== undefined),
+        session.start - 30 * 60_000,
+        to,
+      );
+      if (request !== this._ventRequest) {
+        return;
+      }
+      this._vent = {
+        session,
+        rooms: rooms.map((room) => ({
+          name: room.name,
+          opened: room.windows.some((window) => openDuring(history[window.entity], session.start, to)),
+          start: co2Value(stateAt(history[room.carbon_dioxide ?? ""], session.start)),
+          end: co2Value(stateAt(history[room.carbon_dioxide ?? ""], to)),
+        })),
+      };
+    } catch (error) {
+      console.error("Klima Dashboard: the ventilation history could not be loaded", error);
+      if (request === this._ventRequest) {
+        this._vent = { rooms: [], failed: true };
+      }
+    }
+  }
+
+  /**
+   * The ventilation popup (CURRENT_SPEC.md, Větrací režim). While the mode runs: how long it has
+   * run, the latest end, the rooms with an open window (CO₂ from the start to now and how far to
+   * the goal), whether the windows can be closed and an estimate of the minutes left. After it
+   * ended: the last run (start–end) with the rooms whose window was open. Nothing is stored; the
+   * start values come from the history.
    */
   private renderVentilationBody(now: number): TemplateResult {
     const { t } = this._i18n;
     const text = t.ventilation;
-    const started = Date.parse(this.getState(this._config?.ventilationEntity)?.last_changed ?? "");
-    const minutes = Number.isNaN(started) ? undefined : Math.max(0, (now - started) / 60_000);
-    const timerId = this._config?.ventilationTimerEntity;
+    const config = this._config;
+    const running = this.ventilationOn();
+    const target = config?.ventilationCo2Target ?? 450;
+    const data = this._vent;
+    const session = data?.session;
+    const unknown = html`<span aria-hidden="true">––</span><span class="sr-only">${t.unknownValue}</span>`;
+    const error = this._sheetError;
+
+    const timerId = config?.ventilationTimerEntity;
     const timer = this.getState(timerId);
     const finishes =
       timer?.state.toLowerCase() === "active" ? Date.parse(String(timer.attributes.finishes_at ?? "")) : Number.NaN;
     const ends = Number.isNaN(finishes) || finishes <= now ? undefined : finishes;
-    const unknown = html`<span aria-hidden="true">––</span><span class="sr-only">${t.unknownValue}</span>`;
-    const error = this._sheetError;
-    return html`
-      <div class="static-list" role="group" aria-label=${text.title}>
+    const started = Date.parse(this.getState(config?.ventilationEntity)?.last_changed ?? "");
+    const minutes = Number.isNaN(started) ? undefined : Math.max(0, (now - started) / 60_000);
+
+    // The rooms of the list with their CO₂: running = windows open now (CO₂ now), ended = windows open during the run.
+    const rooms = this.ventilationRooms().flatMap((room) => {
+      const saved = data?.rooms.find((item) => item.name === room.name);
+      const open = openWindows(room, (id) => this.getState(id)).length > 0;
+      if (running ? !open : !saved?.opened) {
+        return [];
+      }
+      const entity = this.getState(room.carbon_dioxide);
+      const live = running ? co2Value(entity?.state) : saved?.end;
+      const startValue = saved?.start;
+      const reported = Date.parse(entity?.last_updated ?? "");
+      const known = startValue !== undefined && live !== undefined;
+      const steps = known ? progress(startValue, live, target) : undefined;
+      return [{ room, startValue, live, reported, steps }];
+    });
+
+    const roomRow = (item: (typeof rooms)[number]) => {
+      // Never "100 %" before the goal is reached: the windows cannot be closed while it is not.
+      const done =
+        item.steps === undefined ? undefined : item.steps.closable ? 100 : Math.min(99, Math.floor(item.steps.done * 100));
+      const color = item.steps?.closable ? COLORS.fresh : COLORS.white;
+      const from = item.startValue === undefined ? undefined : this._i18n.whole(item.startValue);
+      const to = item.live === undefined ? undefined : this._i18n.whole(item.live);
+      return html`<div
+        class="static-row"
+        role="group"
+        aria-label=${from !== undefined && to !== undefined && done !== undefined
+          ? text.roomSpoken(this.roomLabel(item.room), from, to, this._i18n.percent(done))
+          : this.roomLabel(item.room)}
+      >
+        <span class="option-text">
+          <span>${this.roomLabel(item.room)}</span>
+          <span class="vent-co2" aria-hidden="true">${from !== undefined && to !== undefined ? text.co2Range(from, to) : "CO₂ ––"}</span>
+        </span>
+        <span class="list-value vent-percent" style=${`color: ${color}`} aria-hidden="true">
+          <span>${done === undefined ? "––" : this._i18n.percent(done)}</span>
+          <span class="vent-co2">${text.done}</span>
+        </span>
+      </div>`;
+    };
+
+    let rows: TemplateResult;
+    let foot: string;
+    if (running) {
+      // Can the windows be closed, and how long it takes: the slowest room decides.
+      const known = rooms.filter((item) => item.steps !== undefined);
+      const complete = rooms.length > 0 && known.length === rooms.length;
+      const closable = complete && known.every((item) => item.steps?.closable);
+      const waiting = known.filter((item) => !item.steps?.closable);
+      const estimates = waiting.map((item) =>
+        item.startValue !== undefined && item.live !== undefined && session !== undefined && !Number.isNaN(item.reported)
+          ? estimateMinutes(item.startValue, session.start, item.live, item.reported, target)
+          : undefined,
+      );
+      const left = !complete || closable || estimates.some((value) => value === undefined) ? undefined : Math.max(...(estimates as number[]));
+      rows = html`
         <div class="static-row">
           <span class="option-text"><span>${text.running}</span></span>
           <span class="list-value">
@@ -1279,17 +1414,51 @@ export class HaKlimaDashboard extends LitElement {
               <span class="option-text"><span>${text.endsBy}</span></span>
               <span class="list-value">${ends === undefined ? unknown : this._i18n.time(ends)}</span>
             </div>`}
-      </div>
-      <p class="timer-foot ${error ? "error" : ""}" role=${error ? "alert" : nothing}>${error ?? text.sentence}</p>
-      <button
-        type="button"
-        class="plain-button vent-end"
-        ?disabled=${this._ventilationEnding}
-        aria-busy=${this._ventilationEnding ? "true" : "false"}
-        @click=${() => void this.endVentilation()}
-      >
-        ${this._ventilationEnding ? text.ending : text.end}
-      </button>
+        ${rooms.map(roomRow)}
+        <div class="static-row">
+          <span class="option-text">
+            <span>${text.canClose}</span>
+            <span class="vent-co2">${text.goalShort(this._i18n.whole(target))}</span>
+          </span>
+          <span class="list-value" style=${`color: ${closable ? COLORS.fresh : COLORS.white}`}>
+            ${!complete ? unknown : closable ? text.yes : text.notYet}
+          </span>
+        </div>
+        ${closable
+          ? nothing
+          : html`<div class="static-row">
+              <span class="option-text"><span>${text.remaining}</span></span>
+              <span class="list-value">${left === undefined ? unknown : text.minutes(left)}</span>
+            </div>`}`;
+      foot = text.sentence;
+    } else if (session) {
+      rows = html`
+        <div class="static-row">
+          <span class="option-text"><span>${text.last}</span></span>
+          <span class="list-value">${new Date(session.start).toDateString() === new Date(now).toDateString() ? nothing : `${this._i18n.day(session.start)} `}${this._i18n.time(session.start)}${session.end === undefined ? nothing : html`–${this._i18n.time(session.end)}`}</span>
+        </div>
+        ${rooms.map(roomRow)}`;
+      foot = text.goal(this._i18n.whole(target));
+    } else {
+      rows = html``;
+      foot = data === undefined ? "" : text.never;
+    }
+    return html`
+      ${rows === undefined || (!running && !session)
+        ? nothing
+        : html`<div class="static-list" role="group" aria-label=${text.title}>${rows}</div>`}
+      <p class="timer-foot ${error ? "error" : ""}" role=${error ? "alert" : nothing}>${error ?? foot}</p>
+      ${running
+        ? html`<button
+            type="button"
+            class="plain-button vent-end"
+            ?disabled=${this._ventilationEnding}
+            aria-busy=${this._ventilationEnding ? "true" : "false"}
+            @click=${() => void this.endVentilation()}
+          >
+            ${this._ventilationEnding ? text.ending : text.end}
+          </button>`
+        : nothing}
     `;
   }
 
@@ -2826,6 +2995,8 @@ export class HaKlimaDashboard extends LitElement {
     this._sheet = undefined;
     this._sheetError = undefined;
     this._ventilationEnding = false;
+    this._vent = undefined;
+    this._ventRequest += 1;
     window.clearTimeout(this._endTimer);
     this._scrubTime = undefined;
     this._scrubbing = false;

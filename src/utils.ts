@@ -73,6 +73,8 @@ export const COLORS = {
   label: "var(--kd-label)",
   off: "var(--kd-off)",
   plan: "var(--kd-plan)",
+  /** The running ventilation mode (fresh green). */
+  fresh: "var(--kd-fresh)",
   warning: "var(--kd-warning)",
   alert: "var(--kd-alert)",
   /** The critical red on the lighter ground of a popup option (contrast 4.5 : 1 for 17 px text). */

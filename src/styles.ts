@@ -14,6 +14,7 @@ export const styles = css`
       --kd-off: #8e8e93;
       --kd-neutral: #c7c7cc;
       --kd-plan: #f2f2f7;
+      --kd-fresh: #30d158;
       --kd-closed: #6b6b70;
       --kd-warning: #ff9f0a;
       --kd-alert: #ff453a;
@@ -66,6 +67,7 @@ export const styles = css`
       --kd-off: #6e6e73;
       --kd-neutral: #48484a;
       --kd-plan: #3a3a3c;
+      --kd-fresh: #1e7b34;
       --kd-closed: #c7c7cc;
       --kd-warning: #a85200;
       --kd-alert: #c4001a;
@@ -1232,6 +1234,25 @@ export const styles = css`
 
     .static-row + .static-row {
       border-top: 1px solid var(--kd-fill-border);
+    }
+
+    /* Větrací režim: procenta s popiskem pod nimi, vpravo. */
+    .vent-percent {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      line-height: 22px;
+    }
+
+    .vent-percent .vent-co2 {
+      line-height: 16px;
+    }
+
+    /* Větrací režim: řádek místnosti, druhý řádek je CO₂ od začátku do teď. */
+    .vent-co2 {
+      color: var(--kd-label);
+      font-size: 13px;
+      font-variant-numeric: tabular-nums;
     }
 
     .timer-foot.error {

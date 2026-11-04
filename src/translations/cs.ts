@@ -215,6 +215,7 @@ export const cs = {
     climateSpoken: "Klimatizace zapnutá",
     ventilation: "Větrací režim",
     ventilationSpoken: "Zapnutý. Otevře podrobnosti a ukončení.",
+    ventilationOffSpoken: "Vypnutý. Otevře poslední větrání.",
   },
 
   // Větrací režim: popup ze štítku souhrnu domu (CURRENT_SPEC.md, Větrací režim)
@@ -226,6 +227,18 @@ export const cs = {
     end: "Ukončit",
     ending: "Ukončuje se…",
     ended: "Větrací režim skončil.",
+    last: "Poslední větrání",
+    never: "Zatím žádné větrání.",
+    canClose: "Lze zavřít okna",
+    yes: "Ano",
+    notYet: "Ještě ne",
+    remaining: "Do cíle zbývá asi",
+    done: "hotovo",
+    goalShort: (ppm: string) => `CO₂ ${ppm} ppm nebo méně`,
+    goal: (ppm: string) => `Cíl: CO₂ ${ppm} ppm nebo méně.`,
+    co2Range: (from: string, to: string) => `CO₂ ${from} → ${to} ppm`,
+    minutes: (count: number) => `${count} min`,
+    roomSpoken: (room: string, from: string, to: string, percent: string) => `${room}: CO₂ z ${from} na ${to} ppm, hotovo ${percent}`,
   },
 
   // Durations and periods for screen readers

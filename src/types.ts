@@ -130,6 +130,8 @@ export interface DashboardConfig {
   ventilation_entity?: EntityId;
   /** Timer of the ventilation mode (`finishes_at`); without it the "ends by" row is left out. */
   ventilation_timer_entity?: EntityId;
+  /** CO₂ (ppm) at or below which the windows can be closed (default 450). */
+  ventilation_co2_target?: number;
   outside?: OutsideConfig;
   rooms: RoomConfig[];
   thresholds?: Partial<DashboardThresholds>;
@@ -187,6 +189,7 @@ export interface Settings {
   houseModes: { winter: string; summer: string };
   ventilationEntity?: EntityId;
   ventilationTimerEntity?: EntityId;
+  ventilationCo2Target: number;
   outside?: OutsideConfig;
   /** Shared thresholds (outdoor air uses them; every room has its own merged copy). */
   thresholds: DashboardThresholds;
