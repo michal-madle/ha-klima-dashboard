@@ -55,6 +55,12 @@ Formát každého bodu: **Navrženo** → **Opuštěno, protože** → **Nahraze
 - Poznámky revize, neřešeno: štítek větrání odsune „Topí …“ na druhý řádek a karty místností se při startu a konci režimu posunou o řádek štítků; výchozí rozdíl řádků popupů (poloměr 16 px, popisek 15 px, hodnota 17 px) proti `DASHBOARD_UX_SYSTEM.md` platí i pro popupy Okna a Kvalita vzduchu; `last_changed` režimu se po restartu Home Assistantu nastaví na čas restartu, režim se ale po restartu vypíná.
 - Nepotvrzeno, čeká na HA: `timer.ventilation_mode` (atribut `finishes_at`) není v žádném exportu; do `ENTITY_MAP.md` se zapíše po restartu HA a novém exportu, spec ho zatím jmenuje jen jako „časovač režimu“. Kód karty a příklad YAML nové klíče zatím nemají (spec je před kódem).
 
+## 2026-11-04 · Všechny name a description v příkladu a README vícejazyčně (potvrzeno uživatelem)
+
+- Uživatel: „Předělej všechny name a description na multilanguage.“ „Klidně cokoliv uprav, nebo mi řekni. Pak napiš co mám udělat já.“
+- Nahrazeno v `examples/domov_prototyp_loznice.yaml` a v ukázkách `README.md`: názvy místností, oken a dveří a předvolby žaluzií (name i description) mají podobu `{cs, en, sv}`. První jazyk (cs) zůstává identita místnosti. Texty předvoleb jsou stejné jako výchozí texty karty podle ikony; ostatní překlady (Study / Arbetsrum, Living room / Vardagsrum, Garden door / Trädgårdsdörr, Window / Fönster) jsou moje, uživatel je neschvaloval. Osobní jména (Maxík, Mikuláš) jsou ve všech jazycích stejná.
+- Test „příklad YAML … výchozí hodnoty“ porovnává příklad s výchozími hodnotami bez textů předvoleb (karta je bez nich pojmenuje sama podle ikony); texty předvoleb ověřuje zvlášť na tři jazyky.
+
 ## 2026-11-03 · Typografie čísel z Energie v Klimatu (nepotvrzeno, otázka položena D. M.)
 
 - Uživatel 3. 11. 2026 u nového společného pravidla „číslo 17 px tučně, jednotka 12 px šedě“ (Energie, dlaždice diagramu): „Ano změn všude“.

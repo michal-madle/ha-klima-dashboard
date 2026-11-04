@@ -62,15 +62,15 @@ V zobrazení Masonry lze dosáhnout dvou sloupců dvěma kartami vedle sebe: ka�
   title: Domov
   house_mode_entity: input_select.house_mode
   rooms:
-    - name: Ložnice      # … celá konfigurace místnosti z examples/
-    - name: Pracovna
-    - name: Maxík
+    - name: {cs: Ložnice, en: Bedroom, sv: Sovrum}   # … celá konfigurace místnosti z examples/
+    - name: {cs: Pracovna, en: Study, sv: Arbetsrum}
+    - name: {cs: Maxík, en: Maxík, sv: Maxík}
 - type: custom:ha-klima-dashboard
   title: ""
   house_mode_entity: input_select.house_mode
   rooms:
-    - name: Mikuláš
-    - name: Obývák
+    - name: {cs: Mikuláš, en: Mikuláš, sv: Mikuláš}
+    - name: {cs: Obývák, en: Living room, sv: Vardagsrum}
 ```
 
 Vzhled je dosud ověřen jen v Chromiu s náhradními daty, ne na iPhonu v aplikaci Home Assistant.
@@ -119,7 +119,7 @@ Klíče společné pro celý dům: `title`, `theme`, `language`, `house_mode_ent
 Místnost se dvěma okny, bez čidla CO₂ a PM2.5, s vlastním obrázkem, odkazem a chladnějším pásmem v zimě (entity jsou jen ukázka):
 
 ```yaml
-- name: Obývák
+- name: {cs: Obývák, en: Living room, sv: Vardagsrum}
   image: /local/klima/obyvak.jpg
   link: /lovelace/obyvak
   temperature: sensor.vas_teplomer_temperature
@@ -128,9 +128,9 @@ Místnost se dvěma okny, bez čidla CO₂ a PM2.5, s vlastním obrázkem, odkaz
   pm25: false
   window:
     - entity: binary_sensor.vase_okno
-      name: Okno
+      name: {cs: Okno, en: Window, sv: Fönster}
     - entity: binary_sensor.vase_dvere_zahrada
-      name: Dveře na zahradu
+      name: {cs: Dveře na zahradu, en: Garden door, sv: Trädgårdsdörr}
   thresholds:
     winter_min: 19
 ```
