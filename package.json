@@ -10,7 +10,7 @@
     "coverage": "node tests/coverage.mjs"
   },
   "dependencies": {
-    "ha-dashboard-kit": "git+https://github.com/michal-madle/ha-dashboard-kit.git#e96c7814d57fe664fd380e22edbb0196a7e4704d",
+    "ha-dashboard-kit": "git+https://github.com/michal-madle/ha-dashboard-kit.git#79c0d626676214e3c5eea708f4af31bb6b1d8881",
     "lit": "^3.3.1"
   },
   "devDependencies": {

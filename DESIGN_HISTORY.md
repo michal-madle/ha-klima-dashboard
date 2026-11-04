@@ -3,6 +3,11 @@
 Jen archiv. Nic z tohoto dokumentu není závazné; platí `CURRENT_SPEC.md`. Pravidla vedení: `AGENTS.md` kitu, oddíl Dokumentace. Nové záznamy (2. 11. 2026 a dál) jsou v oddíle Záznamy, starší jsou níže ve formátu Navrženo → Opuštěno → Nahrazeno. Stav záznamu: **potvrzeno**, **nahrazeno**, **zamítnuto**, **nepotvrzeno** (otázka položena uživateli v chatu, do spec nepatří).
 Formát každého bodu: **Navrženo** → **Opuštěno, protože** → **Nahrazeno**. Kde Memory důvod nezaznamenává, je to uvedeno.
 
+## 2026-11-04 · Obraz Home Assistantu v `ha-config`, vazba na kit (potvrzeno uživatelem)
+
+- `ENTITY_MAP.md` je v `ha-config` jako `klima/ENTITY_MAP.md`, entity ověřuje jeden obraz `ha/entities.json` (místo `klima.json` a šablony). Nový `klima.json` z 4. 11. byl omylem export Energie; místnosti (465 entit s oblastmi) jsou obnoveny z historie `ha-config`. Podrobnosti a slova uživatele: `DESIGN_HISTORY.md` kitu, záznam z 4. 11. (ha-config jako obraz HA).
+- `package.json` a `package-lock.json`: kit připnut na `79c0d626…` místo `e96c781…`, který zmizel při squash `main` kitu.
+
 ## 2026-11-04 · Soukromá data přesunuta do `ha-config` (potvrzeno uživatelem)
 
 - Uživatel 4. 11. 2026: „Udelal jsem uklid. adresare HA entities, tools a exporty jsem presunul do privatniho ha-config.“ a „Klidne cokoli uprav, smaz, presun - i mezi repository. Pokud bys nasel dalsi veci co patri jinam, uprav to.“ Kde to bude a jak se to bude jmenovat, je mu jedno; nesmí se nic ztratit.

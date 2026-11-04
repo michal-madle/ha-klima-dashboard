@@ -9,4 +9,4 @@ Agenti a společná pravidla jsou v [ha-dashboard-kit](https://github.com/michal
 
 ## Zdroje specifické pro Klima
 
-- Soukromý repozitář `ha-config`: `klima/entity/klima.json` je export entit, z něj je odvozená `ENTITY_MAP.md`. Hodinový export Klimatu: `klima/hodiny/export_hodiny.py`.
+- Soukromý repozitář `ha-config`: `ha/entities.json` je obraz Home Assistantu, z něj je odvozená `klima/ENTITY_MAP.md`. Hodinový export Klimatu: `klima/hodiny/export_hodiny.py`.

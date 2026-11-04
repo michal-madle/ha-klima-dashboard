@@ -1,6 +1,6 @@
 # CURRENT_SPEC – Domov (Klima Dashboard)
 
-Jediný zdroj pravdy o chování a vzhledu. Obsahuje pouze platná rozhodnutí. Entity jsou v `ENTITY_MAP.md` (soukromý repozitář `ha-config`, `klima/entity/`), historie v `DESIGN_HISTORY.md`.
+Jediný zdroj pravdy o chování a vzhledu. Obsahuje pouze platná rozhodnutí. Entity jsou v `ENTITY_MAP.md` (soukromý repozitář `ha-config`, `klima/ENTITY_MAP.md`), historie v `DESIGN_HISTORY.md`.
 Co uživatel nerozhodl, se do souboru nepíše: je to otázka uživateli v chatu (`AGENTS.md` kitu, oddíl Dokumentace). Historie je v `DESIGN_HISTORY.md`; pravidla společná s kartou Energie jsou v `CURRENT_SPEC.md` kitu `ha-dashboard-kit`.
 
 ## Cíl projektu
