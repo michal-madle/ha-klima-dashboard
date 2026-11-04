@@ -36,10 +36,9 @@ export const en: Texts = {
     `${room}: temperature${direction ? ` ${direction}` : ""} over ${period}, room history for ${history}`,
   link: { page: "Opens the room page.", web: "Opens the link." },
 
-  air: "Air quality",
   airSensor: (label, value, trend, stale) => `${label} ${value ?? "unknown"}${trend ? `, ${trend}` : ""}${stale}`,
-  airDescription: (room, sensors, popup) =>
-    `${room}: air quality, ${sensors || "no sensor"}. ${popup ? "Opens details." : "Opens details and history."}`,
+  airDescription: (room, sensors, period) =>
+    `${room}: air quality, ${sensors || "no sensor"}. Opens the chart for ${period}.`,
   detailsAndHistory: "Details and history",
   unknownValue: "unknown",
   trend: { rising: "rising", falling: "falling", stable: "stable" },
@@ -152,12 +151,13 @@ export const en: Texts = {
     noHistory: (hours) => `No data for ${hours === 1 ? "the last hour" : `the last ${hours} hours`}.`,
     chart: (period) =>
       `Chart of ${period}. The left and right arrow keys move through time, the End key returns to now.`,
-    temperatureDetails: "Temperature details",
   },
 
   chart: {
     now: "Now",
     yesterday: "yesterday",
+    ventilationOn: "running",
+    ventilationOff: "off",
   },
 
   summaryChips: {

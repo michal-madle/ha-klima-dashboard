@@ -272,10 +272,15 @@ export interface BlindPreset {
  * history (opened from the temperature), the air quality, or the windows of a room with more than one.
  */
 /** "ventilation" is the house-wide popup of the summary chip; its `room` is only the first room (unused). */
-export type SheetKind = "heating" | "climate" | "history" | "air" | "windows" | "ventilation";
+export type SheetKind = "heating" | "climate" | "history" | "windows" | "ventilation";
+
+/** What the room history popup draws (the segmented control switches it). */
+export type HistoryMetric = "temperature" | "co2" | "pm25";
 
 export interface SheetState {
   kind: SheetKind;
+  /** History popup only: the quantity on the chart. */
+  metric?: HistoryMetric;
   /** The room the popup is about; for a group (a house summary chip) the first of `rooms`. */
   room: Room;
   /** Topení / Klimatizace popup opened from a summary chip: every room it sets, in card order. */
