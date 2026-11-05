@@ -380,7 +380,7 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
       ...["hours", "night_start", "night_end", "min_temperature_span"].map((key) => `history.${key}`),
       "covers.script", "covers.tolerance", "covers.stall_seconds",
       ...["name", "icon", "position", "tilt", "description"].map((key) => `covers.presets[].${key}`),
-      ...["name", "image", "link", "temperature", "humidity", "absolute_humidity", "carbon_dioxide", "pm25", "window[].entity", "window[].name",
+      ...["name", "image", "link", "temperature", "humidity", "carbon_dioxide", "pm25", "window[].entity", "window[].name",
         "cover", "cover_presets", "thresholds", "heating.climate", "heating.overlay", "heating.target", "heating.intensity",
         "air_conditioner"].map((key) => `rooms[].${key}`),
     ];
@@ -399,7 +399,7 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
     // Every room lists every room key (an empty value is the default).
     for (const room of example().rooms as Array<Record<string, unknown>>) {
       expect(Object.keys(room), room.name as string).toEqual([
-        "name", "image", "link", "temperature", "humidity", "absolute_humidity", "carbon_dioxide", "pm25", "window", "cover",
+        "name", "image", "link", "temperature", "humidity", "carbon_dioxide", "pm25", "window", "cover",
         "cover_presets", "thresholds", "heating", "air_conditioner",
       ]);
     }
@@ -640,7 +640,7 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
       await expect(room).toHaveAttribute("aria-label", /^Pracovna: hotovo 47\s%\. CO₂ ppm: Před 1\s180, Teď 820\./);
       await expect(room.locator(".vent-line").nth(0).locator(".vent-num")).toHaveText(["1 180", "820"]);
       await expect(room.locator(".vent-line").nth(1).locator(".vent-num")).toHaveText(["21,4", "20,2"]);
-      await expect(room.locator(".vent-line").nth(2).locator(".vent-num")).toHaveText(["9,1", "8,4"]);
+      await expect(room.locator(".vent-line").nth(2).locator(".vent-num")).toHaveText(["9,4", "8,4"]);
       const ring = room.locator("kd-ring");
       await expect(ring).toHaveCount(1);
       await expect(ring).toHaveAttribute("num", "47");
@@ -648,10 +648,10 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
       // The columns are spread evenly over the whole width of the popup: the ring stands in the third value column,
       // the last column reaches the right edge of the group, and the head over the ring says what it counts down to.
       await expect(ring).not.toHaveAttribute("unit", /.+/);
-      await expect(page.locator(".sheet .vent-head .vent-num")).toHaveText(["Před", "Teď", "↓ 420"]);
+      await expect(page.locator(".sheet .vent-head .vent-num")).toHaveText(["Před", "Teď", "↓ 420 ppm"]);
       const group = await page.locator(".sheet .static-list").boundingBox();
       const ringBox = await ring.boundingBox();
-      expect(ringBox!.x + ringBox!.width, "kolečko u pravého okraje tabulky").toBeGreaterThan(group!.x + group!.width - 60);
+      expect(ringBox!.x + ringBox!.width, "kolečko u pravého okraje tabulky, v jedné řadě s hodnotami po skončení").toBeGreaterThan(group!.x + group!.width - 24);
       const second = await room.locator(".vent-line").nth(0).locator(".vent-num").nth(1).boundingBox();
       expect(second!.x + second!.width, "druhý sloupec zhruba uprostřed šířky").toBeGreaterThan(group!.x + group!.width * 0.55);
       // No estimate, no row "Lze zavřít okna", no sentence about the end by closing the window.
@@ -678,10 +678,12 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
       await expect(ring).toHaveAttribute("num", "100");
       await expect(ring).toHaveAttribute("style", /--kd-fresh/);
       // A window closed while the mode runs: the room stays, the ring is grey and "okno zavřené" stands beside the name.
+      const heightOpen = (await room.boundingBox())!.height;
       await setStates(page, { "binary_sensor.pracovna_okno_pracovna": "off" });
       await expect(room).toHaveCount(1);
       await expect(ring).toHaveAttribute("style", /--kd-label/);
       await expect(room.locator(".vent-note")).toHaveText("okno zavřené");
+      expect((await room.boundingBox())!.height, "poznámka blok místnosti nezvětší").toBe(heightOpen);
       await setStates(page, { "binary_sensor.pracovna_okno_pracovna": "on", [CO2_PRACOVNA]: "820" });
       // A room that was fresh already at the start (400 ppm) and is at or below the target is 100 %, not 0 %.
       await page.locator(".sheet .close").click();
@@ -719,7 +721,7 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
           "input_boolean.ventilation_mode": [{ s: "off", lu: at(60) }, { s: "on", lu: at(4) }, { s: "off", lu: at(0.2) }],
           "sensor.pracovna_teplomer_pracovna_carbon_dioxide": [{ s: "1180", lu: at(30) }, { s: "1180", lu: at(4) }, { s: "520", lu: at(1) }],
           "binary_sensor.pracovna_okno_pracovna": [{ s: "off", lu: at(30) }, { s: "on", lu: at(3) }],
-          "sensor.pracovna_tado_ce_pracovna_absolute_humidity": [{ s: "9.1", lu: at(30) }, { s: "7.2", lu: at(0.5) }],
+          "sensor.pracovna_teplomer_pracovna_humidity": [{ s: "50", lu: at(30) }, { s: "40", lu: at(0.5) }],
           "sensor.pracovna_teplomer_pracovna_temperature": [{ s: "21.4", lu: at(30) }, { s: "20.6", lu: at(0.5) }],
         };
         test.historyFor = (id: string) => histories[id];
@@ -734,7 +736,7 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
       await expect(room.locator("kd-ring")).toHaveCount(0);
       await expect(room.locator(".vent-line").nth(0).locator(".vent-num")).toHaveText(["1 180", "520", "820"]);
       await expect(room.locator(".vent-line").nth(1).locator(".vent-num")).toHaveText(["21,4", "20,6", "20,2"]);
-      await expect(room.locator(".vent-line").nth(2).locator(".vent-num")).toHaveText(["9,1", "7,2", "8,4"]);
+      await expect(room.locator(".vent-line").nth(2).locator(".vent-num")).toHaveText(["9,4", "7,1", "8,4"]);
       await expect(room).toHaveAttribute("aria-label", /^Pracovna: CO₂ ppm: Před 1\s180, Po 520, Teď 820\. Teplota °C: Před 21,4, Po 20,6, Teď 20,2\./);
       await expect(page.locator(".sheet .timer-foot")).toHaveCount(0);
       await expect(page.getByRole("button", { name: /Ukončit|Ukončuje/ })).toHaveCount(0);
@@ -756,7 +758,7 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
           "input_boolean.ventilation_mode": [{ s: "off", lu: at(8000) }, { s: "on", lu: at(4320) }, { s: "off", lu: at(4296) }],
           "sensor.pracovna_teplomer_pracovna_carbon_dioxide": [{ s: "1180", lu: at(4330) }, { s: "1180", lu: at(4320) }, { s: "520", lu: at(4297) }],
           "binary_sensor.pracovna_okno_pracovna": [{ s: "off", lu: at(4330) }, { s: "on", lu: at(4310) }],
-          "sensor.pracovna_tado_ce_pracovna_absolute_humidity": [{ s: "9.1", lu: at(4330) }, { s: "7.2", lu: at(4296) }, { s: "7.9", lu: at(4280) }],
+          "sensor.pracovna_teplomer_pracovna_humidity": [{ s: "50", lu: at(4330) }, { s: "40", lu: at(4296) }, { s: "44", lu: at(4280) }],
           "sensor.pracovna_teplomer_pracovna_temperature": [{ s: "21.4", lu: at(4330) }, { s: "20.6", lu: at(4296) }, { s: "20.9", lu: at(4280) }],
         };
         test.historyFor = (id: string) => histories[id];
@@ -768,7 +770,7 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
       const old = page.locator(".sheet .vent-room .vent-line");
       await expect(old.nth(0).locator(".vent-num")).toHaveText(["1 180", "520", "520"]);
       await expect(old.nth(1).locator(".vent-num")).toHaveText(["21,4", "20,6", "20,9"]);
-      await expect(old.nth(2).locator(".vent-num")).toHaveText(["9,1", "7,2", "7,9"]);
+      await expect(old.nth(2).locator(".vent-num")).toHaveText(["9,4", "7,1", "8,0"]);
     });
 
     await test.step("chyba příkazu: text tlačítka Ukončit se nahradí hláškou, tlačítko zůstane aktivní, haptika failure", async () => {
