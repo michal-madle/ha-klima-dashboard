@@ -3,6 +3,11 @@
 Jen archiv. Nic z tohoto dokumentu není závazné; platí `CURRENT_SPEC.md`. Pravidla vedení: `AGENTS.md` kitu, oddíl Dokumentace. Nové záznamy (2. 11. 2026 a dál) jsou v oddíle Záznamy, starší jsou níže ve formátu Navrženo → Opuštěno → Nahrazeno. Stav záznamu: **potvrzeno**, **nahrazeno**, **zamítnuto**, **nepotvrzeno** (otázka položena uživateli v chatu, do spec nepatří).
 Formát každého bodu: **Navrženo** → **Opuštěno, protože** → **Nahrazeno**. Kde Memory důvod nezaznamenává, je to uvedeno.
 
+## 2026-11-05 · Absolutní vlhkost před a po větrání v popupu Větrací režim (návrh, nepotvrzeno, otázky položeny D. M.)
+
+- Uživatel 5. 11. 2026: „Já bych si v HA udělal jednu statistiku: absolutní vlhkost před větráním vs. po větrání. Do toho větracího režimu. A pak ještě po ustálení - po 25 min (nebo do teď pokud je méně než 25 min po skončení větrání). Vše v tom popupu“.
+- Nepotvrzeno, předloženo uživateli: skupina „Absolutní vlhkost“ v popupu Větrací režim, řádek za místnost (jen s čidly teploty a vlhkosti), hodnoty g/m³ z teploty a relativní vlhkosti z historie recorderu (bez nové entity v Home Assistantu), sloupce Před / Po / Po 25 min (do uplynutí 25 min „Teď“). Do spec se nezapisuje, dokud uživatel neodpoví.
+
 ## 2026-11-04 · Graf CO₂ a PM2.5 místo popupu Kvalita vzduchu, učesání grafů (potvrzeno)
 
 - Uživatel 4. 11. 2026: „Klik na CO2/PM2.5 udělej rovnou graf podobně jako u teploty. Podobně zvýrazni větrání, otevřené okna atd. Též hranice CO2 z nastavení. Ten mezi popup odstraň a rovnou zobraz graf. Top best UX a UI design, sjednoť to. Ta teplota je 90% dobrý. Je tam vše, chce to jen učesat. Klidně polaď i ten graf teplot ať je to super duper mega cool profi best apple hig style. Ten odkaz na Detail teploty dej pryč.“
