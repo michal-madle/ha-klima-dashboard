@@ -1480,7 +1480,8 @@ export const styles = css`
         grid-template-columns: minmax(86px, 1.3fr) repeat(3, minmax(0, 1fr));
       }
 
-      .vent-q {
+      .vent-q,
+      .vent-head {
         font-size: 12px;
       }
 
