@@ -1391,10 +1391,12 @@ export const styles = css`
       border-top: 1px solid var(--kd-fill-border);
     }
 
-    /* Větrací režim: tabulka místností, sloupce Před | Po | Teď těsně u popisku (ne roztažené přes celou šířku). */
+    /* Větrací režim: tabulka místností. Popisek řádku a tři stejně široké sloupce hodnot přes celou šířku popupu
+       (uživatel 5. 11. 2026: „ať jsou rovnoměrně na celou šířku popupu“); třetí sloupec je za běhu kolečko. */
     .vent-summary {
       min-height: 44px;
       flex-wrap: wrap;
+      column-gap: 12px;
       row-gap: 0;
     }
 
@@ -1405,25 +1407,38 @@ export const styles = css`
     }
 
     .vent-table {
+      --vent-cols: minmax(92px, 1.3fr) repeat(3, minmax(0, 1fr));
       padding: 6px 16px 8px;
       border-top: 1px solid var(--kd-fill-border);
     }
 
-    .vent-line {
+    .vent-head,
+    .vent-room {
       display: grid;
-      grid-template-columns: 92px repeat(var(--columns, 3), 46px);
-      column-gap: 6px;
+      grid-template-columns: var(--vent-cols);
       align-items: baseline;
-      min-height: 22px;
       font-size: 15px;
       line-height: 22px;
       font-variant-numeric: tabular-nums;
     }
 
+    /* The lines of a room are cells of the grid of the room. */
+    .vent-room-main {
+      display: contents;
+    }
+
+    .vent-line {
+      display: contents;
+    }
+
+    .vent-line > :first-child {
+      grid-column: 1;
+    }
+
     .vent-q {
       color: var(--kd-label);
       font-size: 13px;
-      line-height: 18px;
+      line-height: 22px;
     }
 
     .vent-num {
@@ -1439,22 +1454,15 @@ export const styles = css`
       align-items: end;
     }
 
-    /* The head stays on one line; a longer text (+180 min) may run into the gap to the left. */
+    /* The head stays on one line (a longer text such as +180 min or "do 420 ppm" may run over the edge of its column). */
     .vent-head .vent-num {
       overflow: visible;
       white-space: nowrap;
     }
 
-    .vent-room {
-      position: relative;
-    }
-
-    /* The ring stands in the place of the third column (after the label column of 92 px and two columns of 46 px with a 6 px gap),
-       centred on the three lines under the name. */
-    .vent-room.with-ring kd-ring {
-      position: absolute;
-      top: 33px;
-      left: 205px;
+    /* The head of the ring column: the text is centred over the ring. */
+    .vent-head .vent-num.ring-head {
+      text-align: center;
     }
 
     .vent-room + .vent-room {
@@ -1463,17 +1471,32 @@ export const styles = css`
       border-top: 1px solid var(--kd-fill-border);
     }
 
-    /* The shared ring of the kit in the colours of the card; the fill colour is set per room. */
+    .vent-room-head {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      min-height: 22px;
+      font-size: 17px;
+      font-weight: 500;
+    }
+
+    /* "okno zavřené" beside the name of a room whose window was closed while the mode runs (the ring is grey). */
+    .vent-note {
+      color: var(--kd-label);
+      font-size: 13px;
+      font-weight: 400;
+    }
+
+    /* The ring of the kit stands in the third value column, centred on the three lines under the name; its colours are the card's. */
     kd-ring {
       --hdk-ring-track: rgb(118 118 128 / 24%);
       --hdk-ring-text: var(--kd-text);
       --hdk-ring-sub: var(--kd-label);
-    }
-
-    .vent-room-head {
-      min-height: 22px;
-      font-size: 17px;
-      font-weight: 500;
+      grid-column: 4;
+      grid-row: 2 / span 3;
+      align-self: center;
+      justify-self: center;
     }
 
     /* Větrací režim: řádek místnosti, druhý řádek je CO₂ od začátku do teď. */
@@ -1511,7 +1534,7 @@ export const styles = css`
 
     /* A failed command: the text of the button says so, the button stays active (a new tap tries again). */
     .vent-end.error {
-      color: var(--kd-warning);
+      color: var(--kd-alert-popup);
     }
 
     /* Fokus jen programově (po zániku štítku Větrací režim), bez rámečku. */

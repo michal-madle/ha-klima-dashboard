@@ -57,12 +57,13 @@ export interface Progress {
 }
 
 /**
- * Progress of a room: 1 (100 %) only at or below `full` (420 ppm by default, about the outdoor air); between the start and
- * `full` it is the share of the fall, at most 99 % until `full` is reached. `closable` is at or below `target` (500 ppm).
+ * Progress of a room: 1 (100 %) at or below `full` (420 ppm by default, about the outdoor air), or when the room was already at
+ * or below `full` at the start and is at or below `target`; between the start and `full` it is the share of the fall, at most
+ * 99 % until `full` is reached. `closable` is at or below `target` (500 ppm).
  */
 export function progress(start: number, now: number, target: number, full: number): Progress {
   const closable = now <= target;
-  if (now <= full) {
+  if (now <= full || (start <= full && closable)) {
     return { done: 1, closable };
   }
   if (start <= full) {
