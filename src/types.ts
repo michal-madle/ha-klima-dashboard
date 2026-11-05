@@ -134,6 +134,8 @@ export interface DashboardConfig {
   ventilation_timer_entity?: EntityId;
   /** CO₂ (ppm) at or below which the windows can be closed (default 450). */
   ventilation_co2_target?: number;
+  /** CO₂ (ppm) at or below which the ventilation counts as complete (100 %). */
+  ventilation_co2_full?: number;
   /** Minutes after the end of the ventilation mode at which the absolute humidity "settles" (default 25). */
   ventilation_settle_minutes?: number;
   outside?: OutsideConfig;
@@ -195,6 +197,7 @@ export interface Settings {
   ventilationEntity?: EntityId;
   ventilationTimerEntity?: EntityId;
   ventilationCo2Target: number;
+  ventilationCo2Full: number;
   ventilationSettleMinutes: number;
   outside?: OutsideConfig;
   /** Shared thresholds (outdoor air uses them; every room has its own merged copy). */

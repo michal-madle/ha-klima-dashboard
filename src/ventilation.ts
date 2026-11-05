@@ -6,14 +6,6 @@ import type { HistoryPoint } from "./history";
  * režim). Everything is computed from the state history of Home Assistant, nothing is stored.
  */
 
-/** CO₂ outdoors in ppm. It is not measured: an assumption of the estimate only. */
-export const OUTDOOR_CO2 = 420;
-/** The estimate needs at least this much time and fall of CO₂ since the start. */
-const ESTIMATE_MIN_MINUTES = 2;
-const ESTIMATE_MIN_DROP = 30;
-/** A longer estimate means nothing ("––"). */
-const ESTIMATE_MAX_MINUTES = 120;
-
 export interface VentilationSession {
   start: number;
   /** Undefined while the mode is still on. */
@@ -58,46 +50,23 @@ export function co2Value(state: string | undefined): number | undefined {
 }
 
 export interface Progress {
-  /** 0 to 1: how far the CO₂ went from its value at the start towards the target. */
+  /** 0 to 1: how far the CO₂ went from its value at the start down to the "fully aired" value. */
   done: number;
-  /** The CO₂ is at or below the target: the window can be closed. */
+  /** The CO₂ is at or below the target: the windows can be closed (the ring is green). */
   closable: boolean;
 }
 
-export function progress(start: number, now: number, target: number): Progress {
-  if (now <= target) {
-    return { done: 1, closable: true };
-  }
-  if (start <= target) {
-    return { done: 0, closable: false };
-  }
-  return { done: Math.min(1, Math.max(0, (start - now) / (start - target))), closable: false };
-}
-
 /**
- * Minutes until the CO₂ reaches the target, in whole minutes. The CO₂ falls towards the outdoor
- * value exponentially: k = ln((C0 − out) / (C − out)) / t, remaining = ln((C − out) / (target − out)) / k.
- * Undefined when it cannot be said (too little time or fall since the start, the CO₂ does not fall,
- * the target is not above the outdoor value, or the answer is longer than two hours).
+ * Progress of a room: 1 (100 %) only at or below `full` (420 ppm by default, about the outdoor air); between the start and
+ * `full` it is the share of the fall, at most 99 % until `full` is reached. `closable` is at or below `target` (500 ppm).
  */
-export function estimateMinutes(
-  start: number,
-  startedAt: number,
-  now: number,
-  reportedAt: number,
-  target: number,
-): number | undefined {
-  if (target <= OUTDOOR_CO2 || now <= target || now <= OUTDOOR_CO2 || start - now < ESTIMATE_MIN_DROP) {
-    return undefined;
+export function progress(start: number, now: number, target: number, full: number): Progress {
+  const closable = now <= target;
+  if (now <= full) {
+    return { done: 1, closable };
   }
-  const elapsed = (reportedAt - startedAt) / 60_000;
-  if (!(elapsed >= ESTIMATE_MIN_MINUTES)) {
-    return undefined;
+  if (start <= full) {
+    return { done: 0, closable };
   }
-  const rate = Math.log((start - OUTDOOR_CO2) / (now - OUTDOOR_CO2)) / elapsed;
-  const remaining = Math.log((now - OUTDOOR_CO2) / (target - OUTDOOR_CO2)) / rate;
-  if (!Number.isFinite(remaining) || remaining <= 0 || remaining > ESTIMATE_MAX_MINUTES) {
-    return undefined;
-  }
-  return Math.max(1, Math.ceil(remaining));
+  return { done: Math.min(0.99, Math.max(0, (start - now) / (start - full))), closable };
 }

@@ -40,7 +40,7 @@ import {
 import type { AfterTimer, HeatingControl, HeatingControlMode, ServiceCall } from "./heating-control";
 import { renderScene, sceneTone } from "./scenes";
 import { HOUR_MS, fetchHistory, normalizeToAxis, sampleNumeric, sharedAxis, stateAt } from "./history";
-import { co2Value, estimateMinutes, lastSession, openDuring, progress } from "./ventilation";
+import { co2Value, lastSession, openDuring, progress } from "./ventilation";
 import type { VentilationSession } from "./ventilation";
 import { pickText } from "ha-dashboard-kit/config";
 import { HoldOrDoubleTap } from "ha-dashboard-kit/gesture";
@@ -1333,7 +1333,8 @@ export class HaKlimaDashboard extends LitElement {
     const text = t.ventilation;
     const config = this._config;
     const running = this.ventilationOn();
-    const target = config?.ventilationCo2Target ?? 450;
+    const target = config?.ventilationCo2Target ?? 500;
+    const full = config?.ventilationCo2Full ?? 420;
     const data = this._vent;
     const session = data?.session;
     const unknown = html`<span class="no-data" aria-hidden="true">––</span><span class="sr-only">${t.unknownValue}</span>`;
@@ -1347,33 +1348,32 @@ export class HaKlimaDashboard extends LitElement {
     const started = Date.parse(this.getState(config?.ventilationEntity)?.last_changed ?? "");
     const minutes = Number.isNaN(started) ? undefined : Math.max(0, (now - started) / 60_000);
 
-    // The rooms of the list with their CO₂: running = windows open now (CO₂ now), ended = windows open during the run.
+    // The rooms of the table: those whose window is open now or was open during this run (a room whose window was closed
+    // while the mode runs stays, with a grey ring); running = CO₂ now, ended = CO₂ at the end.
     const rooms = this.ventilationRooms().flatMap((room) => {
       const saved = data?.rooms.find((item) => item.name === room.name);
       const open = openWindows(room, (id) => this.getState(id)).length > 0;
-      if (running ? !open : !saved?.opened) {
+      if (!open && !saved?.opened) {
         return [];
       }
       const entity = this.getState(room.carbon_dioxide);
       const live = running ? co2Value(entity?.state) : saved?.end;
       const startValue = saved?.start;
-      const reported = Date.parse(entity?.last_updated ?? "");
-      const known = startValue !== undefined && live !== undefined;
-      const steps = known ? progress(startValue, live, target) : undefined;
-      return [{ room, startValue, live, reported, steps }];
+      const steps = startValue !== undefined && live !== undefined ? progress(startValue, live, target, full) : undefined;
+      return [{ room, startValue, live, steps, open }];
     });
 
-    // The columns: before, then now (while the mode runs); after the end before, after and now, or "after N min" once N minutes have passed.
+    // The columns: before, then now (while the mode runs); after the end before, after and now, or "+N min" once N minutes have passed.
     const settleMinutes = config?.ventilationSettleMinutes ?? 25;
     const settled = session?.end !== undefined && now >= session.end + settleMinutes * 60_000;
-    const columns = running ? [text.before, t.chart.now] : [text.before, text.after, settled ? text.settledAfter(settleMinutes) : t.chart.now];
+    const columns = running ? [text.before, t.chart.now] : [text.before, text.after, settled ? text.settledShort(settleMinutes) : t.chart.now];
+    const spokenColumns = running ? columns : [text.before, text.after, settled ? text.settledAfter(settleMinutes) : t.chart.now];
 
-    // One block per room: its name with a thin progress bar (while the mode runs) and CO₂, temperature and absolute humidity as lines.
+    // One block per room: its name, CO₂, temperature and absolute humidity as lines and, while the mode runs, the progress ring
+    // in the place of the third column (green at or below the target, orange before it, grey when the window of the room is closed).
     const roomBlock = (item: (typeof rooms)[number]) => {
       const saved = data?.rooms.find((entry) => entry.name === item.room.name);
-      // Never "100 %" before the goal is reached: the windows cannot be closed while it is not.
-      const done =
-        item.steps === undefined ? undefined : item.steps.closable ? 100 : Math.min(99, Math.floor(item.steps.done * 100));
+      const done = item.steps === undefined ? undefined : Math.min(100, Math.floor(item.steps.done * 100));
       const lines = [
         { label: text.quantity.co2, entity: item.room.carbon_dioxide, triple: saved?.co2, live: co2Value(this.getState(item.room.carbon_dioxide)?.state), digits: false },
         { label: text.quantity.temperature, entity: item.room.temperature, triple: saved?.temperature, live: numberOf(this.getState(item.room.temperature)?.state), digits: true },
@@ -1389,25 +1389,35 @@ export class HaKlimaDashboard extends LitElement {
             shown: values.map((value) => (value === undefined ? undefined : line.digits ? this._i18n.one(value) : this._i18n.whole(value))),
           };
         });
+      const closable = item.steps?.closable === true;
       const spoken = [
-        running && done !== undefined ? `${text.done} ${this._i18n.percent(done)}` : undefined,
-        ...lines.map((line) => text.lineSpoken(line.label, line.shown.map((value, index) => `${columns[index]} ${value ?? t.unknownValue}`).join(", "))),
+        running && done !== undefined ? `${text.done} ${this._i18n.percent(done)}${closable ? `, ${text.closable}` : ""}` : undefined,
+        ...lines.map((line) => text.lineSpoken(line.label, line.shown.map((value, index) => `${spokenColumns[index]} ${value ?? t.unknownValue}`).join(", "))),
       ]
         .filter((part) => part !== undefined)
         .join(". ");
-      return html`<div class="vent-room" role="group" aria-label=${text.roomSpoken(this.roomLabel(item.room), spoken)}>
-        <div class="vent-room-head" aria-hidden="true">
-          <span>${this.roomLabel(item.room)}</span>
-          ${running && done !== undefined
-            ? html`<span class="vent-bar"><span style=${`width: ${done}%; background: ${item.steps?.closable ? COLORS.fresh : COLORS.white}`}></span></span>`
-            : nothing}
+      const ringColor = !item.open ? COLORS.label : closable ? COLORS.fresh : COLORS.warning;
+      return html`<div class="vent-room ${running ? "with-ring" : ""}" role="group" aria-label=${text.roomSpoken(this.roomLabel(item.room), spoken)}>
+        <div class="vent-room-main" aria-hidden="true">
+          <div class="vent-room-head">${this.roomLabel(item.room)}</div>
+          ${lines.map(
+            (line) => html`<div class="vent-line" style=${`--columns: ${columns.length}`}>
+              <span class="vent-q">${line.label}</span>
+              ${line.shown.map((value) => html`<span class="vent-num">${value ?? html`<span class="no-data">––</span>`}</span>`)}
+            </div>`,
+          )}
         </div>
-        ${lines.map(
-          (line) => html`<div class="vent-line" style=${`--columns: ${columns.length}`} aria-hidden="true">
-            <span class="vent-q">${line.label}</span>
-            ${line.shown.map((value) => html`<span class="vent-num">${value ?? html`<span class="no-data">––</span>`}</span>`)}
-          </div>`,
-        )}
+        ${running
+          ? html`<kd-ring
+              aria-hidden="true"
+              fraction=${(done ?? 0) / 100}
+              size="40"
+              stroke="6"
+              num=${done === undefined ? "––" : String(done)}
+              unit=${done === undefined ? "" : "%"}
+              style=${`--hdk-ring-fill: ${done === undefined ? COLORS.label : ringColor}`}
+            ></kd-ring>`
+          : nothing}
       </div>`;
     };
     const table =
@@ -1422,20 +1432,7 @@ export class HaKlimaDashboard extends LitElement {
           </div>`;
 
     let summary: TemplateResult | typeof nothing = nothing;
-    let closing: TemplateResult | typeof nothing = nothing;
-    let foot: string;
     if (running) {
-      // Can the windows be closed, and how long it takes: the slowest room decides.
-      const known = rooms.filter((item) => item.steps !== undefined);
-      const complete = rooms.length > 0 && known.length === rooms.length;
-      const closable = complete && known.every((item) => item.steps?.closable);
-      const waiting = known.filter((item) => !item.steps?.closable);
-      const estimates = waiting.map((item) =>
-        item.startValue !== undefined && item.live !== undefined && session !== undefined && !Number.isNaN(item.reported)
-          ? estimateMinutes(item.startValue, session.start, item.live, item.reported, target)
-          : undefined,
-      );
-      const left = !complete || closable || estimates.some((value) => value === undefined) ? undefined : Math.max(...(estimates as number[]));
       summary = html`
         <div class="static-row vent-summary">
           <span class="option-text">
@@ -1451,42 +1448,29 @@ export class HaKlimaDashboard extends LitElement {
             ? nothing
             : html`<span class="list-value vent-ends">${text.endsBy} ${ends === undefined ? unknown : this._i18n.time(ends)}</span>`}
         </div>`;
-      closing = html`
-        <div class="static-row">
-          <span class="option-text">
-            <span>${text.canClose}</span>
-            <span class="vent-co2">${text.goalShort(this._i18n.whole(target))}${closable || left === undefined ? nothing : ` · ${text.remainingShort(text.minutes(left))}`}</span>
-          </span>
-          <span class="list-value" style=${`color: ${closable ? COLORS.fresh : COLORS.white}`}>
-            ${!complete ? unknown : closable ? text.yes : text.notYet}
-          </span>
-        </div>`;
-      foot = text.sentence;
     } else if (session) {
       summary = html`
         <div class="static-row vent-summary">
           <span class="option-text"><span>${text.last}</span></span>
           <span class="list-value">${new Date(session.start).toDateString() === new Date(now).toDateString() ? nothing : `${this._i18n.day(session.start)} `}${this._i18n.time(session.start)}${session.end === undefined ? nothing : html`–${this._i18n.time(session.end)}`}</span>
         </div>`;
-      foot = text.goal(this._i18n.whole(target));
-    } else {
-      foot = data === undefined ? "" : text.never;
     }
     return html`
       ${!running && !session
         ? nothing
-        : html`<div class="static-list" role="group" aria-label=${text.title}>${summary}${table}${closing}</div>`}
-      <p class="timer-foot ${error ? "error" : ""}" role=${error ? "alert" : nothing}>${error ?? foot}</p>
+        : html`<div class="static-list" role="group" aria-label=${text.title}>${summary}${table}</div>`}
+      ${!running && !session && data !== undefined ? html`<p class="timer-foot">${text.never}</p>` : nothing}
       ${running
         ? html`<button
-            type="button"
-            class="plain-button vent-end"
-            ?disabled=${this._ventilationEnding}
-            aria-busy=${this._ventilationEnding ? "true" : "false"}
-            @click=${() => void this.endVentilation()}
-          >
-            ${this._ventilationEnding ? text.ending : text.end}
-          </button>`
+              type="button"
+              class="plain-button vent-end ${error ? "error" : ""}"
+              ?disabled=${this._ventilationEnding}
+              aria-busy=${this._ventilationEnding ? "true" : "false"}
+              @click=${() => void this.endVentilation()}
+            >
+              ${error ?? (this._ventilationEnding ? text.ending : text.end)}
+            </button>
+            ${error ? html`<span class="sr-only" role="alert">${error}</span>` : nothing}`
         : nothing}
     `;
   }
