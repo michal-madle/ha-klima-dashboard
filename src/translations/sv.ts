@@ -202,6 +202,7 @@ export const sv: Texts = {
     after: "Efter",
     settledAfter: (minutes) => `Efter ${minutes} min`,
     settledShort: (minutes) => `+${minutes} min`,
+    windowClosed: "fönstret stängt",
     roomSpoken: (room, parts) => `${room}: ${parts}`,
     lineSpoken: (label, values) => `${label}: ${values}`,
   },

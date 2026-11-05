@@ -201,6 +201,7 @@ export const en: Texts = {
     after: "After",
     settledAfter: (minutes) => `After ${minutes} min`,
     settledShort: (minutes) => `+${minutes} min`,
+    windowClosed: "window closed",
     roomSpoken: (room, parts) => `${room}: ${parts}`,
     lineSpoken: (label, values) => `${label}: ${values}`,
   },

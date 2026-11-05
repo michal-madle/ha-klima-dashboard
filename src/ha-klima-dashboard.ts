@@ -1399,9 +1399,11 @@ export class HaKlimaDashboard extends LitElement {
       const ringColor = !item.open ? COLORS.label : closable ? COLORS.fresh : COLORS.warning;
       return html`<div class="vent-room ${running ? "with-ring" : ""}" role="group" aria-label=${text.roomSpoken(this.roomLabel(item.room), spoken)}>
         <div class="vent-room-main" aria-hidden="true">
-          <div class="vent-room-head">${this.roomLabel(item.room)}</div>
+          <div class="vent-room-head">
+            ${this.roomLabel(item.room)}${running && !item.open ? html`<span class="vent-note">${text.windowClosed}</span>` : nothing}
+          </div>
           ${lines.map(
-            (line) => html`<div class="vent-line" style=${`--columns: ${columns.length}`}>
+            (line) => html`<div class="vent-line">
               <span class="vent-q">${line.label}</span>
               ${line.shown.map((value) => html`<span class="vent-num">${value ?? html`<span class="no-data">––</span>`}</span>`)}
             </div>`,
@@ -1414,8 +1416,7 @@ export class HaKlimaDashboard extends LitElement {
               size="40"
               stroke="6"
               num=${done === undefined ? "––" : String(done)}
-              unit=${done === undefined ? "" : "%"}
-              style=${`--hdk-ring-fill: ${done === undefined ? COLORS.label : ringColor}`}
+              style=${`--hdk-ring-fill: ${done === undefined ? COLORS.label : ringColor}; grid-row: 2 / span ${lines.length}`}
             ></kd-ring>`
           : nothing}
       </div>`;
@@ -1424,9 +1425,10 @@ export class HaKlimaDashboard extends LitElement {
       rooms.length === 0
         ? nothing
         : html`<div class="vent-table" role="group" aria-label=${text.title}>
-            <div class="vent-line vent-head" style=${`--columns: ${columns.length}`} aria-hidden="true">
+            <div class="vent-head" aria-hidden="true">
               <span class="vent-q"></span>
               ${columns.map((label) => html`<span class="vent-num">${label}</span>`)}
+              ${running ? html`<span class="vent-num ring-head">↓ ${this._i18n.whole(full)}</span>` : nothing}
             </div>
             ${rooms.map(roomBlock)}
           </div>`;

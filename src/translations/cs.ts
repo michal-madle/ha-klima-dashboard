@@ -233,6 +233,7 @@ export const cs = {
     after: "Po",
     settledAfter: (minutes: number) => `Po ${minutes} min`,
     settledShort: (minutes: number) => `+${minutes} min`,
+    windowClosed: "okno zavřené",
     roomSpoken: (room: string, parts: string) => `${room}: ${parts}`,
     lineSpoken: (label: string, values: string) => `${label}: ${values}`,
   },

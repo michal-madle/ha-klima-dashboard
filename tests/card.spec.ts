@@ -638,7 +638,6 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
       await expect(room).toHaveCount(1);
       await expect(room).toContainText("Pracovna");
       await expect(room).toHaveAttribute("aria-label", /^Pracovna: hotovo 47\s%\. CO₂ ppm: Před 1\s180, Teď 820\./);
-      await expect(page.locator(".sheet .vent-head .vent-num")).toHaveText(["Před", "Teď"]);
       await expect(room.locator(".vent-line").nth(0).locator(".vent-num")).toHaveText(["1 180", "820"]);
       await expect(room.locator(".vent-line").nth(1).locator(".vent-num")).toHaveText(["21,4", "20,2"]);
       await expect(room.locator(".vent-line").nth(2).locator(".vent-num")).toHaveText(["9,1", "8,4"]);
@@ -646,10 +645,15 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
       await expect(ring).toHaveCount(1);
       await expect(ring).toHaveAttribute("num", "47");
       await expect(ring).toHaveAttribute("style", /--kd-warning/);
-      // The ring stands where the third column would be, next to the two columns, not at the far edge of the popup.
-      const columns = await room.locator(".vent-line").nth(0).locator(".vent-num").nth(1).boundingBox();
+      // The columns are spread evenly over the whole width of the popup: the ring stands in the third value column,
+      // the last column reaches the right edge of the group, and the head over the ring says what it counts down to.
+      await expect(ring).not.toHaveAttribute("unit", /.+/);
+      await expect(page.locator(".sheet .vent-head .vent-num")).toHaveText(["Před", "Teď", "↓ 420"]);
+      const group = await page.locator(".sheet .static-list").boundingBox();
       const ringBox = await ring.boundingBox();
-      expect(ringBox!.x - (columns!.x + columns!.width), "kolečko hned za druhým sloupcem").toBeLessThan(20);
+      expect(ringBox!.x + ringBox!.width, "kolečko u pravého okraje tabulky").toBeGreaterThan(group!.x + group!.width - 60);
+      const second = await room.locator(".vent-line").nth(0).locator(".vent-num").nth(1).boundingBox();
+      expect(second!.x + second!.width, "druhý sloupec zhruba uprostřed šířky").toBeGreaterThan(group!.x + group!.width * 0.55);
       // No estimate, no row "Lze zavřít okna", no sentence about the end by closing the window.
       await expect(page.locator(".sheet")).not.toContainText("zbývá asi");
       await expect(page.locator(".sheet")).not.toContainText("Lze zavřít okna");
@@ -673,11 +677,29 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
       await setStates(page, { [CO2_PRACOVNA]: "420" });
       await expect(ring).toHaveAttribute("num", "100");
       await expect(ring).toHaveAttribute("style", /--kd-fresh/);
-      // A window closed while the mode runs: the room stays, the ring is grey.
+      // A window closed while the mode runs: the room stays, the ring is grey and "okno zavřené" stands beside the name.
       await setStates(page, { "binary_sensor.pracovna_okno_pracovna": "off" });
       await expect(room).toHaveCount(1);
       await expect(ring).toHaveAttribute("style", /--kd-label/);
+      await expect(room.locator(".vent-note")).toHaveText("okno zavřené");
       await setStates(page, { "binary_sensor.pracovna_okno_pracovna": "on", [CO2_PRACOVNA]: "820" });
+      // A room that was fresh already at the start (400 ppm) and is at or below the target is 100 %, not 0 %.
+      await page.locator(".sheet .close").click();
+      await page.evaluate(() => {
+        // @ts-expect-error test hook
+        const test = window.__test;
+        const previous = test.historyFor;
+        const at = (minutesAgo: number) => (Date.now() - minutesAgo * 60_000) / 1000;
+        test.historyFor = (id: string) =>
+          id === "sensor.pracovna_teplomer_pracovna_carbon_dioxide" ? [{ s: "400", lu: at(30) }, { s: "400", lu: at(4) }] : previous(id);
+      });
+      await setStates(page, { [CO2_PRACOVNA]: "480" });
+      await trigger.click();
+      await expect(page.locator(".sheet .vent-room kd-ring")).toHaveAttribute("num", "100");
+      await expect(page.locator(".sheet .vent-room kd-ring")).toHaveAttribute("style", /--kd-fresh/);
+      await setStates(page, { [CO2_PRACOVNA]: "820" });
+      await page.locator(".sheet .close").click();
+      await trigger.click();
       expect(await axeViolations(page), "axe popup").toEqual([]);
     });
 
