@@ -3,6 +3,11 @@
 Jen archiv. Nic z tohoto dokumentu není závazné; platí `CURRENT_SPEC.md`. Pravidla vedení: `AGENTS.md` kitu, oddíl Dokumentace. Nové záznamy (2. 11. 2026 a dál) jsou v oddíle Záznamy, starší jsou níže ve formátu Navrženo → Opuštěno → Nahrazeno. Stav záznamu: **potvrzeno**, **nahrazeno**, **zamítnuto**, **nepotvrzeno** (otázka položena uživateli v chatu, do spec nepatří).
 Formát každého bodu: **Navrženo** → **Opuštěno, protože** → **Nahrazeno**. Kde Memory důvod nezaznamenává, je to uvedeno.
 
+## 2026-11-05 · Kompaktní popup Větrací režim: pokles CO₂, teploty a vlhkosti, malé procento (návrh, nepotvrzeno, otázky položeny D. M.)
+
+- Uživatel 5. 11. 2026 k popupu s absolutní vlhkostí: „1 stačí zobrazit. 2 co nejméně roztahané. Sloupec. 3 pro větrání bude před a teď. Po skončení bude před po a teď. Po 25 min bude před po a po ustálení. Chtěl bych pokles všeho - co2, teploty, aby vlhkosti. V těch 3 časech. Teď mám jen co2 před a po. Ty % nepotřebuju takhle velký. Může být menší kolečko nebo proužek jako progress bar nebo po skončení vůbec. Musí se na ten popup vejít všechny místnosti. Musí to být kompaktní.“
+- Nepotvrzeno, předloženo uživateli: u každé místnosti tři řádky (CO₂, teplota, absolutní vlhkost) se sloupci Před | Po | Teď (po ustálení Po N min), procento jako tenký proužek jen za běhu, sloučené řádky stavu nahoře. Do spec se nezapisuje, dokud uživatel neodpoví.
+
 ## 2026-11-05 · Absolutní vlhkost před a po větrání v popupu Větrací režim (potvrzeno částečně)
 
 - Uživatel 5. 11. 2026: „Já bych si v HA udělal jednu statistiku: absolutní vlhkost před větráním vs. po větrání. Do toho větracího režimu. A pak ještě po ustálení - po 25 min (nebo do teď pokud je méně než 25 min po skončení větrání). Vše v tom popupu“.
