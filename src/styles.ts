@@ -1376,9 +1376,7 @@ export const styles = css`
       background: var(--kd-fill);
     }
 
-    .static-row,
-    .humidity-head,
-    .humidity-row {
+    .static-row {
       box-sizing: border-box;
       display: flex;
       align-items: center;
@@ -1389,61 +1387,95 @@ export const styles = css`
       font-size: 17px;
     }
 
-    .static-row + .static-row,
-    .humidity-head + .humidity-row,
-    .humidity-row + .humidity-row {
+    .static-row + .static-row {
       border-top: 1px solid var(--kd-fill-border);
     }
 
-    /* Větrací režim: absolutní vlhkost před a po, sloupce zarovnané doprava. */
-    .humidity-group {
-      margin-top: 12px;
+    /* Větrací režim: tabulka místností, sloupce Před | Po | Teď těsně u popisku (ne roztažené přes celou šířku). */
+    .vent-summary {
+      min-height: 44px;
+      flex-wrap: wrap;
+      row-gap: 0;
     }
 
-    .humidity-head {
-      min-height: 44px;
+    .vent-ends {
+      margin-left: auto;
+      color: var(--kd-label);
+      font-size: 15px;
+    }
+
+    .vent-table {
+      padding: 6px 16px 8px;
+      border-top: 1px solid var(--kd-fill-border);
+    }
+
+    .vent-line {
+      display: grid;
+      grid-template-columns: 92px repeat(var(--columns, 3), 46px);
+      column-gap: 6px;
+      align-items: baseline;
+      min-height: 22px;
+      font-size: 15px;
+      line-height: 22px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .vent-q {
       color: var(--kd-label);
       font-size: 13px;
+      line-height: 18px;
     }
 
-    .humidity-head .option-text > span:first-child {
-      color: var(--kd-text);
-      font-size: 17px;
-    }
-
-    /* The same columns in the head and in the rows (a fixed width), values on the right edge. */
-    .humidity-values {
-      display: grid;
-      grid-template-columns: repeat(var(--columns, 3), 58px);
-      gap: 6px;
-      align-items: end;
-      margin-left: auto;
-      font-variant-numeric: tabular-nums;
+    .vent-num {
       text-align: right;
-    }
-
-    .humidity-head .humidity-values {
-      line-height: 16px;
-    }
-
-    .humidity-row .humidity-values {
       white-space: nowrap;
     }
 
-    .humidity-row .humidity-values {
-      font-size: 17px;
-    }
-
-    /* Větrací režim: procenta s popiskem pod nimi, vpravo. */
-    .vent-percent {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      line-height: 22px;
-    }
-
-    .vent-percent .vent-co2 {
+    .vent-head {
+      min-height: 20px;
+      color: var(--kd-label);
+      font-size: 13px;
       line-height: 16px;
+      align-items: end;
+    }
+
+    .vent-head .vent-num {
+      white-space: normal;
+    }
+
+    .vent-room {
+      padding-top: 6px;
+    }
+
+    .vent-room + .vent-room {
+      margin-top: 2px;
+      border-top: 1px solid var(--kd-fill-border);
+    }
+
+    .vent-room-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      min-height: 22px;
+      font-size: 17px;
+      font-weight: 500;
+    }
+
+    /* The progress of the room towards the CO₂ goal: a thin bar, only while the mode runs. */
+    .vent-bar {
+      flex: none;
+      width: 64px;
+      height: 4px;
+      overflow: hidden;
+      border-radius: 2px;
+      background: rgb(118 118 128 / 24%);
+    }
+
+    .vent-bar > span {
+      display: block;
+      height: 100%;
+      border-radius: 2px;
     }
 
     /* Větrací režim: řádek místnosti, druhý řádek je CO₂ od začátku do teď. */
