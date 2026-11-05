@@ -27,6 +27,8 @@ export interface RoomConfig {
   name: LocalizedText;
   temperature?: EntityId;
   humidity?: EntityId;
+  /** Absolute humidity (g/m³) for the before / after of the ventilation mode; optional. */
+  absolute_humidity?: EntityId;
   /** CO₂ sensor; `false` = the room has none (no row, not needed for the room status). */
   carbon_dioxide?: EntityId | false;
   pm25?: EntityId | false;
@@ -132,6 +134,8 @@ export interface DashboardConfig {
   ventilation_timer_entity?: EntityId;
   /** CO₂ (ppm) at or below which the windows can be closed (default 450). */
   ventilation_co2_target?: number;
+  /** Minutes after the end of the ventilation mode at which the absolute humidity "settles" (default 25). */
+  ventilation_settle_minutes?: number;
   outside?: OutsideConfig;
   rooms: RoomConfig[];
   thresholds?: Partial<DashboardThresholds>;
@@ -163,6 +167,7 @@ export interface Room {
   label: LocalizedText;
   temperature?: EntityId;
   humidity?: EntityId;
+  absolute_humidity?: EntityId;
   /** CO₂ sensor entity; undefined when it is missing from the configuration or the room has none. */
   carbon_dioxide?: EntityId;
   pm25?: EntityId;
@@ -190,6 +195,7 @@ export interface Settings {
   ventilationEntity?: EntityId;
   ventilationTimerEntity?: EntityId;
   ventilationCo2Target: number;
+  ventilationSettleMinutes: number;
   outside?: OutsideConfig;
   /** Shared thresholds (outdoor air uses them; every room has its own merged copy). */
   thresholds: DashboardThresholds;

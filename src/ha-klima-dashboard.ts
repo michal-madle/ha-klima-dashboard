@@ -102,7 +102,14 @@ const NBSP = " ";
 /** What the ventilation popup learned from the history (see loadVentilation). */
 interface VentilationData {
   session?: VentilationSession;
-  rooms: Array<{ name: string; opened: boolean; start?: number; end?: number }>;
+  rooms: Array<{
+    name: string;
+    opened: boolean;
+    start?: number;
+    end?: number;
+    /** Absolute humidity (g/m³) at the start, at the end and (once the settling time has passed) that long after the end. */
+    humidity?: { before?: number; after?: number; settled?: number };
+  }>;
   failed?: boolean;
 }
 
@@ -1255,12 +1262,15 @@ export class HaKlimaDashboard extends LitElement {
       }
       const rooms = this.ventilationRooms();
       const to = session.end ?? now;
-      const ids = rooms.flatMap((room) => [room.carbon_dioxide, ...room.windows.map((window) => window.entity)]);
+      const ids = rooms.flatMap((room) => [room.carbon_dioxide, room.absolute_humidity, ...room.windows.map((window) => window.entity)]);
+      // The absolute humidity "settles" this long after the end of the run; the history reaches there (or to now).
+      const settleMs = (this._config?.ventilationSettleMinutes ?? 25) * 60_000;
+      const settledAt = session.end === undefined ? undefined : session.end + settleMs;
       const history = await fetchHistory(
         hass,
         ids.filter((id): id is string => id !== undefined),
         session.start - 30 * 60_000,
-        to,
+        settledAt === undefined ? to : Math.min(now, Math.max(to, settledAt)),
       );
       if (request !== this._ventRequest) {
         return;
@@ -1272,6 +1282,14 @@ export class HaKlimaDashboard extends LitElement {
           opened: room.windows.some((window) => openDuring(history[window.entity], session.start, to)),
           start: co2Value(stateAt(history[room.carbon_dioxide ?? ""], session.start)),
           end: co2Value(stateAt(history[room.carbon_dioxide ?? ""], to)),
+          humidity: room.absolute_humidity
+            ? {
+                before: co2Value(stateAt(history[room.absolute_humidity], session.start)),
+                after: session.end === undefined ? undefined : co2Value(stateAt(history[room.absolute_humidity], session.end)),
+                settled:
+                  settledAt !== undefined && settledAt <= now ? co2Value(stateAt(history[room.absolute_humidity], settledAt)) : undefined,
+              }
+            : undefined,
         })),
       };
     } catch (error) {
@@ -1408,10 +1426,49 @@ export class HaKlimaDashboard extends LitElement {
       rows = html``;
       foot = data === undefined ? "" : text.never;
     }
+    // Absolute humidity before / after the run and once it has settled (CURRENT_SPEC.md, Větrací režim): rooms with the entity.
+    const settleMinutes = config?.ventilationSettleMinutes ?? 25;
+    const settled = session?.end !== undefined && now >= session.end + settleMinutes * 60_000;
+    const humidityRooms = running || session ? rooms.filter((item) => item.room.absolute_humidity) : [];
+    const humidityColumns = running
+      ? [text.before, t.chart.now]
+      : [text.before, text.after, settled ? text.settledAfter(settleMinutes) : t.chart.now];
+    const humidityRow = (item: (typeof rooms)[number]) => {
+      const saved = data?.rooms.find((entry) => entry.name === item.room.name)?.humidity;
+      const liveValue = numberOf(this.getState(item.room.absolute_humidity)?.state);
+      const values = running
+        ? [saved?.before, liveValue]
+        : [saved?.before, saved?.after, settled ? saved?.settled : liveValue];
+      const shown = values.map((value) => (value === undefined ? undefined : this._i18n.one(value)));
+      return html`<div
+        class="humidity-row"
+        role="group"
+        aria-label=${text.humiditySpoken(
+          this.roomLabel(item.room),
+          shown.map((value, index) => `${humidityColumns[index]} ${value ?? t.unknownValue}`).join(", "),
+        )}
+      >
+        <span class="option-text"><span>${this.roomLabel(item.room)}</span></span>
+        <span class="humidity-values" style=${`--columns: ${humidityColumns.length}`} aria-hidden="true">
+          ${shown.map((value) => html`<span>${value ?? html`<span class="no-data">––</span>`}</span>`)}
+        </span>
+      </div>`;
+    };
+    const humidityGroup =
+      humidityRooms.length === 0
+        ? nothing
+        : html`<div class="static-list humidity-group" role="group" aria-label=${text.humidity}>
+            <div class="humidity-head" aria-hidden="true">
+              <span class="option-text"><span>${text.humidity}</span><span class="vent-co2">${text.humidityUnit}</span></span>
+              <span class="humidity-values" style=${`--columns: ${humidityColumns.length}`}>${humidityColumns.map((label) => html`<span>${label}</span>`)}</span>
+            </div>
+            ${humidityRooms.map(humidityRow)}
+          </div>`;
     return html`
       ${rows === undefined || (!running && !session)
         ? nothing
         : html`<div class="static-list" role="group" aria-label=${text.title}>${rows}</div>`}
+      ${humidityGroup}
       <p class="timer-foot ${error ? "error" : ""}" role=${error ? "alert" : nothing}>${error ?? foot}</p>
       ${running
         ? html`<button

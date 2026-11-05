@@ -253,6 +253,7 @@ export function configuredEntityIds(settings: Settings): Set<EntityId> {
   for (const room of settings.rooms) {
     add(room.temperature);
     add(room.humidity);
+    add(room.absolute_humidity);
     add(room.carbon_dioxide);
     add(room.pm25);
     room.windows.forEach((window) => add(window.entity));

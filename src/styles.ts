@@ -1376,7 +1376,9 @@ export const styles = css`
       background: var(--kd-fill);
     }
 
-    .static-row {
+    .static-row,
+    .humidity-head,
+    .humidity-row {
       box-sizing: border-box;
       display: flex;
       align-items: center;
@@ -1387,8 +1389,49 @@ export const styles = css`
       font-size: 17px;
     }
 
-    .static-row + .static-row {
+    .static-row + .static-row,
+    .humidity-head + .humidity-row,
+    .humidity-row + .humidity-row {
       border-top: 1px solid var(--kd-fill-border);
+    }
+
+    /* Větrací režim: absolutní vlhkost před a po, sloupce zarovnané doprava. */
+    .humidity-group {
+      margin-top: 12px;
+    }
+
+    .humidity-head {
+      min-height: 44px;
+      color: var(--kd-label);
+      font-size: 13px;
+    }
+
+    .humidity-head .option-text > span:first-child {
+      color: var(--kd-text);
+      font-size: 17px;
+    }
+
+    /* The same columns in the head and in the rows (a fixed width), values on the right edge. */
+    .humidity-values {
+      display: grid;
+      grid-template-columns: repeat(var(--columns, 3), 58px);
+      gap: 6px;
+      align-items: end;
+      margin-left: auto;
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+    }
+
+    .humidity-head .humidity-values {
+      line-height: 16px;
+    }
+
+    .humidity-row .humidity-values {
+      white-space: nowrap;
+    }
+
+    .humidity-row .humidity-values {
+      font-size: 17px;
     }
 
     /* Větrací režim: procenta s popiskem pod nimi, vpravo. */
