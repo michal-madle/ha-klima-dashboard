@@ -196,6 +196,8 @@ if (scenario === "vent") {
     "input_boolean.ventilation_mode": [{ s: "off", lu: at(60) }, { s: "on", lu: at(4) }],
     "sensor.pracovna_teplomer_pracovna_carbon_dioxide": [{ s: "1180", lu: at(30) }, { s: "1180", lu: at(4) }],
     "binary_sensor.pracovna_okno_pracovna": [{ s: "off", lu: at(30) }, { s: "on", lu: at(3) }],
+    // 21,4 °C at the start of the run, 20,2 now.
+    "sensor.pracovna_teplomer_pracovna_temperature": [{ s: "21.4", lu: at(30) }, { s: "20.2", lu: at(1) }],
     // 9,1 g/m³ at the start of the run, 8,4 now.
     "sensor.pracovna_tado_ce_pracovna_absolute_humidity": [{ s: "9.1", lu: at(30) }, { s: "8.4", lu: at(1) }],
   };

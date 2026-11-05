@@ -630,23 +630,23 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
     await test.step("popup za běhu: Běží, Skončí nejpozději, Pracovna z 1 180 na 820 ppm = 49 %, Lze zavřít okna „Ještě ne“", async () => {
       await trigger.click();
       await expect(page.locator("#sheet-title")).toHaveText("Větrací režim");
-      const rows = page.locator(".sheet .static-row");
-      await expect(rows.nth(0)).toContainText(/Běží\s*4 min/);
-      await expect(rows.nth(1)).toContainText(/Skončí nejpozději\s*\d{1,2}:\d{2}/);
-      const pracovna = rows.filter({ hasText: "Pracovna" });
-      await expect(pracovna).toHaveCount(1);
-      await expect(pracovna).toContainText(/CO₂\s*1\s*180\s*→\s*820\s*ppm/);
-      await expect(pracovna).toContainText("49 %");
-      await expect(rows.filter({ hasText: "Lze zavřít okna" })).toContainText("Ještě ne");
+      const summary = page.locator(".sheet .vent-summary");
+      await expect(summary).toContainText(/Běží\s*4 min/);
+      await expect(summary).toContainText(/Skončí nejpozději\s*\d{1,2}:\d{2}/);
+      // One block per room with an open window: CO₂, temperature and absolute humidity before and now; the progress as a thin bar.
+      const room = page.locator(".sheet .vent-room");
+      await expect(room).toHaveCount(1);
+      await expect(room).toContainText("Pracovna");
+      await expect(room).toHaveAttribute("aria-label", /^Pracovna: hotovo 49\s%\. CO₂ ppm: Před 1\s180, Teď 820\./);
+      await expect(page.locator(".sheet .vent-head .vent-num")).toHaveText(["Před", "Teď"]);
+      await expect(room.locator(".vent-bar")).toHaveCount(1);
+      await expect(room.locator(".vent-line").nth(0).locator(".vent-num")).toHaveText(["1 180", "820"]);
+      await expect(room.locator(".vent-line").nth(1).locator(".vent-num")).toHaveText(["21,4", "20,2"]);
+      await expect(room.locator(".vent-line").nth(2).locator(".vent-num")).toHaveText(["9,1", "8,4"]);
+      const closing = page.locator(".sheet .static-row").filter({ hasText: "Lze zavřít okna" });
+      await expect(closing).toContainText("Ještě ne");
       // Without enough time since the last report there is no estimate.
-      await expect(rows.filter({ hasText: "Do cíle zbývá asi" })).toContainText("––");
-      // Absolute humidity: before (at the start of the run) and now, only for the rooms with the entity and an open window.
-      const humidity = page.locator(".sheet .humidity-group");
-      await expect(humidity.locator(".humidity-head")).toContainText("Absolutní vlhkost");
-      await expect(humidity.locator(".humidity-head .humidity-values span")).toHaveText(["Před", "Teď"]);
-      await expect(humidity.locator(".humidity-row")).toHaveCount(1);
-      await expect(humidity.locator(".humidity-row")).toContainText("Pracovna");
-      await expect(humidity.locator(".humidity-row .humidity-values span")).toHaveText(["9,1", "8,4"]);
+      await expect(closing).not.toContainText("zbývá asi");
       await expect(page.locator(".sheet .timer-foot")).toHaveText("Dřív skončí zavřením posledního okna.");
       const end = page.getByRole("button", { name: "Ukončit" });
       expect((await end.boundingBox())?.height ?? 0, "Ukončit 48 px").toBeGreaterThanOrEqual(48);
@@ -655,18 +655,18 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
 
     await test.step("čerstvé hlášení: odhad „asi 17 min“ celými minutami; pod 450 ppm lze zavřít okna a procento je 100 %", async () => {
       await setStates(page, { [CO2_PRACOVNA]: "820" });
-      const rows = page.locator(".sheet .static-row");
-      await expect(rows.filter({ hasText: "Do cíle zbývá asi" })).toContainText("17 min");
+      const room = page.locator(".sheet .vent-room");
+      const closing = page.locator(".sheet .static-row").filter({ hasText: "Lze zavřít okna" });
+      await expect(closing).toContainText("zbývá asi 17 min");
       // Never 100 % before the goal: 451 ppm is 99 % and the windows cannot be closed yet.
       await setStates(page, { [CO2_PRACOVNA]: "451" });
-      await expect(rows.filter({ hasText: "Pracovna" })).toContainText("99 %");
-      await expect(rows.filter({ hasText: "Pracovna" })).toContainText("hotovo");
-      await expect(rows.filter({ hasText: "Lze zavřít okna" })).toContainText("Ještě ne");
-      await expect(rows.filter({ hasText: "Lze zavřít okna" })).toContainText("CO₂ 450 ppm nebo méně");
+      await expect(room).toHaveAttribute("aria-label", /hotovo 99\s%/);
+      await expect(closing).toContainText("Ještě ne");
+      await expect(closing).toContainText("CO₂ 450 ppm nebo méně");
       await setStates(page, { [CO2_PRACOVNA]: "440" });
-      await expect(rows.filter({ hasText: "Pracovna" })).toContainText("100 %");
-      await expect(rows.filter({ hasText: "Lze zavřít okna" })).toContainText("Ano");
-      await expect(rows.filter({ hasText: "Do cíle zbývá asi" }), "při „Ano“ bez odhadu").toHaveCount(0);
+      await expect(room).toHaveAttribute("aria-label", /hotovo 100\s%/);
+      await expect(closing).toContainText("Ano");
+      await expect(closing, "při „Ano“ bez odhadu").not.toContainText("zbývá asi");
       expect(await axeViolations(page), "axe popup").toEqual([]);
     });
 
@@ -687,20 +687,22 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
           "sensor.pracovna_teplomer_pracovna_carbon_dioxide": [{ s: "1180", lu: at(30) }, { s: "1180", lu: at(4) }, { s: "520", lu: at(1) }],
           "binary_sensor.pracovna_okno_pracovna": [{ s: "off", lu: at(30) }, { s: "on", lu: at(3) }],
           "sensor.pracovna_tado_ce_pracovna_absolute_humidity": [{ s: "9.1", lu: at(30) }, { s: "7.2", lu: at(0.5) }],
+          "sensor.pracovna_teplomer_pracovna_temperature": [{ s: "21.4", lu: at(30) }, { s: "20.6", lu: at(0.5) }],
         };
         test.historyFor = (id: string) => histories[id];
       });
       await setStates(page, { [MODE]: "off" });
       await expect(page.locator(".sheet")).toHaveCount(1);
-      const rows = page.locator(".sheet .static-row");
-      await expect(rows.nth(0)).toContainText(/Poslední větrání\s*\d{1,2}:\d{2}–\d{1,2}:\d{2}/);
-      const pracovna = rows.filter({ hasText: "Pracovna" });
-      await expect(pracovna).toContainText(/CO₂\s*1\s*180\s*→\s*520\s*ppm/);
-      await expect(pracovna).toContainText("90 %");
-      // Ended a moment ago: before, after, and "now" until 25 minutes have passed (the live value of the card).
-      await expect(page.locator(".sheet .humidity-head .humidity-values span")).toHaveText(["Před", "Po", "Teď"]);
-      await expect(page.locator(".sheet .humidity-row .humidity-values span")).toHaveText(["9,1", "7,2", "8,4"]);
-      await expect(page.locator(".sheet .humidity-row")).toHaveAttribute("aria-label", /Pracovna: absolutní vlhkost, Před 9,1, Po 7,2, Teď 8,4 g\/m³/);
+      await expect(page.locator(".sheet .static-row").first()).toContainText(/Poslední větrání\s*\d{1,2}:\d{2}–\d{1,2}:\d{2}/);
+      const room = page.locator(".sheet .vent-room");
+      await expect(room).toContainText("Pracovna");
+      // Ended a moment ago: before, after, and "now" until 25 minutes have passed (the live value of the card); no progress bar any more.
+      await expect(page.locator(".sheet .vent-head .vent-num")).toHaveText(["Před", "Po", "Teď"]);
+      await expect(room.locator(".vent-bar")).toHaveCount(0);
+      await expect(room.locator(".vent-line").nth(0).locator(".vent-num")).toHaveText(["1 180", "520", "440"]);
+      await expect(room.locator(".vent-line").nth(1).locator(".vent-num")).toHaveText(["21,4", "20,6", "20,2"]);
+      await expect(room.locator(".vent-line").nth(2).locator(".vent-num")).toHaveText(["9,1", "7,2", "8,4"]);
+      await expect(room).toHaveAttribute("aria-label", /^Pracovna: CO₂ ppm: Před 1\s180, Po 520, Teď 440\. Teplota °C: Před 21,4, Po 20,6, Teď 20,2\./);
       await expect(page.locator(".sheet .timer-foot")).toHaveText("Cíl: CO₂ 450 ppm nebo méně.");
       await expect(page.getByRole("button", { name: /Ukončit|Ukončuje/ })).toHaveCount(0);
       await expect(page.locator("[role=status]")).toHaveText("Větrací režim skončil.");
@@ -722,14 +724,18 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
           "sensor.pracovna_teplomer_pracovna_carbon_dioxide": [{ s: "1180", lu: at(4330) }, { s: "1180", lu: at(4320) }, { s: "520", lu: at(4297) }],
           "binary_sensor.pracovna_okno_pracovna": [{ s: "off", lu: at(4330) }, { s: "on", lu: at(4310) }],
           "sensor.pracovna_tado_ce_pracovna_absolute_humidity": [{ s: "9.1", lu: at(4330) }, { s: "7.2", lu: at(4296) }, { s: "7.9", lu: at(4280) }],
+          "sensor.pracovna_teplomer_pracovna_temperature": [{ s: "21.4", lu: at(4330) }, { s: "20.6", lu: at(4296) }, { s: "20.9", lu: at(4280) }],
         };
         test.historyFor = (id: string) => histories[id];
       });
       await trigger.click();
       await expect(page.locator(".sheet .static-row").first()).toContainText(/Poslední větrání\s*\d{1,2}\. \d{1,2}\.\s*\d{1,2}:\d{2}–\d{1,2}:\d{2}/);
       // More than 25 minutes after the end: the settled value from the history, not the live one.
-      await expect(page.locator(".sheet .humidity-head .humidity-values span")).toHaveText(["Před", "Po", "Po 25 min"]);
-      await expect(page.locator(".sheet .humidity-row .humidity-values span")).toHaveText(["9,1", "7,2", "7,9"]);
+      await expect(page.locator(".sheet .vent-head .vent-num")).toHaveText(["Před", "Po", "Po 25 min"]);
+      const old = page.locator(".sheet .vent-room .vent-line");
+      await expect(old.nth(0).locator(".vent-num")).toHaveText(["1 180", "520", "520"]);
+      await expect(old.nth(1).locator(".vent-num")).toHaveText(["21,4", "20,6", "20,9"]);
+      await expect(old.nth(2).locator(".vent-num")).toHaveText(["9,1", "7,2", "7,9"]);
     });
 
     await test.step("chyba příkazu: věta se nahradí hláškou, tlačítko je znovu aktivní, haptika failure", async () => {
@@ -779,11 +785,11 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
       await reconfigure(page, { ventilation_co2_target: 800 });
       await trigger.click();
       // 820 ppm now: with the goal 800 the windows cannot be closed yet; the goal is in the configuration.
-      await expect(page.locator(".sheet .static-row").filter({ hasText: "Pracovna" })).toContainText("94 %");
+      await expect(page.locator(".sheet .vent-room")).toHaveAttribute("aria-label", /hotovo 94\s%/);
       await page.locator(".sheet .close").click();
       await reconfigure(page, { ventilation_timer_entity: undefined, ventilation_co2_target: undefined });
       await trigger.click();
-      await expect(page.locator(".sheet .static-row").filter({ hasText: "Skončí nejpozději" })).toHaveCount(0);
+      await expect(page.locator(".sheet .vent-summary")).not.toContainText("Skončí nejpozději");
       await page.locator(".sheet .close").click();
       // Without a title the row keeps only the button, on the right.
       await reconfigure(page, { title: "" });
