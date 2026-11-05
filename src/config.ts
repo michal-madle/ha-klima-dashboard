@@ -29,6 +29,8 @@ import { ICON_POSITIONS } from "./utils";
 export const HOUSE_MODE_ENTITY = "input_select.house_mode";
 /** CO₂ (ppm) at or below which the windows can be closed after ventilating (CURRENT_SPEC.md, Větrací režim). */
 export const DEFAULT_VENTILATION_CO2_TARGET = 450;
+/** Minutes after the end of the ventilation mode at which the absolute humidity counts as settled (CURRENT_SPEC.md, Větrací režim). */
+export const DEFAULT_VENTILATION_SETTLE_MINUTES = 25;
 
 export const DEFAULT_THRESHOLDS: DashboardThresholds = {
   humidity_min: 35,
@@ -93,6 +95,7 @@ const ROOM_KEYS = [
   "name",
   "temperature",
   "humidity",
+  "absolute_humidity",
   "carbon_dioxide",
   "pm25",
   "window",
@@ -351,6 +354,7 @@ function normalizeRoom(
     label,
     temperature: entityId(room.temperature, `${where}.temperature`),
     humidity: entityId(room.humidity, `${where}.humidity`),
+    absolute_humidity: entityId(room.absolute_humidity, `${where}.absolute_humidity`),
     carbon_dioxide: co2.entity,
     hasCo2: co2.present,
     pm25: pm25.entity,
@@ -387,6 +391,15 @@ function normalize(config: DashboardConfig): Settings {
   const ventilationCo2Target = config.ventilation_co2_target ?? DEFAULT_VENTILATION_CO2_TARGET;
   if (typeof ventilationCo2Target !== "number" || !Number.isFinite(ventilationCo2Target) || ventilationCo2Target < 300 || ventilationCo2Target > 2000) {
     fail("ventilation_co2_target must be a number of ppm between 300 and 2000.");
+  }
+  const ventilationSettleMinutes = config.ventilation_settle_minutes ?? DEFAULT_VENTILATION_SETTLE_MINUTES;
+  if (
+    typeof ventilationSettleMinutes !== "number" ||
+    !Number.isInteger(ventilationSettleMinutes) ||
+    ventilationSettleMinutes < 1 ||
+    ventilationSettleMinutes > 180
+  ) {
+    fail("ventilation_settle_minutes must be a whole number of minutes between 1 and 180.");
   }
   const modesInput = section(config.house_modes, "house_modes");
   checkKeys(modesInput, ["winter", "summer"], "house_modes");
@@ -459,6 +472,7 @@ function normalize(config: DashboardConfig): Settings {
     ventilationEntity,
     ventilationTimerEntity,
     ventilationCo2Target,
+    ventilationSettleMinutes,
     outside: outside as Settings["outside"],
     thresholds,
     trends,

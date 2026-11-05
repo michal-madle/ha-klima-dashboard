@@ -3,10 +3,11 @@
 Jen archiv. Nic z tohoto dokumentu není závazné; platí `CURRENT_SPEC.md`. Pravidla vedení: `AGENTS.md` kitu, oddíl Dokumentace. Nové záznamy (2. 11. 2026 a dál) jsou v oddíle Záznamy, starší jsou níže ve formátu Navrženo → Opuštěno → Nahrazeno. Stav záznamu: **potvrzeno**, **nahrazeno**, **zamítnuto**, **nepotvrzeno** (otázka položena uživateli v chatu, do spec nepatří).
 Formát každého bodu: **Navrženo** → **Opuštěno, protože** → **Nahrazeno**. Kde Memory důvod nezaznamenává, je to uvedeno.
 
-## 2026-11-05 · Absolutní vlhkost před a po větrání v popupu Větrací režim (návrh, nepotvrzeno, otázky položeny D. M.)
+## 2026-11-05 · Absolutní vlhkost před a po větrání v popupu Větrací režim (potvrzeno částečně)
 
 - Uživatel 5. 11. 2026: „Já bych si v HA udělal jednu statistiku: absolutní vlhkost před větráním vs. po větrání. Do toho větracího režimu. A pak ještě po ustálení - po 25 min (nebo do teď pokud je méně než 25 min po skončení větrání). Vše v tom popupu“.
-- Nepotvrzeno, předloženo uživateli: skupina „Absolutní vlhkost“ v popupu Větrací režim, řádek za místnost (jen s čidly teploty a vlhkosti), hodnoty g/m³ z teploty a relativní vlhkosti z historie recorderu (bez nové entity v Home Assistantu), sloupce Před / Po / Po 25 min (do uplynutí 25 min „Teď“). Do spec se nezapisuje, dokud uživatel neodpoví.
+- Odpovědi uživatele 5. 11. 2026: „Ne rh, ale absolutní“ (hodnota má být absolutní vlhkost, ne relativní); po návrhu zdroje (Tado CE `absolute_humidity`, nová položka místnosti) a čtyř otázek odpověděl jen „V konfiguraci“; vzato jako: 25 minut je klíč v konfiguraci (`ventilation_settle_minutes`, výchozí 25, jako cíl CO₂). Ostatní body návrhu (zdroj entita Tado CE, jen karta bez senzoru v HA, samostatná skupina se sloupci, „Teď“ do uplynutí doby) provedeny bez výslovné odpovědi: nepotvrzeno, pokud neodporuje. Tado CE počítá hodnotu ze svého čidla u ventilu; absolutní vlhkost lokální ohřev zkreslí méně než teplota, ale hlásí pomaleji.
+- Původní návrh: skupina „Absolutní vlhkost“ v popupu Větrací režim, řádek za místnost (jen s čidly teploty a vlhkosti), hodnoty g/m³ z teploty a relativní vlhkosti z historie recorderu (bez nové entity v Home Assistantu), sloupce Před / Po / Po 25 min (do uplynutí 25 min „Teď“). Do spec se nezapisuje, dokud uživatel neodpoví.
 
 ## 2026-11-04 · Graf CO₂ a PM2.5 místo popupu Kvalita vzduchu, učesání grafů (potvrzeno)
 

@@ -24,10 +24,11 @@ house_modes:
   winter: Zima                  # hodnota pro zimu (velikost písmen a diakritika nerozhodují)
   summer: Léto                  # hodnota pro léto
 
-# Větrací režim: štítek v souhrnu domu a popup s dobou běhu a ukončením. Bez klíče se nezobrazuje.
+# Větrací režim: tlačítko v řádku nadpisu a popup s dobou běhu a ukončením. Bez klíče se nezobrazuje.
 ventilation_entity: input_boolean.ventilation_mode    # entita režimu (zapnuto = štítek)
 ventilation_timer_entity: timer.ventilation_mode      # časovač režimu (konec nejpozději); bez klíče řádek konce zmizí
 ventilation_co2_target: 450                         # cíl CO₂ (ppm): při něm nebo pod ním lze zavřít okna
+ventilation_settle_minutes: 25                      # absolutní vlhkost „po ustálení“: tolik minut po skončení režimu (do té doby „Teď“)
 
 # Venkovní podmínky v hlavičce. Teplota je z OpenWeatherMap; ostatní entity v domě nejsou, proto prázdné.
 outside:
@@ -108,6 +109,7 @@ rooms:
     link:
     temperature: sensor.loznice_teplomer_loznice_temperature
     humidity: sensor.loznice_teplomer_loznice_humidity
+    absolute_humidity: sensor.loznice_tado_ce_loznice_absolute_humidity   # g/m³; před a po větrání v popupu Větrací režim
     carbon_dioxide: sensor.loznice_teplomer_loznice_carbon_dioxide
     pm25: sensor.loznice_teplomer_loznice_pm2_5
     window:
@@ -128,6 +130,7 @@ rooms:
     link:
     temperature: sensor.pracovna_teplomer_pracovna_temperature
     humidity: sensor.pracovna_teplomer_pracovna_humidity
+    absolute_humidity: sensor.pracovna_tado_ce_pracovna_absolute_humidity   # g/m³; před a po větrání v popupu Větrací režim
     carbon_dioxide: sensor.pracovna_teplomer_pracovna_carbon_dioxide
     pm25: sensor.pracovna_teplomer_pracovna_pm2_5
     window:
@@ -148,6 +151,7 @@ rooms:
     link:
     temperature: sensor.maxik_teplomer_maxik_temperature
     humidity: sensor.maxik_teplomer_maxik_humidity
+    absolute_humidity: sensor.maxik_tado_ce_maxik_absolute_humidity   # g/m³; před a po větrání v popupu Větrací režim
     carbon_dioxide: sensor.maxik_teplomer_maxik_carbon_dioxide
     pm25: sensor.maxik_teplomer_maxik_pm2_5
     window:
@@ -168,6 +172,7 @@ rooms:
     link:
     temperature: sensor.mikulas_teplomer_mikulas_temperature
     humidity: sensor.mikulas_teplomer_mikulas_humidity
+    absolute_humidity: sensor.mikulas_tado_ce_mikulas_absolute_humidity   # g/m³; před a po větrání v popupu Větrací režim
     carbon_dioxide: sensor.mikulas_teplomer_mikulas_carbon_dioxide
     pm25: sensor.mikulas_teplomer_mikulas_pm2_5
     window:
@@ -188,6 +193,7 @@ rooms:
     link:
     temperature: sensor.obyvak_teplomer_obyvak_temperature
     humidity: sensor.obyvak_teplomer_obyvak_humidity
+    absolute_humidity: sensor.obyvak_tado_ce_obyvak_absolute_humidity   # g/m³; před a po větrání v popupu Větrací režim
     carbon_dioxide: sensor.obyvak_teplomer_obyvak_carbon_dioxide
     pm25: sensor.obyvak_teplomer_obyvak_pm2_5
     window:

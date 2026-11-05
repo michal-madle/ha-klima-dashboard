@@ -372,7 +372,7 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
     // Every key of the configuration contract as a path; "[]" is an item of a list.
     const all = [
       "type", "title", "theme", "language", "house_mode_entity", "house_modes.winter", "house_modes.summer",
-      "ventilation_entity", "ventilation_timer_entity", "ventilation_co2_target",
+      "ventilation_entity", "ventilation_timer_entity", "ventilation_co2_target", "ventilation_settle_minutes",
       ...["temperature", "minimum", "maximum", "rain_probability", "pm25"].map((key) => `outside.${key}`),
       ...["humidity_min", "humidity_max", "co2_warning", "co2_critical", "pm25_warning", "pm25_critical", "winter_min",
         "winter_max", "summer_min", "summer_max", "stale_minutes", "heating_waves_2", "heating_waves_3"].map((key) => `thresholds.${key}`),
@@ -380,7 +380,7 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
       ...["hours", "night_start", "night_end", "min_temperature_span"].map((key) => `history.${key}`),
       "covers.script", "covers.tolerance", "covers.stall_seconds",
       ...["name", "icon", "position", "tilt", "description"].map((key) => `covers.presets[].${key}`),
-      ...["name", "image", "link", "temperature", "humidity", "carbon_dioxide", "pm25", "window[].entity", "window[].name",
+      ...["name", "image", "link", "temperature", "humidity", "absolute_humidity", "carbon_dioxide", "pm25", "window[].entity", "window[].name",
         "cover", "cover_presets", "thresholds", "heating.climate", "heating.overlay", "heating.target", "heating.intensity",
         "air_conditioner"].map((key) => `rooms[].${key}`),
     ];
@@ -399,7 +399,7 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
     // Every room lists every room key (an empty value is the default).
     for (const room of example().rooms as Array<Record<string, unknown>>) {
       expect(Object.keys(room), room.name as string).toEqual([
-        "name", "image", "link", "temperature", "humidity", "carbon_dioxide", "pm25", "window", "cover",
+        "name", "image", "link", "temperature", "humidity", "absolute_humidity", "carbon_dioxide", "pm25", "window", "cover",
         "cover_presets", "thresholds", "heating", "air_conditioner",
       ]);
     }
@@ -640,6 +640,13 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
       await expect(rows.filter({ hasText: "Lze zavřít okna" })).toContainText("Ještě ne");
       // Without enough time since the last report there is no estimate.
       await expect(rows.filter({ hasText: "Do cíle zbývá asi" })).toContainText("––");
+      // Absolute humidity: before (at the start of the run) and now, only for the rooms with the entity and an open window.
+      const humidity = page.locator(".sheet .humidity-group");
+      await expect(humidity.locator(".humidity-head")).toContainText("Absolutní vlhkost");
+      await expect(humidity.locator(".humidity-head .humidity-values span")).toHaveText(["Před", "Teď"]);
+      await expect(humidity.locator(".humidity-row")).toHaveCount(1);
+      await expect(humidity.locator(".humidity-row")).toContainText("Pracovna");
+      await expect(humidity.locator(".humidity-row .humidity-values span")).toHaveText(["9,1", "8,4"]);
       await expect(page.locator(".sheet .timer-foot")).toHaveText("Dřív skončí zavřením posledního okna.");
       const end = page.getByRole("button", { name: "Ukončit" });
       expect((await end.boundingBox())?.height ?? 0, "Ukončit 48 px").toBeGreaterThanOrEqual(48);
@@ -679,6 +686,7 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
           "input_boolean.ventilation_mode": [{ s: "off", lu: at(60) }, { s: "on", lu: at(4) }, { s: "off", lu: at(0.2) }],
           "sensor.pracovna_teplomer_pracovna_carbon_dioxide": [{ s: "1180", lu: at(30) }, { s: "1180", lu: at(4) }, { s: "520", lu: at(1) }],
           "binary_sensor.pracovna_okno_pracovna": [{ s: "off", lu: at(30) }, { s: "on", lu: at(3) }],
+          "sensor.pracovna_tado_ce_pracovna_absolute_humidity": [{ s: "9.1", lu: at(30) }, { s: "7.2", lu: at(0.5) }],
         };
         test.historyFor = (id: string) => histories[id];
       });
@@ -689,6 +697,10 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
       const pracovna = rows.filter({ hasText: "Pracovna" });
       await expect(pracovna).toContainText(/CO₂\s*1\s*180\s*→\s*520\s*ppm/);
       await expect(pracovna).toContainText("90 %");
+      // Ended a moment ago: before, after, and "now" until 25 minutes have passed (the live value of the card).
+      await expect(page.locator(".sheet .humidity-head .humidity-values span")).toHaveText(["Před", "Po", "Teď"]);
+      await expect(page.locator(".sheet .humidity-row .humidity-values span")).toHaveText(["9,1", "7,2", "8,4"]);
+      await expect(page.locator(".sheet .humidity-row")).toHaveAttribute("aria-label", /Pracovna: absolutní vlhkost, Před 9,1, Po 7,2, Teď 8,4 g\/m³/);
       await expect(page.locator(".sheet .timer-foot")).toHaveText("Cíl: CO₂ 450 ppm nebo méně.");
       await expect(page.getByRole("button", { name: /Ukončit|Ukončuje/ })).toHaveCount(0);
       await expect(page.locator("[role=status]")).toHaveText("Větrací režim skončil.");
@@ -709,11 +721,15 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
           "input_boolean.ventilation_mode": [{ s: "off", lu: at(8000) }, { s: "on", lu: at(4320) }, { s: "off", lu: at(4296) }],
           "sensor.pracovna_teplomer_pracovna_carbon_dioxide": [{ s: "1180", lu: at(4330) }, { s: "1180", lu: at(4320) }, { s: "520", lu: at(4297) }],
           "binary_sensor.pracovna_okno_pracovna": [{ s: "off", lu: at(4330) }, { s: "on", lu: at(4310) }],
+          "sensor.pracovna_tado_ce_pracovna_absolute_humidity": [{ s: "9.1", lu: at(4330) }, { s: "7.2", lu: at(4296) }, { s: "7.9", lu: at(4280) }],
         };
         test.historyFor = (id: string) => histories[id];
       });
       await trigger.click();
       await expect(page.locator(".sheet .static-row").first()).toContainText(/Poslední větrání\s*\d{1,2}\. \d{1,2}\.\s*\d{1,2}:\d{2}–\d{1,2}:\d{2}/);
+      // More than 25 minutes after the end: the settled value from the history, not the live one.
+      await expect(page.locator(".sheet .humidity-head .humidity-values span")).toHaveText(["Před", "Po", "Po 25 min"]);
+      await expect(page.locator(".sheet .humidity-row .humidity-values span")).toHaveText(["9,1", "7,2", "7,9"]);
     });
 
     await test.step("chyba příkazu: věta se nahradí hláškou, tlačítko je znovu aktivní, haptika failure", async () => {
