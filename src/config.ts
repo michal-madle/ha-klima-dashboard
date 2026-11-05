@@ -28,7 +28,9 @@ import { ICON_POSITIONS } from "./utils";
 
 export const HOUSE_MODE_ENTITY = "input_select.house_mode";
 /** CO₂ (ppm) at or below which the windows can be closed after ventilating (CURRENT_SPEC.md, Větrací režim). */
-export const DEFAULT_VENTILATION_CO2_TARGET = 450;
+export const DEFAULT_VENTILATION_CO2_TARGET = 500;
+/** CO₂ (ppm) at or below which the ventilation is 100 % done (CURRENT_SPEC.md, Větrací režim). */
+export const DEFAULT_VENTILATION_CO2_FULL = 420;
 /** Minutes after the end of the ventilation mode at which the absolute humidity counts as settled (CURRENT_SPEC.md, Větrací režim). */
 export const DEFAULT_VENTILATION_SETTLE_MINUTES = 25;
 
@@ -392,6 +394,10 @@ function normalize(config: DashboardConfig): Settings {
   if (typeof ventilationCo2Target !== "number" || !Number.isFinite(ventilationCo2Target) || ventilationCo2Target < 300 || ventilationCo2Target > 2000) {
     fail("ventilation_co2_target must be a number of ppm between 300 and 2000.");
   }
+  const ventilationCo2Full = config.ventilation_co2_full ?? DEFAULT_VENTILATION_CO2_FULL;
+  if (typeof ventilationCo2Full !== "number" || !Number.isFinite(ventilationCo2Full) || ventilationCo2Full < 300 || ventilationCo2Full > ventilationCo2Target) {
+    fail("ventilation_co2_full must be a number of ppm between 300 and ventilation_co2_target.");
+  }
   const ventilationSettleMinutes = config.ventilation_settle_minutes ?? DEFAULT_VENTILATION_SETTLE_MINUTES;
   if (
     typeof ventilationSettleMinutes !== "number" ||
@@ -472,6 +478,7 @@ function normalize(config: DashboardConfig): Settings {
     ventilationEntity,
     ventilationTimerEntity,
     ventilationCo2Target,
+    ventilationCo2Full,
     ventilationSettleMinutes,
     outside: outside as Settings["outside"],
     thresholds,

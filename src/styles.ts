@@ -1432,50 +1432,48 @@ export const styles = css`
     }
 
     .vent-head {
-      min-height: 20px;
+      min-height: 16px;
       color: var(--kd-label);
       font-size: 13px;
       line-height: 16px;
       align-items: end;
     }
 
+    /* The head stays on one line; a longer text (+180 min) may run into the gap to the left. */
     .vent-head .vent-num {
-      white-space: normal;
+      overflow: visible;
+      white-space: nowrap;
     }
 
     .vent-room {
-      padding-top: 6px;
+      position: relative;
+    }
+
+    /* The ring stands in the place of the third column (after the label column of 92 px and two columns of 46 px with a 6 px gap),
+       centred on the three lines under the name. */
+    .vent-room.with-ring kd-ring {
+      position: absolute;
+      top: 33px;
+      left: 205px;
     }
 
     .vent-room + .vent-room {
-      margin-top: 2px;
+      margin-top: 4px;
+      padding-top: 4px;
       border-top: 1px solid var(--kd-fill-border);
     }
 
+    /* The shared ring of the kit in the colours of the card; the fill colour is set per room. */
+    kd-ring {
+      --hdk-ring-track: rgb(118 118 128 / 24%);
+      --hdk-ring-text: var(--kd-text);
+      --hdk-ring-sub: var(--kd-label);
+    }
+
     .vent-room-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
       min-height: 22px;
       font-size: 17px;
       font-weight: 500;
-    }
-
-    /* The progress of the room towards the CO₂ goal: a thin bar, only while the mode runs. */
-    .vent-bar {
-      flex: none;
-      width: 64px;
-      height: 4px;
-      overflow: hidden;
-      border-radius: 2px;
-      background: rgb(118 118 128 / 24%);
-    }
-
-    .vent-bar > span {
-      display: block;
-      height: 100%;
-      border-radius: 2px;
     }
 
     /* Větrací režim: řádek místnosti, druhý řádek je CO₂ od začátku do teď. */
@@ -1509,6 +1507,11 @@ export const styles = css`
 
     .vent-end:disabled {
       color: var(--kd-label);
+    }
+
+    /* A failed command: the text of the button says so, the button stays active (a new tap tries again). */
+    .vent-end.error {
+      color: var(--kd-warning);
     }
 
     /* Fokus jen programově (po zániku štítku Větrací režim), bez rámečku. */
