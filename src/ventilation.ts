@@ -49,6 +49,19 @@ export function co2Value(state: string | undefined): number | undefined {
   return Number.isFinite(value) ? value : undefined;
 }
 
+/**
+ * Absolute humidity in g/m³ from the temperature (°C) and the relative humidity (%) of a room: the Magnus formula
+ * (saturation vapour pressure 6,112 · e^(17,62 T / (243,12 + T)) hPa, WMO constants), ρ = 216,7 · e / (273,15 + T).
+ * Undefined when either value is missing or the relative humidity is outside 0–100 %.
+ */
+export function absoluteHumidity(temperature: number | undefined, relative: number | undefined): number | undefined {
+  if (temperature === undefined || relative === undefined || relative < 0 || relative > 100 || temperature <= -243.12) {
+    return undefined;
+  }
+  const pressure = ((relative / 100) * 6.112 * Math.exp((17.62 * temperature) / (243.12 + temperature)));
+  return (216.7 * pressure) / (273.15 + temperature);
+}
+
 export interface Progress {
   /** 0 to 1: how far the CO₂ went from its value at the start down to the "fully aired" value. */
   done: number;

@@ -27,8 +27,6 @@ export interface RoomConfig {
   name: LocalizedText;
   temperature?: EntityId;
   humidity?: EntityId;
-  /** Absolute humidity (g/m³) for the before / after of the ventilation mode; optional. */
-  absolute_humidity?: EntityId;
   /** CO₂ sensor; `false` = the room has none (no row, not needed for the room status). */
   carbon_dioxide?: EntityId | false;
   pm25?: EntityId | false;
@@ -169,7 +167,6 @@ export interface Room {
   label: LocalizedText;
   temperature?: EntityId;
   humidity?: EntityId;
-  absolute_humidity?: EntityId;
   /** CO₂ sensor entity; undefined when it is missing from the configuration or the room has none. */
   carbon_dioxide?: EntityId;
   pm25?: EntityId;

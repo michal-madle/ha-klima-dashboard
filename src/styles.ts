@@ -1400,6 +1400,11 @@ export const styles = css`
       row-gap: 0;
     }
 
+    /* A long label (en, sv) keeps its line; the time moves under it instead of squeezing it. */
+    .vent-summary .option-text {
+      flex: 0 0 auto;
+    }
+
     .vent-ends {
       margin-left: auto;
       color: var(--kd-label);
@@ -1408,6 +1413,7 @@ export const styles = css`
 
     .vent-table {
       --vent-cols: minmax(92px, 1.3fr) repeat(3, minmax(0, 1fr));
+      container-type: inline-size;
       padding: 6px 16px 8px;
       border-top: 1px solid var(--kd-fill-border);
     }
@@ -1460,9 +1466,27 @@ export const styles = css`
       white-space: nowrap;
     }
 
-    /* The head of the ring column: the text is centred over the ring. */
+    /* The head of the ring column ends at the same right edge as the ring and the values after the end (uživatel 5. 11. 2026: „Kolečko je potřeba víc vpravo aby to bylo vyvážené“). */
     .vent-head .vent-num.ring-head {
-      text-align: center;
+      justify-self: end;
+      text-align: right;
+    }
+
+    /* On a narrow popup (320 px) the labels are 12 px, the label column is narrower so that the headers keep a gap of 12 px,
+       and the column of the ring has no room for the unit (the label of the CO₂ row says ppm). */
+    @container (max-width: 319px) {
+      .vent-head,
+      .vent-room {
+        grid-template-columns: minmax(86px, 1.3fr) repeat(3, minmax(0, 1fr));
+      }
+
+      .vent-q {
+        font-size: 12px;
+      }
+
+      .vent-head .ring-unit {
+        display: none;
+      }
     }
 
     .vent-room + .vent-room {
@@ -1476,7 +1500,7 @@ export const styles = css`
       display: flex;
       align-items: baseline;
       gap: 8px;
-      min-height: 22px;
+      height: 22px;
       font-size: 17px;
       font-weight: 500;
     }
@@ -1486,9 +1510,10 @@ export const styles = css`
       color: var(--kd-label);
       font-size: 13px;
       font-weight: 400;
+      line-height: 1;
     }
 
-    /* The ring of the kit stands in the third value column, centred on the three lines under the name; its colours are the card's. */
+    /* The ring of the kit stands at the right end of the third value column, centred on the three lines under the name; its colours are the card's. */
     kd-ring {
       --hdk-ring-track: rgb(118 118 128 / 24%);
       --hdk-ring-text: var(--kd-text);
@@ -1496,7 +1521,7 @@ export const styles = css`
       grid-column: 4;
       grid-row: 2 / span 3;
       align-self: center;
-      justify-self: center;
+      justify-self: end;
     }
 
     /* Větrací režim: řádek místnosti, druhý řádek je CO₂ od začátku do teď. */

@@ -55,10 +55,6 @@ export async function buildConfig(name) {
     // Ventilation mode (CURRENT_SPEC.md, Větrací režim): the entity and its timer.
     config.ventilation_entity = "input_boolean.ventilation_mode";
     config.ventilation_timer_entity = "timer.ventilation_mode";
-    // Absolute humidity (g/m³) of the rooms: before / after of the run in the popup.
-    rooms.forEach((room, index) => {
-      room.absolute_humidity = `sensor.${ROOMS[index].slug}_tado_ce_${ROOMS[index].slug}_absolute_humidity`;
-    });
   }
   if (name === "config") {
     // New configuration (CURRENT_SPEC.md, Konfigurace): Ložnice has two windows with names, a link
@@ -110,7 +106,6 @@ config.rooms.forEach((room, index) => {
   if (room.humidity) states[room.humidity] = state(humidity, { unit_of_measurement: "%" });
   if (room.carbon_dioxide) states[room.carbon_dioxide] = state(co2, { unit_of_measurement: "ppm" });
   if (room.pm25) states[room.pm25] = state(pm25, { unit_of_measurement: "µg/m³" });
-  if (room.absolute_humidity) states[room.absolute_humidity] = state([7.9, 8.4, 8.8, 8.1, 7.2][index], { unit_of_measurement: "g/m³" });
   for (const id of windowIds(room)) states[id] = state(index === 1 ? "on" : "off");
   if (room.cover) {
     states[room.cover] = state("open", {
@@ -198,8 +193,8 @@ if (scenario === "vent") {
     "binary_sensor.pracovna_okno_pracovna": [{ s: "off", lu: at(30) }, { s: "on", lu: at(3) }],
     // 21,4 °C at the start of the run, 20,2 now.
     "sensor.pracovna_teplomer_pracovna_temperature": [{ s: "21.4", lu: at(30) }, { s: "20.2", lu: at(1) }],
-    // 9,1 g/m³ at the start of the run, 8,4 now.
-    "sensor.pracovna_tado_ce_pracovna_absolute_humidity": [{ s: "9.1", lu: at(30) }, { s: "8.4", lu: at(1) }],
+    // 21,4 °C and 50 % at the start of the run = 9,4 g/m³ absolute; now 20,2 °C and 48 % = 8,4 g/m³.
+    "sensor.pracovna_teplomer_pracovna_humidity": [{ s: "50", lu: at(30) }, { s: "48", lu: at(1) }],
   };
   test.historyFor = (id) => histories[id];
 }

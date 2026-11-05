@@ -40,7 +40,7 @@ import {
 import type { AfterTimer, HeatingControl, HeatingControlMode, ServiceCall } from "./heating-control";
 import { renderScene, sceneTone } from "./scenes";
 import { HOUR_MS, fetchHistory, normalizeToAxis, sampleNumeric, sharedAxis, stateAt } from "./history";
-import { co2Value, lastSession, openDuring, progress } from "./ventilation";
+import { absoluteHumidity, co2Value, lastSession, openDuring, progress } from "./ventilation";
 import type { VentilationSession } from "./ventilation";
 import { pickText } from "ha-dashboard-kit/config";
 import { HoldOrDoubleTap } from "ha-dashboard-kit/gesture";
@@ -1274,7 +1274,7 @@ export class HaKlimaDashboard extends LitElement {
       const ids = rooms.flatMap((room) => [
         room.carbon_dioxide,
         room.temperature,
-        room.absolute_humidity,
+        room.humidity,
         ...room.windows.map((window) => window.entity),
       ]);
       // The absolute humidity "settles" this long after the end of the run; the history reaches there (or to now).
@@ -1290,26 +1290,30 @@ export class HaKlimaDashboard extends LitElement {
         return;
       }
       // A quantity at the start, at the end and (once the settling time has passed) that long after the end.
-      const triple = (entityId: string | undefined): VentilationTriple | undefined =>
-        entityId === undefined
-          ? undefined
-          : {
-              before: co2Value(stateAt(history[entityId], session.start)),
-              after: session.end === undefined ? undefined : co2Value(stateAt(history[entityId], session.end)),
-              settled: settledAt !== undefined && settledAt <= now ? co2Value(stateAt(history[entityId], settledAt)) : undefined,
-            };
+      const settledTime = settledAt !== undefined && settledAt <= now ? settledAt : undefined;
+      const triple = (read: (time: number) => number | undefined): VentilationTriple => ({
+        before: read(session.start),
+        after: session.end === undefined ? undefined : read(session.end),
+        settled: settledTime === undefined ? undefined : read(settledTime),
+      });
+      const recorded = (entityId: string | undefined) => (time: number) =>
+        entityId === undefined ? undefined : co2Value(stateAt(history[entityId], time));
       this._vent = {
         session,
         rooms: rooms.map((room) => {
-          const co2 = triple(room.carbon_dioxide);
+          const co2 = room.carbon_dioxide === undefined ? undefined : triple(recorded(room.carbon_dioxide));
           return {
             name: room.name,
             opened: room.windows.some((window) => openDuring(history[window.entity], session.start, to)),
             start: co2?.before,
             end: co2Value(stateAt(history[room.carbon_dioxide ?? ""], to)),
             co2,
-            temperature: triple(room.temperature),
-            humidity: triple(room.absolute_humidity),
+            temperature: room.temperature === undefined ? undefined : triple(recorded(room.temperature)),
+            // Absolute humidity (g/m³) from the recorded temperature and relative humidity of the room.
+            humidity:
+              room.temperature === undefined || room.humidity === undefined
+                ? undefined
+                : triple((time) => absoluteHumidity(recorded(room.temperature)(time), recorded(room.humidity)(time))),
           };
         }),
       };
@@ -1377,7 +1381,13 @@ export class HaKlimaDashboard extends LitElement {
       const lines = [
         { label: text.quantity.co2, entity: item.room.carbon_dioxide, triple: saved?.co2, live: co2Value(this.getState(item.room.carbon_dioxide)?.state), digits: false },
         { label: text.quantity.temperature, entity: item.room.temperature, triple: saved?.temperature, live: numberOf(this.getState(item.room.temperature)?.state), digits: true },
-        { label: text.quantity.humidity, entity: item.room.absolute_humidity, triple: saved?.humidity, live: numberOf(this.getState(item.room.absolute_humidity)?.state), digits: true },
+        {
+          label: text.quantity.humidity,
+          entity: item.room.temperature !== undefined && item.room.humidity !== undefined ? item.room.humidity : undefined,
+          triple: saved?.humidity,
+          live: absoluteHumidity(numberOf(this.getState(item.room.temperature)?.state), numberOf(this.getState(item.room.humidity)?.state)),
+          digits: true,
+        },
       ]
         .filter((line) => line.entity)
         .map((line) => {
@@ -1428,7 +1438,7 @@ export class HaKlimaDashboard extends LitElement {
             <div class="vent-head" aria-hidden="true">
               <span class="vent-q"></span>
               ${columns.map((label) => html`<span class="vent-num">${label}</span>`)}
-              ${running ? html`<span class="vent-num ring-head">↓ ${this._i18n.whole(full)}</span>` : nothing}
+              ${running ? html`<span class="vent-num ring-head">↓ ${this._i18n.whole(full)}<span class="ring-unit"> ppm</span></span>` : nothing}
             </div>
             ${rooms.map(roomBlock)}
           </div>`;
