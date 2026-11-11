@@ -1579,7 +1579,8 @@ test.describe("předvolby žaluzií (Žaluzie)", () => {
   test.describe("dotyk", () => {
     test.use({ hasTouch: true, isMobile: true });
 
-    test("dlouhý stisk odešle skript i při pohybu prstu", async ({ page, context }) => {
+    test("dlouhý stisk odešle skript i při pohybu prstu", async ({ page, context, browserName }) => {
+      test.skip(browserName !== "chromium", "dotyk se simuluje přes CDP, ten má jen Chromium");
       await open(page, "full");
       const cdp = await context.newCDPSession(page);
       const [x, y] = await centre(page, ".preset", 0);
@@ -2327,7 +2328,8 @@ test.describe("souhrn a zkrácená místnost (Dashboard Domov, Room Card)", () =
         ["none", ["21.3 °C", "52 %", "1640"]],
       ] as const) {
         await setLocale(page, { number_format: format });
-        await expect.poll(async () => [await temperature(page), await humidity(page), await co2()], format).toEqual(expected);
+        // de-CH: WebKit (novější data ICU) odděluje tisíce typografickým apostrofem ’, Chromium rovným '; obojí je správně.
+        await expect.poll(async () => [await temperature(page), await humidity(page), (await co2()).replace("’", "'")], format).toEqual(expected);
       }
       // The card follows a change of the profile without a reload; back to the language.
       await setLocale(page, { number_format: "language" });
@@ -2368,7 +2370,8 @@ test.describe("popup: stránka pod ním se neposouvá", () => {
   };
   const scrollY = (page: Page) => page.evaluate(() => Math.round(window.scrollY));
 
-  test("popup: stránka pod ním se neposouvá", async ({ page }) => {
+  test("popup: stránka pod ním se neposouvá", async ({ page, browserName }) => {
+    test.skip(browserName !== "chromium", "dotyk se simuluje přes CDP, ten má jen Chromium");
     test.setTimeout(60000);
     await test.step("tažení prstem mimo popup i v něm nehýbe dashboardem; bez popupu ho posune", async () => {
       await open(page, "full", 393, 852);
@@ -2819,7 +2822,8 @@ test.describe("Topení: posuvníky prstem (dotykový tah)", () => {
     await cdp.detach();
   };
 
-  test("tah prstem po časovači mění dobu a nehýbe stránkou", async ({ page }) => {
+  test("tah prstem po časovači mění dobu a nehýbe stránkou", async ({ page, browserName }) => {
+    test.skip(browserName !== "chromium", "dotyk se simuluje přes CDP, ten má jen Chromium");
     await open(page, "full", 393, 852);
     await page.evaluate(() => window.scrollTo(0, 300));
     await rooms(page).first().locator(".hvac").evaluate((button) => (button as HTMLElement).click());
