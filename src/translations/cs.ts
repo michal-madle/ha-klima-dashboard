@@ -10,8 +10,6 @@ const plural = (count: number, one: string, few: string, many: string): string =
   count === 1 ? one : count >= 2 && count <= 4 ? few : many;
 
 export const cs = {
-  /** Heading without `title` in the YAML. */
-  title: "Domov",
   /** Card picker of Home Assistant. */
   cardDescription: "Přehled teploty, kvality vzduchu, vytápění a žaluzií v místnostech.",
 

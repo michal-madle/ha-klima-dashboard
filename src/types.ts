@@ -121,7 +121,6 @@ export type Theme = "dark" | "light";
 
 export interface DashboardConfig {
   type: string;
-  title?: LocalizedText;
   theme?: ThemeSetting;
   language?: LanguageSetting;
   house_mode_entity?: EntityId;
@@ -185,8 +184,6 @@ export interface Room {
 
 /** The card configuration after `normalizeConfig`. */
 export interface Settings {
-  /** Undefined: the default title in the card language ("Domov", "Home", "Hem"). */
-  title?: LocalizedText;
   theme: ThemeSetting;
   language: LanguageSetting;
   houseModeEntity: EntityId;

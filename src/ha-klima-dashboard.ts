@@ -476,9 +476,8 @@ export class HaKlimaDashboard extends LitElement {
     const modeKnown = isSummer || mode === plainText(this._config.houseModes.winter);
     const axes = this.trendAxes(this._config);
     const now = Date.now();
-    // An empty title leaves the heading out; the header disappears when nothing else is in it
-    // (the second of two cards side by side in a Masonry view, CURRENT_SPEC.md, Dashboard Domov).
-    const title = pickText(this._config.title, this._i18n.language) ?? this._i18n.t.title;
+    // No title: the name of the dashboard is at the top of Home Assistant (uživatel 12. 11. 2026: „nechci title … To zrus“).
+    // The header disappears when nothing else is in it (CURRENT_SPEC.md, Dashboard Domov).
     const outside = this.renderOutside();
     const chips = houseSummary(
       this._config.rooms,
@@ -488,18 +487,14 @@ export class HaKlimaDashboard extends LitElement {
     );
     // The ventilation button sits in the title row (also without a title); a card with its key always has the header.
     const hasVentilation = this._config.ventilationEntity !== undefined;
-    const hasHeader = title !== "" || outside !== nothing || chips.length > 0 || hasVentilation;
+    const hasHeader = outside !== nothing || chips.length > 0 || hasVentilation;
 
     return html`
       <ha-card>
         <div class="dashboard">
           ${hasHeader
             ? html`<header class="dashboard-header">
-                ${hasVentilation
-                  ? html`<div class="title-row">${title === "" ? nothing : html`<h1>${title}</h1>`}${this.renderVentilationButton()}</div>`
-                  : title === ""
-                    ? nothing
-                    : html`<h1>${title}</h1>`}
+                ${hasVentilation ? html`<div class="title-row">${this.renderVentilationButton()}</div>` : nothing}
                 ${outside} ${this.renderSummary(chips)}
               </header>`
             : nothing}

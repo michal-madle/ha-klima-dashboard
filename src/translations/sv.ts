@@ -8,7 +8,6 @@ import type { Texts } from "../i18n";
 const plural = (count: number, one: string, other: string): string => (count === 1 ? one : other);
 
 export const sv: Texts = {
-  title: "Hem",
   cardDescription: "Översikt över temperatur, luftkvalitet, värme och persienner i rummen.",
 
   status: {

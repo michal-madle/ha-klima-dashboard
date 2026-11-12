@@ -4,8 +4,8 @@
 # Jsou tu VŠECHNA nastavení. Hodnoty jsou výchozí, stačí přepsat číslo nebo text.
 # Klíč bez hodnoty (např. "link:") nebo smazaný klíč = výchozí hodnota.
 # Nejdřív je společné nastavení pro celý dům, pod ním místnosti.
-# Karta mluví česky, švédsky nebo anglicky (language). Texty odsud (nadpis, názvy
-# místností, oken a předvoleb; title, name a description) jsou text, nebo podle jazyka
+# Karta mluví česky, švédsky nebo anglicky (language). Texty odsud (názvy
+# místností, oken a předvoleb; name a description) jsou text, nebo podle jazyka
 # {cs: Ložnice, en: Bedroom, sv: Sovrum}: vybere se jazyk karty, pak angličtina, pak
 # první uvedený. Prázdné = výchozí v jazyce karty.
 # =============================================================================
@@ -14,10 +14,6 @@ type: custom:ha-klima-dashboard
 # -----------------------------------------------------------------------------
 # 1. SPOLEČNÉ NASTAVENÍ PRO CELÝ DŮM (platí pro všechny místnosti)
 # -----------------------------------------------------------------------------
-title:                          # nadpis karty: text, nebo podle jazyka; "" ho vynechá; bez hodnoty „Domov“ v jazyce karty
-  cs: Domov
-  en: Home
-  sv: Hem
 theme: auto                     # barvy: auto (podle Home Assistantu / Vzhledu iPhonu), dark, light
 language: auto                  # jazyk: auto (podle Home Assistantu: čeština, švédština, jinak angličtina), cs, sv, en
 

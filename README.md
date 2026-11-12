@@ -55,18 +55,16 @@ Na telefonu na výšku je karta místnosti přes celou šířku karty Domov. Po�
 | Sekce (*Sections*) | sloupec nejvýš 500 px; sekce s `column_span: 2` asi 670 px | ano, v sekci s `column_span: 2` |
 | Masonry | jeden sloupec nejvýš asi 500 px | ne, jediná karta zůstane v jednom sloupci |
 
-V zobrazení Masonry lze dosáhnout dvou sloupců dvěma kartami vedle sebe: každá dostane část místností a druhá má `title: ""` (prázdný název vynechá nadpis i prázdnou hlavičku). Na šířku je Masonry dá vedle sebe, na výšku pod sebe. Konfigurace místností zůstává stejná jako v příkladu; zkopírujte z něj jen potřebné místnosti:
+V zobrazení Masonry lze dosáhnout dvou sloupců dvěma kartami vedle sebe: každá dostane část místností. Karta nemá nadpis (název dashboardu je nahoře v Home Assistantu); hlavička bez obsahu se vynechá. Na šířku je Masonry dá vedle sebe, na výšku pod sebe. Konfigurace místností zůstává stejná jako v příkladu; zkopírujte z něj jen potřebné místnosti:
 
 ```yaml
 - type: custom:ha-klima-dashboard
-  title: {cs: Domov, en: Home, sv: Hem}
   house_mode_entity: input_select.house_mode
   rooms:
     - name: {cs: Ložnice, en: Bedroom, sv: Sovrum}   # … celá konfigurace místnosti z examples/
     - name: {cs: Pracovna, en: Study, sv: Arbetsrum}
     - name: {cs: Maxík, en: Maxík, sv: Maxík}
 - type: custom:ha-klima-dashboard
-  title: ""
   house_mode_entity: input_select.house_mode
   rooms:
     - name: {cs: Mikuláš, en: Mikuláš, sv: Mikuláš}
@@ -111,7 +109,7 @@ Pro aktuální chování a návrh má přednost `CURRENT_SPEC.md`. Historická r
 
 Všechno, co jde nastavit, je v YAML konfiguraci karty. [Příklad](./examples/domov_prototyp_loznice.yaml) obsahuje úplně všechna nastavení: nahoře **společné nastavení pro celý dům** (prahy CO₂ a PM2.5, komfortní teploty, úsek mikrotrendů, historie, žaluzie, barevný režim …) s výchozími hodnotami, pod ním místnosti, každou se všemi klíči. Stačí přepsat číslo nebo text. Klíč bez hodnoty (např. `link:`) nebo smazaný klíč znamená výchozí hodnotu; u místnosti tedy prázdné `thresholds:` a `cover_presets:` = společné nastavení. Starší konfigurace bez nových klíčů funguje beze změny. Chybnou hodnotu karta neignoruje: místo karty ukáže chybu s názvem klíče (např. `thresholds: co2_warning (1600) must be below co2_critical (1500)`). Přesná pravidla jsou ve spec karty (soukromý `ha-config`); každý klíč s výchozí hodnotou a komentářem je v [příkladu](./examples/domov_prototyp_loznice.yaml).
 
-Klíče společné pro celý dům: `title`, `theme`, `language`, `house_mode_entity`, `house_modes`, `ventilation_entity`, `ventilation_timer_entity`, `ventilation_co2_target`, `thresholds`, `trends`, `history`, `covers` (skript, tolerance a předvolby žaluzií) a `outside` (venkovní podmínky v hlavičce). Pro každou místnost (`rooms`): `name` (povinný), `image`, `link`, `temperature`, `humidity`, `carbon_dioxide`, `pm25` (`false` = místnost čidlo nemá, řádek zmizí a stav místnosti ho nepotřebuje), `window` (entita nebo seznam oken), `cover`, `cover_presets`, vlastní `thresholds`, `heating` a `air_conditioner`. Výchozí hodnoty a význam každého klíče jsou v [příkladu](./examples/domov_prototyp_loznice.yaml) (komentáře u klíčů). Starší klíče `tado`, `samsung` a `heating.heating` karta odmítne s chybovou hláškou, stejně jako neznámý klíč místnosti (překlep); přejmenujte je podle příkladu.
+Klíče společné pro celý dům: `theme`, `language`, `house_mode_entity`, `house_modes`, `ventilation_entity`, `ventilation_timer_entity`, `ventilation_co2_target`, `thresholds`, `trends`, `history`, `covers` (skript, tolerance a předvolby žaluzií) a `outside` (venkovní podmínky v hlavičce). Pro každou místnost (`rooms`): `name` (povinný), `image`, `link`, `temperature`, `humidity`, `carbon_dioxide`, `pm25` (`false` = místnost čidlo nemá, řádek zmizí a stav místnosti ho nepotřebuje), `window` (entita nebo seznam oken), `cover`, `cover_presets`, vlastní `thresholds`, `heating` a `air_conditioner`. Výchozí hodnoty a význam každého klíče jsou v [příkladu](./examples/domov_prototyp_loznice.yaml) (komentáře u klíčů). Starší klíče `tado`, `samsung` a `heating.heating` karta odmítne s chybovou hláškou, stejně jako neznámý klíč místnosti (překlep); přejmenujte je podle příkladu.
 
 **Větrací režim** (volitelný): `ventilation_entity` je entita režimu (`input_boolean`), `ventilation_timer_entity` jeho časovač a `ventilation_co2_target` CO₂ v ppm, při kterém je kolečko zelené a lze zavřít okna (výchozí 500), `ventilation_co2_full` CO₂, při kterém je větrání 100 % hotové (výchozí 420), `ventilation_settle_minutes` kolik minut po skončení režimu se berou hodnoty „po ustálení“ (výchozí 25). Tlačítko „Větrací režim“ je v řádku nadpisu vpravo: zelená kapsle s textem, když režim běží, šedá ikona, když neběží. Klepnutím se otevře popup. Za běhu ukáže dobu, konec nejpozději (z atributu `finishes_at` časovače) a tabulku místností s otevřeným oknem: CO₂, teplotu a absolutní vlhkost před větráním a teď (absolutní vlhkost karta počítá z `temperature` a `humidity` místnosti), kolečko postupu k `ventilation_co2_full` (zelené, když lze okna zavřít) a tlačítko Ukončit. Po skončení ukáže poslední větrání: před, po a po ustálení. Hodnoty se berou z historie Home Assistantu, karta nic neukládá a režim nezapíná. Bez `ventilation_entity` se štítek nezobrazí, bez `ventilation_timer_entity` chybí řádek konce. Chování režimu v Home Assistantu (automatizace, skripty, pomocné entity) je v kitu, `CURRENT_SPEC.md` (oddíl Home Assistant: větrací režim), a v soukromé konfiguraci Home Assistantu.
 

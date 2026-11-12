@@ -113,7 +113,8 @@ async function settle(page: Page): Promise<void> {
 async function axeViolations(page: Page): Promise<string[]> {
   // A popup that is still sliding in is partly transparent and fails the contrast check.
   await settle(page);
-  return kitAxeViolations(page);
+  // The card has no title (the name of the dashboard is in Home Assistant's toolbar), so the test page has no h1.
+  return kitAxeViolations(page, ["page-has-heading-one"]);
 }
 
 async function touch(cdp: CDPSession, type: "touchStart" | "touchMove" | "touchEnd", x = 0, y = 0): Promise<void> {
@@ -376,7 +377,7 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
   test("příklad YAML obsahuje úplně všechna nastavení", async () => {
     // Every key of the configuration contract as a path; "[]" is an item of a list.
     const all = [
-      "type", "title", "theme", "language", "house_mode_entity", "house_modes.winter", "house_modes.summer",
+      "type", "theme", "language", "house_mode_entity", "house_modes.winter", "house_modes.summer",
       "ventilation_entity", "ventilation_timer_entity", "ventilation_co2_target", "ventilation_co2_full", "ventilation_settle_minutes",
       ...["temperature", "minimum", "maximum", "rain_probability", "pm25"].map((key) => `outside.${key}`),
       ...["humidity_min", "humidity_max", "co2_warning", "co2_critical", "pm25_warning", "pm25_critical", "winter_min",
@@ -494,7 +495,7 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
         [{ language: "sv" }, { cover_presets: [{ position: 10, tilt: 0, icon: null }] }],
         [{}, { window: "binary_sensor.loznice_okno_loznice" }],
         [{}, { carbon_dioxide: false, pm25: false }],
-        [{ title: "", theme: "light", trends: { minutes: 60 } }, { image: "/local/obrazky/loznice.jpg", link: "https://example.com" }],
+        [{ theme: "light", trends: { minutes: 60 } }, { image: "/local/obrazky/loznice.jpg", link: "https://example.com" }],
         [{ title: null, theme: null, language: null, trends: { minutes: null }, covers: { presets: null, script: null }, outside: { pm25: null } },
           { link: null, cover_presets: null, thresholds: null, heating: null, image: null, scene: "office", carbon_dioxide: null }],
       ];
@@ -620,9 +621,9 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
       await expect(trigger.locator(".vent-icon svg")).toHaveCount(1);
       const row = (await titleRow.boundingBox())!;
       const box = (await trigger.boundingBox())!;
-      const title = (await page.locator(".title-row h1").boundingBox())!;
+      // No title (uživatel 12. 11. 2026: „nechci title“): the row keeps only the button, on the right.
+      await expect(page.locator("h1")).toHaveCount(0);
       expect(row.x + row.width - (box.x + box.width), "vpravo, nad tlačítky žaluzií").toBeLessThanOrEqual(8);
-      expect(Math.abs(box.y + box.height / 2 - (title.y + title.height / 2)), "na úrovni nadpisu").toBeLessThanOrEqual(6);
       expect(box.height, "tlačítko 36 px").toBeGreaterThanOrEqual(36);
       // The touch area is 44 px: a point 3 px beyond the edge still hits the button.
       const hit = await page.evaluate(([x, y]) => {
@@ -839,17 +840,11 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
       await trigger.click();
       await expect(page.locator(".sheet .vent-summary")).not.toContainText("Skončí nejpozději");
       await page.locator(".sheet .close").click();
-      // Without a title the row keeps only the button, on the right.
-      await reconfigure(page, { title: "" });
-      await expect(page.locator(".title-row h1")).toHaveCount(0);
-      const alone = (await trigger.boundingBox())!;
-      const aloneRow = (await titleRow.boundingBox())!;
-      expect(aloneRow.x + aloneRow.width - (alone.x + alone.width), "bez nadpisu vpravo").toBeLessThanOrEqual(8);
       // Without the key there is neither the button nor the row.
-      await reconfigure(page, { ventilation_entity: undefined, ventilation_timer_entity: undefined, title: undefined });
+      await reconfigure(page, { ventilation_entity: undefined, ventilation_timer_entity: undefined });
       await expect(trigger).toHaveCount(0);
       await expect(titleRow).toHaveCount(0);
-      await expect(page.locator("h1")).toHaveCount(1);
+      await expect(page.locator("h1")).toHaveCount(0);
     });
   });
 
@@ -1755,7 +1750,7 @@ test.describe("historie místnosti (Historie a grafy)", () => {
 // ---------------------------------------------------------- air and window
 
 test.describe("kvalita vzduchu, okno a hlavička (Room Card, Vizuální pravidla, Dashboard Domov)", () => {
-  test("kvalita vzduchu, doba otevření na 320 px a title: \"\"", async ({ page }) => {
+  test("kvalita vzduchu, doba otevření na 320 px a hlavička bez nadpisu", async ({ page }) => {
     test.setTimeout(90000);
     await test.step("blok CO₂ / PM2.5 otevře rovnou graf CO₂ s PM2.5 jako slabší čarou; teplota a vlhkost mají vlastní graf; žádné záložky", async () => {
       await open(page, "full");
@@ -1793,7 +1788,7 @@ test.describe("kvalita vzduchu, okno a hlavička (Room Card, Vizuální pravidla
       await expect(rooms(page).first().locator(".slot-window .row-label")).toHaveText("Otevřena 2");
       expect((await windowRows(page))[0]).toMatchObject({ cut: false, dot: true, dotHidden: false });
     });
-    await test.step("title: \"\" vynechá nadpis; bez štítků a venkovních podmínek zmizí celá hlavička", async () => {
+    await test.step("bez nadpisu; bez štítků a venkovních podmínek zmizí celá hlavička", async () => {
       // Steps share one page: what an earlier step stored in the browser must not leak into this one.
       await page.evaluate(() => { try { localStorage.clear(); } catch { /* no storage */ } });
       await open(page, "full");
@@ -1802,7 +1797,7 @@ test.describe("kvalita vzduchu, okno a hlavička (Room Card, Vizuální pravidla
           // @ts-expect-error test hook
           const { card, config } = window.__test;
           const list = kept ? config.rooms.filter((room: { name: string }) => kept.includes(room.name)) : config.rooms;
-          card.setConfig({ ...config, title: "", rooms: list });
+          card.setConfig({ ...config, rooms: list });
         }, names);
       // "full" has summary chips (an open window, heating): the heading goes, the chips stay.
       await setTitle(undefined);
@@ -1812,9 +1807,9 @@ test.describe("kvalita vzduchu, okno a hlavička (Room Card, Vizuální pravidla
       await setTitle(["Mikuláš"]);
       await expect(rooms(page)).toHaveCount(1);
       await expect(page.locator(".dashboard-header")).toHaveCount(0);
-      // The default title is still "Domov".
-      await reconfigure(page, { title: undefined });
-      await expect(page.locator("h1")).toHaveText("Domov");
+      // An old title in the YAML is ignored: no heading (uživatel 12. 11. 2026: „nechci title … To zrus“).
+      await reconfigure(page, { title: "Domov" });
+      await expect(page.locator("h1")).toHaveCount(0);
     });
   });
 
@@ -1937,7 +1932,6 @@ async function neutralCard(page: Page): Promise<void> {
     const sensor = (slug: string, kind: string) => `sensor.${slug}_teplomer_${slug}_${kind}`;
     card.setConfig({
       ...config,
-      title: undefined,
       rooms,
       outside: {
         temperature: sensor("loznice", "temperature"),
@@ -1971,18 +1965,17 @@ test.describe("jazyky (CURRENT_SPEC.md, Jazyky)", () => {
     await test.step("jazyk podle Home Assistantu: čeština, švédština, jinak angličtina; language v YAML ho vynutí; přepne se bez obnovení", async () => {
       const look = async () => [
         await page.locator("ha-klima-dashboard").getAttribute("lang"),
-        await page.locator("h1").textContent(),
         tidy(await statuses(page))[0],
       ];
       // A frontend that reports no language: English.
       await open(page, "full", 393, 852, "dark", "");
-      expect(await look()).toEqual(["en", "Home", "Comfortable"]);
+      expect(await look()).toEqual(["en", "Comfortable"]);
       // The user switches the language in the profile: the card follows without a reload.
       for (const [tag, expected] of [
-        ["sv", ["sv", "Hem", "Behagligt"]],
-        ["de", ["en", "Home", "Comfortable"]],
-        ["en-GB", ["en", "Home", "Comfortable"]],
-        ["cs", ["cs", "Domov", "Příjemné"]],
+        ["sv", ["sv", "Behagligt"]],
+        ["de", ["en", "Comfortable"]],
+        ["en-GB", ["en", "Comfortable"]],
+        ["cs", ["cs", "Příjemné"]],
       ] as const) {
         await page.evaluate((language) => {
           // @ts-expect-error test hook
@@ -1992,11 +1985,11 @@ test.describe("jazyky (CURRENT_SPEC.md, Jazyky)", () => {
       }
       // `language` in the YAML wins over Home Assistant (now Czech); `auto` follows it again.
       await reconfigure(page, { language: "sv" });
-      await expect.poll(look).toEqual(["sv", "Hem", "Behagligt"]);
+      await expect.poll(look).toEqual(["sv", "Behagligt"]);
       await reconfigure(page, { language: "auto" });
-      await expect.poll(look).toEqual(["cs", "Domov", "Příjemné"]);
+      await expect.poll(look).toEqual(["cs", "Příjemné"]);
     });
-    await test.step("title, name místností, oken a předvoleb: text, nebo jazyk → text (jazyk karty, angličtina, první uvedený)", async () => {
+    await test.step("name místností, oken a předvoleb: text, nebo jazyk → text (jazyk karty, angličtina, první uvedený)", async () => {
       await open(page, "full", 393, 852, "dark", "cs");
       const names = () => page.locator(".room-title, .room-name").allTextContents();
       const before = await names();
@@ -2006,17 +1999,14 @@ test.describe("jazyky (CURRENT_SPEC.md, Jazyky)", () => {
         const { card, config } = window.__test;
         card.setConfig({
           ...config,
-          title: { cs: "Domov Madle", en: "Madle home" },
           rooms: config.rooms.map((room: { name: string }) => ({ ...room, name: { cs: room.name, en: `${room.name} EN`, sv: `${room.name} SV` } })),
         });
       });
-      await expect(page.locator("h1")).toHaveText("Domov Madle");
       expect(await names()).toEqual(before);
       await page.evaluate(() => {
         // @ts-expect-error test hook
         window.__test.setLanguage("sv");
       });
-      await expect(page.locator("h1")).toHaveText("Madle home");
       await expect.poll(names).toEqual(before.map((name) => `${name} SV`));
       await page.evaluate(() => {
         // @ts-expect-error test hook
@@ -2035,8 +2025,7 @@ test.describe("jazyky (CURRENT_SPEC.md, Jazyky)", () => {
             return (caught as Error).message;
           }
         }, patch);
-      expect(await error({ title: { Czech: "x" } })).toContain("title must be a text or a mapping of the language to the text");
-      expect(await error({ title: 5 })).toContain("title must be a text or a mapping");
+      expect(await error({ rooms: [{ name: { Czech: "x" } }] })).toContain("must be a text or a mapping of the language to the text");
     });
     await test.step("sv a en: karta a všechny popupy přeložené, čísla podle jazyka, žádný český text", async () => {
       // Steps share one page: what an earlier step stored in the browser must not leak into this one.
@@ -2050,10 +2039,9 @@ test.describe("jazyky (CURRENT_SPEC.md, Jazyky)", () => {
           await neutralCard(page);
         };
 
-        // The card: title, header, statuses, values in the number format of the language, rows, presets.
+        // The card: header, statuses, values in the number format of the language, rows, presets.
         await load("full");
         const first = rooms(page).first();
-        await expect(page.locator("h1")).toHaveText(expected.title);
         expect(tidy(await page.locator(".outside > div").allInnerTexts())).toEqual(expected.outside);
         expect(tidy(await statuses(page))).toEqual(Array(5).fill(expected.status));
         await expect(first.locator(".temperature")).toHaveText(expected.temperature);
@@ -2204,7 +2192,6 @@ test.describe("jazyky (CURRENT_SPEC.md, Jazyky)", () => {
 
   const EXPECTED = {
     sv: {
-      title: "Hem",
       status: "Behagligt",
       temperature: "21,3 °C",
       humidity: "52 %",
@@ -2222,7 +2209,6 @@ test.describe("jazyky (CURRENT_SPEC.md, Jazyky)", () => {
       bothOpen: /^R1: fönstren Fönster 1, Fönster 2 öppna, längst i mindre än en minut; konflikt: öppet fönster under uppvärmning\. Öppnar fönsteröversikten\.$/,
     },
     en: {
-      title: "Home",
       status: "Comfortable",
       temperature: "21.3 °C",
       humidity: "52%",
@@ -2351,7 +2337,7 @@ test.describe("souhrn a zkrácená místnost (Dashboard Domov, Room Card)", () =
         window.__test.setLanguage("de");
       });
       await expect.poll(async () => [await temperature(page), await humidity(page), await co2()]).toEqual(["21,3 °C", "52 %", "1.640"]);
-      await expect(page.locator("h1")).toHaveText("Home");
+      await expect(page.locator("ha-klima-dashboard")).toHaveAttribute("lang", "en");
     });
   });
 });

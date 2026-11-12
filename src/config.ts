@@ -378,8 +378,6 @@ function normalize(config: DashboardConfig): Settings {
   if (!isRecord(config) || !Array.isArray(config.rooms) || config.rooms.length === 0) {
     fail("the configuration requires a non-empty rooms list.");
   }
-  // An empty text leaves the heading out; otherwise a text or the texts by language.
-  const title = config.title === "" ? "" : localizedText(config.title, "title");
   const theme = config.theme ?? "auto";
   if (!THEMES.includes(theme)) {
     fail(`theme must be one of ${THEMES.join(", ")}.`);
@@ -467,8 +465,6 @@ function normalize(config: DashboardConfig): Settings {
   }
 
   return {
-    // Without a title the heading is "Domov" in the card language (i18n.ts).
-    title,
     theme,
     language,
     houseModeEntity,
