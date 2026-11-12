@@ -182,6 +182,11 @@ const measureLayout = (page: Page) =>
       range.selectNodeContents(element);
       return range.getBoundingClientRect();
     };
+    // The visible text of the room name: a name cut with „…“ ends at its own box.
+    const nameBox = (element: Element) => {
+      const text = textBox(element);
+      return new DOMRect(text.left, text.top, Math.max(0, Math.min(text.right, element.getBoundingClientRect().right) - text.left), text.height);
+    };
     const hit = (a: DOMRect, b: DOMRect) => a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
     const roomFacts = [...card.querySelectorAll(".room")].map((room) => {
       const info = box(room.querySelector(".info"))!;
@@ -212,7 +217,7 @@ const measureLayout = (page: Page) =>
         overlaps: drawing
           ? [
               hit(drawing, box(room.querySelector(".humidity"))!) ? "vlhkost" : "",
-              hit(drawing, textBox(room.querySelector(".room-title")!)) ? "název" : "",
+              hit(drawing, nameBox(room.querySelector(".room-title")!)) ? "název" : "",
             ].filter(Boolean)
           : [],
         airRows: [...room.querySelectorAll(".air-row")].flatMap((row) => {

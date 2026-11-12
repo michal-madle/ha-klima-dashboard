@@ -444,6 +444,16 @@ export const styles = css`
       white-space: nowrap;
     }
 
+    /*
+     * A long name ends with „…“ before the drawing, not under it (CURRENT_SPEC.md, Room Card: the
+     * illustration does not cover text). The drawing is 14 px from the right edge, the name 16 px from the left.
+     */
+    @supports (width: 1cqw) {
+      .room:has(> .scene:not(.photo)) .room-title {
+        max-width: calc(100cqw - 30px - min(150px, max(0px, 100cqw - 190px)));
+      }
+    }
+
     /* Room name with a link: the name and a chevron; the touch target is 44 px high (invisible area). */
     .room-link {
       position: relative;
