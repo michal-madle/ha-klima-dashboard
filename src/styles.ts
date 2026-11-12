@@ -485,9 +485,10 @@ export const styles = css`
       line-height: 32px;
     }
 
+    /* The dot beside the first line when the state has two (ha-dashboard-kit/joined). */
     .status-line {
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       gap: 7px;
       min-height: 20px;
       font-size: var(--row-font);
@@ -498,6 +499,7 @@ export const styles = css`
       box-sizing: border-box;
       width: 8px;
       height: 8px;
+      margin-top: 6px;
       flex: 0 0 8px;
       border-radius: 50%;
     }

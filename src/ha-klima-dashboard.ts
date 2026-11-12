@@ -44,6 +44,7 @@ import { absoluteHumidity, co2Value, lastSession, openDuring, progress } from ".
 import type { VentilationSession } from "./ventilation";
 import { pickText } from "ha-dashboard-kit/config";
 import { HoldOrDoubleTap } from "ha-dashboard-kit/gesture";
+import { fitJoined, joined, joinedStyles, joinedText } from "ha-dashboard-kit/joined";
 import { cardLanguage, getI18n, hassLanguage } from "./i18n";
 import type { I18n } from "./i18n";
 import { styles } from "./styles";
@@ -169,7 +170,7 @@ function activeHeating(control: HeatingControl | undefined): string | undefined 
 
 
 export class HaKlimaDashboard extends LitElement {
-  static styles = styles;
+  static styles = [joinedStyles, styles];
 
   @state()
   private _config?: Settings;
@@ -306,11 +307,35 @@ export class HaKlimaDashboard extends LitElement {
         this._clock = Date.now();
       }
     }, CLOCK_TICK_MS);
+    // Texts joined by a dot are measured again when the card width changes or a web font arrives (ha-dashboard-kit/joined).
+    this._joinedObserver = new ResizeObserver(() => {
+      const width = Math.round(this.getBoundingClientRect().width);
+      if (width === this._joinedWidth) return;
+      this._joinedWidth = width;
+      window.requestAnimationFrame(() => this.fitJoined());
+    });
+    this._joinedObserver.observe(this);
+    document.fonts?.addEventListener("loadingdone", this.handleFonts);
     this.requestUpdate();
+  }
+
+  private _joinedObserver?: ResizeObserver;
+  private _joinedWidth = 0;
+  private _fonts = 0;
+  private handleFonts = (): void => {
+    this._fonts++;
+    this.fitJoined();
+  };
+
+  private fitJoined(): void {
+    fitJoined(this.renderRoot, `${this._joinedWidth}|${this._fonts}`);
   }
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
+    this._joinedObserver?.disconnect();
+    this._joinedObserver = undefined;
+    document.fonts?.removeEventListener("loadingdone", this.handleFonts);
     this._colorScheme?.removeEventListener("change", this.handleColorScheme);
     this._colorScheme = undefined;
     window.removeEventListener("resize", this.handleResize);
@@ -394,6 +419,7 @@ export class HaKlimaDashboard extends LitElement {
   };
 
   protected updated(changedProperties: PropertyValues): void {
+    this.fitJoined();
     if (!this._trendsStarted && this.hass && this._config) {
       this._trendsStarted = true;
       void this.refreshTrends();
@@ -575,7 +601,7 @@ export class HaKlimaDashboard extends LitElement {
       return nothing;
     }
     return html`<div class="outside">
-      ${parts.length > 0 ? html`<div>${parts.join(" · ")}</div>` : nothing}
+      ${parts.length > 0 ? html`<div>${joined(parts)}</div>` : nothing}
       ${outside.pm25
         ? html`<div>${t.outsideAir} <span style=${`color: ${airColor}`}>${airLabel}</span></div>`
         : nothing}
@@ -667,7 +693,7 @@ export class HaKlimaDashboard extends LitElement {
               : `background: ${status.color}`}
           ></span>
           <span style=${`color: ${status.color}; font-weight: ${status.kind === "normal" ? 400 : 500}`}>
-            ${status.label}
+            ${joinedText(status.label)}
           </span>
         </div>
         <div class="measurements">
@@ -1180,9 +1206,7 @@ export class HaKlimaDashboard extends LitElement {
               <span class="option-hint window-state" style=${`color: ${color}`}>
                 ${unknown
                   ? html`<span aria-hidden="true">––</span><span class="sr-only">${t.unknownValue}</span>`
-                  : state === "open"
-                    ? t.window.open
-                    : t.window.closed}${minutesOpen === undefined ? nothing : html`${NBSP}·${NBSP}${formatDuration(minutesOpen)}`}
+                  : joined([state === "open" ? t.window.open : t.window.closed, ...(minutesOpen === undefined ? [] : [formatDuration(minutesOpen)])])}
               </span>
             </span>
             <span class="list-chevron" aria-hidden="true">›</span>
@@ -2058,7 +2082,7 @@ export class HaKlimaDashboard extends LitElement {
         : heat.mode === "manual" && !timer
           ? html`<p class="sheet-message">${c.noTimer}</p>`
           : nothing}
-      <p class="heat-note" role="status">${this.heatNote(room, entityId, entity, options.filter((o) => o.unsupported).map((o) => `${o.label}: ${o.unsupported}`))}</p>
+      <p class="heat-note" role="status">${joinedText(this.heatNote(room, entityId, entity, options.filter((o) => o.unsupported).map((o) => `${o.label}: ${o.unsupported}`)))}</p>
       ${this._sheetError ? html`<p class="sheet-message error" role="alert">${this._sheetError}</p>` : nothing}
       ${this.renderSheetTail(rooms.length === 1 ? entityId : undefined)}
     `;

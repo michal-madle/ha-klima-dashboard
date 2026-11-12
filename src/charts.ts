@@ -7,6 +7,7 @@ import type { I18n } from "./i18n";
 import { climateShape, heatingWavesShape, renderClimateIcon, renderHeatingWaves, renderWindowIcon, windowShape } from "./icons";
 import type { ClimateMode, HistoryMetric, HistorySettings, Room } from "./types";
 import { CLIMATE_COLORS, COLORS, climateModeFromState, heatingWaveCount } from "./utils";
+import { joinedText } from "ha-dashboard-kit/joined";
 
 const NBSP = " ";
 
@@ -522,7 +523,7 @@ function renderReadout(model: RoomChartModel, time: number | undefined, i18n: I1
       <div class="readout-systems">
         <span class="readout-system" style=${`color: ${heating === "off" ? COLORS.off : heating ? HEATING_COLORS[heating] : COLORS.label}`}>
           <span class="readout-icon">${renderHeatingWaves(heating && heating !== "off" ? waves : 0, heating === undefined)}</span>
-          ${t.system.heating} ${heatingText}
+          ${t.system.heating} ${joinedText(heatingText)}
         </span>
         <span class="readout-system" style=${`color: ${climateColor}`}>
           <span class="readout-icon">${renderClimateIcon(climate ?? "off", climateColor, climate === undefined)}</span>
