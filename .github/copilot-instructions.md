@@ -3,6 +3,7 @@
 ## Project scope and sources of truth
 
 - This repository builds a Home Assistant Lovelace **custom frontend card** distributed through HACS. It is not a Home Assistant integration, automation package, or backend service. Keep card implementation changes in `src/` unless the request requires another surface.
+- `CURRENT_SPEC.md` and `DESIGN_HISTORY.md` of this card are in the private repository `ha-config` (`klima/`), next to this repository; references "CURRENT_SPEC.md, section" in code and tests point there.
 - Before changing product behavior, read `CURRENT_SPEC.md` and the relevant parts of `ENTITY_MAP.md`. `CURRENT_SPEC.md` defines intended behavior; `ENTITY_MAP.md` (private repository `ha-config`, `klima/ENTITY_MAP.md`) records which entity IDs are confirmed. `README.md` describes installation and the current implementation. The example YAML demonstrates card configuration but does not override the spec.
 - `DESIGN_HISTORY.md` is history only and never binding (superseded decisions, rejected and unconfirmed proposals). There is no `TODO.md`, `AUDIT.md`, `IDEAS.md`, `MEMORY_SUMMARIZED.md` or `TYDEN.md`: anything the user has not confirmed and no export has verified is asked of the user in the chat, never stored in a file (`AGENTS.md` of the kit, section Dokumentace). Prefer the current spec over older decisions or existing code when they disagree.
 - Do not invent entity IDs, attributes, units, or configuration keys. An entity marked “not found” or “not mapped” is unconfirmed: leave it optional or absent until the user confirms it.
