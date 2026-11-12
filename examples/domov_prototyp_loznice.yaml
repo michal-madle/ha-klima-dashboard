@@ -46,8 +46,8 @@ outside:
 thresholds:
   humidity_min: 35              # Sucho pod (%)
   humidity_max: 70              # Vlhko nad (%)
-  co2_warning: 1100             # CO₂: Vydýchaný vzduch od (ppm), oranžové číslo
-  co2_critical: 1600            # CO₂: Silně vydýchaný vzduch od (ppm), červené číslo
+  co2_warning: 1000             # CO₂: Vydýchaný vzduch od (ppm), oranžové číslo
+  co2_critical: 1500            # CO₂: Silně vydýchaný vzduch od (ppm), červené číslo
   pm25_warning: 15              # PM2.5: oranžové číslo od (µg/m³); i venkovní vzduch
   pm25_critical: 35             # PM2.5: Znečištěný vzduch od (µg/m³)
   winter_min: 20                # komfortní teplota v zimě od (°C), níž Chladno
@@ -251,4 +251,3 @@ rooms:
       target: sensor.obyvak_tado_ce_obyvak_target
       intensity: sensor.obyvak_tado_ce_obyvak_heating
     air_conditioner: climate.obyvak_ac_obyvak
-type: panel
