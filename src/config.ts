@@ -403,6 +403,10 @@ function normalize(config: DashboardConfig): Settings {
   ) {
     fail("ventilation_settle_minutes must be a whole number of minutes between 1 and 180.");
   }
+  const sendDelaySeconds = config.send_delay_seconds ?? 2;
+  if (typeof sendDelaySeconds !== "number" || !Number.isFinite(sendDelaySeconds) || sendDelaySeconds < 0 || sendDelaySeconds > 30) {
+    fail("send_delay_seconds must be a number of seconds between 0 and 30.");
+  }
   const modesInput = section(config.house_modes, "house_modes");
   checkKeys(modesInput, ["winter", "summer"], "house_modes");
   const houseModes = {
@@ -474,6 +478,7 @@ function normalize(config: DashboardConfig): Settings {
     ventilationCo2Target,
     ventilationCo2Full,
     ventilationSettleMinutes,
+    sendDelaySeconds,
     outside: outside as Settings["outside"],
     thresholds,
     trends,

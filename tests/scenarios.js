@@ -122,6 +122,13 @@ config.rooms.forEach((room, index) => {
     hvac_modes: ["off", "cool", "dry", "fan_only", "auto", "heat"],
     preset_modes: ["none", "sleep", "boost", "wind_free", "wind_free_sleep"],
     preset_mode: "none",
+    // As in Home Assistant (ha-config/ha/entities.json, Samsung SmartThings).
+    fan_modes: ["auto", "low", "medium", "high", "turbo"],
+    swing_modes: ["off", "both", "vertical", "horizontal"],
+    fan_mode: "auto",
+    swing_mode: "off",
+    min_temp: 16,
+    max_temp: 30,
     temperature: 22,
   });
 });

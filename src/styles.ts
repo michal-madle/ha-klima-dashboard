@@ -1194,6 +1194,43 @@ export const styles = css`
       margin-top: 0;
     }
 
+    /* The shared popup Topení / Klimatizace of the kit: the colours of its tiles, slider and segmented control, the same as
+       in the card Dům (one visual language, DASHBOARD_UX_SYSTEM.md). */
+    kd-climate {
+      --hdk-accent: #0a84ff;
+      --hdk-secondary: var(--kd-label);
+      --hdk-tile: #2c2c2e;
+      --hdk-tile-text: var(--kd-text);
+      --hdk-tile-border: rgb(84 84 88 / 65%);
+      --hdk-tile-on: #0a6ed1;
+      --hdk-tile-on-text: #ffffff;
+      --hdk-tile-on-sub: #ffffff;
+      --hdk-tile-on-border: transparent;
+      --hdk-track: #2c2c2e;
+      --hdk-track-compact: #3a3a3c;
+      --hdk-bar: rgb(255 255 255 / 14%);
+      --hdk-tick: rgb(255 255 255 / 28%);
+      --hdk-seg-thumb: #ffffff;
+      --hdk-seg-text: #ebebf5;
+      --hdk-seg-selected: #000000;
+      color: var(--kd-text);
+    }
+
+    :host([data-theme="light"]) kd-climate {
+      --hdk-accent: #0a6ed1;
+      --hdk-tile: #f2f2f7;
+      --hdk-tile-border: rgb(60 60 67 / 29%);
+      --hdk-tile-on: #d8e8f8;
+      --hdk-tile-on-text: #000000;
+      --hdk-tile-on-sub: #0a5cb0;
+      --hdk-tile-on-border: #0a6ed1;
+      --hdk-track: #f2f2f7;
+      --hdk-track-compact: #e5e5ea;
+      --hdk-bar: rgb(60 60 67 / 18%);
+      --hdk-tick: rgb(60 60 67 / 30%);
+      --hdk-seg-text: #000000;
+    }
+
     .sheet-head {
       display: flex;
       align-items: flex-start;
@@ -1614,59 +1651,10 @@ export const styles = css`
       opacity: 0.45;
     }
 
-    /* Under the options; its height is reserved so the options never move when it appears. */
-    .heat-note {
-      min-height: 32px;
-      margin: 8px 0 0;
-      color: var(--kd-label);
-      font-size: 13px;
-      line-height: 16px;
-      text-align: center;
-    }
-
-    /* Topení: the four modes as icons in one row, label under the icon. */
-    .icon-options {
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 6px;
-    }
-
-    .icon-options .option {
-      flex-direction: column;
-      justify-content: center;
-      gap: 4px;
-      min-height: 64px;
-      padding: 8px 2px;
-      font-size: 12px;
-      text-align: center;
-    }
-
-    .icon-options .option-text {
-      align-items: center;
-    }
-
-    .icon-options .option-hint {
-      display: none;
-    }
-
     .chips {
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
-    }
-
-    .chip-button {
-      min-height: 44px;
-      padding: 0 16px;
-      border: 1px solid var(--kd-fill-border);
-      border-radius: 22px;
-      background: var(--kd-fill);
-      color: var(--kd-text);
-      font-size: 14px;
-    }
-
-    .chip-button[aria-pressed="true"] {
-      border-color: color-mix(in srgb, var(--kd-sky) 70%, transparent);
-      background: color-mix(in srgb, var(--kd-sky) 18%, transparent);
     }
 
     /* Summary chip that opens the popup for the rooms it names: 44 px high touch target, the chip stays 30 px
@@ -1691,124 +1679,6 @@ export const styles = css`
       margin: 4px 0 0;
     }
 
-    .dial-ring {
-      position: relative;
-      width: min(100%, 176px);
-      aspect-ratio: 272 / 232;
-      touch-action: none;
-      border-radius: 50%;
-      user-select: none;
-      -webkit-user-select: none;
-    }
-
-    .dial-ring[role="slider"] {
-      cursor: pointer;
-    }
-
-    .dial-ring:focus-visible {
-      outline: 2px solid var(--kd-sky);
-      outline-offset: 2px;
-    }
-
-    .dial-ring svg {
-      display: block;
-      width: 100%;
-      height: 100%;
-    }
-
-    .dial-track,
-    .dial-value {
-      fill: none;
-      stroke-width: 14;
-      stroke-linecap: round;
-    }
-
-    .dial-track {
-      stroke: var(--kd-fill-border);
-    }
-
-    .dial-value {
-      stroke: var(--tone);
-    }
-
-    .dial-knob {
-      fill: #fff;
-      stroke: var(--tone);
-      stroke-width: 3;
-      filter: drop-shadow(0 1px 2px rgb(0 0 0 / 35%));
-    }
-
-    .dial-knob.still {
-      fill: var(--tone);
-      stroke: none;
-      filter: none;
-    }
-
-    /* The value is centred in the ring both ways; the small texts do not move it. */
-    .dial-text {
-      position: absolute;
-      inset: 0 0 auto 0;
-      /* As high as the whole ring (272 / 232), so the value sits in its centre. */
-      height: 117.24%;
-      display: grid;
-      grid-template-rows: 1fr auto 1fr;
-      justify-items: center;
-      pointer-events: none;
-    }
-
-    .dial-eyebrow {
-      align-self: end;
-      padding-bottom: 2px;
-      color: var(--kd-label);
-      font-size: 13px;
-    }
-
-    .dial-big {
-      font-size: 56px;
-      font-weight: 600;
-      line-height: 1;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .dial-big.word {
-      font-size: 30px;
-    }
-
-    .dial-sub {
-      align-self: start;
-      padding-top: 4px;
-      color: var(--kd-label);
-      font-size: 13px;
-    }
-
-    /* Timer: icon at the left end, ∞ at the right end, the time above (Tado hot water). */
-    .options + .timer-card,
-    .options + .heat-note + .timer-card {
-      margin-top: 10px;
-    }
-
-    .timer-card {
-      padding: 10px 12px 8px;
-      border: 1px solid var(--kd-fill-border);
-      border-radius: 16px;
-      background: var(--kd-fill);
-    }
-
-    .timer-read {
-      padding: 2px 0 0;
-      font-size: 17px;
-      font-weight: 600;
-      line-height: 22px;
-      text-align: center;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .timer-row {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
     .end-button {
       display: flex;
       flex: 0 0 44px;
@@ -1825,90 +1695,8 @@ export const styles = css`
       color: var(--kd-text);
     }
 
-    .end-icon {
-      display: flex;
-      width: 22px;
-      height: 22px;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .end-icon svg {
-      width: 22px;
-      height: 22px;
-    }
-
-    .end-icon.infinity {
-      font-size: 26px;
-      line-height: 1;
-    }
-
-    .timer-slider {
-      position: relative;
-      flex: 1;
-      height: 44px;
-      margin: 0 20px;
-      touch-action: none;
-      cursor: pointer;
-    }
-
-    .timer-slider:focus-visible {
-      outline: 2px solid var(--kd-sky);
-      outline-offset: 2px;
-      border-radius: 8px;
-    }
-
-    /* iOS slider (HIG): the track up to the thumb is filled with colour, the thumb is a narrow lozenge; icons at both ends. */
-    .timer-track,
-    .timer-fill {
-      position: absolute;
-      top: 19px;
-      height: 6px;
-      border-radius: 3px;
-    }
-
-    .timer-track {
-      left: 0;
-      right: 0;
-      background: var(--kd-fill-border);
-    }
-
-    .timer-fill {
-      left: 0;
-      background: var(--kd-sky);
-    }
-
-    .timer-knob {
-      position: absolute;
-      top: 10px;
-      width: 36px;
-      height: 24px;
-      margin-left: -18px;
-      border-radius: 12px;
-      background: #fff;
-      box-shadow: 0 2px 6px rgb(0 0 0 / 35%), 0 0 0 0.5px rgb(0 0 0 / 10%);
-    }
-
-    .timer-ticks {
-      display: flex;
-      justify-content: space-between;
-      padding: 0 8px;
-      color: var(--kd-label);
-      font-size: 12px;
-      line-height: 16px;
-    }
-
-    .timer-ticks b {
-      color: var(--kd-text);
-      font-weight: 600;
-    }
-
     .dim {
       opacity: 0.4;
-    }
-
-    .after-row.away {
-      visibility: hidden;
     }
 
     .timer-foot {
@@ -1917,81 +1705,6 @@ export const styles = css`
       color: var(--kd-label);
       font-size: 13px;
       line-height: 18px;
-    }
-
-    /* Po skončení: Plán | Vypnuto. */
-    .after-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      margin-top: 6px;
-      padding-top: 8px;
-      border-top: 1px solid var(--kd-fill-border);
-      font-size: 15px;
-    }
-
-    .mini-segmented {
-      display: grid;
-      grid-auto-columns: 1fr;
-      grid-auto-flow: column;
-      gap: 2px;
-      padding: 2px;
-      border-radius: 10px;
-      background: var(--kd-segmented-bg);
-    }
-
-    .mini-segmented.wide {
-      width: 100%;
-    }
-
-    .mini-segment {
-      min-height: 44px;
-      min-width: 76px;
-      padding: 0 8px;
-      border-radius: 8px;
-      color: var(--kd-text);
-      font-size: 14px;
-      font-weight: 500;
-      text-align: center;
-    }
-
-    .mini-segmented.wide .mini-segment {
-      min-width: 0;
-    }
-
-    .mini-segment[aria-pressed="true"] {
-      background: var(--kd-segment-on);
-      box-shadow: var(--kd-segment-shadow);
-    }
-
-    .climate-options {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-
-    .climate-options .option {
-      flex-direction: column;
-      justify-content: center;
-      gap: 4px;
-      min-height: 64px;
-      padding: 8px 2px;
-      font-size: 12px;
-      text-align: center;
-    }
-
-    .climate-options .option-text {
-      align-items: center;
-    }
-
-    .sheet-link {
-      display: block;
-      width: 100%;
-      min-height: 44px;
-      margin-top: 16px;
-      border-radius: 14px;
-      color: var(--kd-sky);
-      font-size: 15px;
-      text-align: center;
     }
 
     /* „Historie místnosti – 24 h“ (history.hours): readout and chart 1:1 in CSS pixels. */

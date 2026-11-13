@@ -378,7 +378,7 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
     // Every key of the configuration contract as a path; "[]" is an item of a list.
     const all = [
       "type", "theme", "language", "house_mode_entity", "house_modes.winter", "house_modes.summer",
-      "ventilation_entity", "ventilation_timer_entity", "ventilation_co2_target", "ventilation_co2_full", "ventilation_settle_minutes",
+      "ventilation_entity", "ventilation_timer_entity", "ventilation_co2_target", "ventilation_co2_full", "ventilation_settle_minutes", "send_delay_seconds",
       ...["temperature", "minimum", "maximum", "rain_probability", "pm25"].map((key) => `outside.${key}`),
       ...["humidity_min", "humidity_max", "co2_warning", "co2_critical", "pm25_warning", "pm25_critical", "winter_min",
         "winter_max", "summer_min", "summer_max", "stale_minutes", "heating_waves_2", "heating_waves_3"].map((key) => `thresholds.${key}`),
@@ -1336,7 +1336,7 @@ test.describe("přístupnost", () => {
       const hvac = page.locator(".hvac").first();
       await hvac.focus();
       await page.keyboard.press("Enter");
-      await expect(page.locator(".sheet .option[aria-pressed='true']")).toBeFocused();
+      await expect(page.locator(".sheet")).toBeFocused();
       await page.locator('.segment[data-system="heating"]').focus();
       await page.keyboard.press("ArrowRight");
       await expect(page.locator('.segment[data-system="climate"]')).toBeFocused();
@@ -1348,6 +1348,7 @@ test.describe("přístupnost", () => {
         await page.keyboard.press("Tab");
         const inside = await page.evaluate(() => {
           const card = document.querySelector("ha-klima-dashboard")!.shadowRoot!;
+          // The controls of the popup of the kit sit in kd-climate (its own shadow root): its host is inside the sheet.
           return Boolean(card.activeElement?.closest(".sheet"));
         });
         expect(inside).toBe(true);
@@ -1906,7 +1907,7 @@ function dictionaryWords(dictionary: object): Set<string> {
 }
 
 /** Words that are the same in Czech and in English or Swedish (checked by hand). */
-const SHARED_WORDS = new Set(["auto", "boost", "ce", "co", "data", "den", "end", "konflikt", "min", "minut", "pm", "ppm", "tado", "windfree"]);
+const SHARED_WORDS = new Set(["auto", "boost", "ce", "co", "data", "den", "end", "konflikt", "min", "minut", "pm", "ppm", "tado", "turbo", "windfree"]);
 
 /** Czech words: none of them may appear on a Swedish or English card. */
 const CZECH_ONLY = [...dictionaryWords(cs)].filter((word) => !SHARED_WORDS.has(word));
@@ -1920,19 +1921,23 @@ function czech(text: string): string[] {
 /** Everything the card shows or says: its text, aria-label, title and alt, an open popup included. */
 const cardText = (page: Page) =>
   page.evaluate(() => {
-    const root = document.querySelector("ha-klima-dashboard")!.shadowRoot!;
     const parts: string[] = [];
-    const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT);
-    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-      if (node instanceof Text) {
-        if (node.parentElement?.tagName !== "STYLE") parts.push(node.data);
-      } else {
-        for (const name of ["aria-label", "title", "alt"]) {
-          const value = (node as Element).getAttribute(name);
-          if (value) parts.push(value);
+    // Also the shadow roots inside the card (the popup Topení / Klimatizace and the controls of the kit).
+    const walk = (root: ShadowRoot) => {
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT);
+      for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+        if (node instanceof Text) {
+          if (node.parentElement?.tagName !== "STYLE") parts.push(node.data);
+        } else {
+          for (const name of ["aria-label", "title", "alt"]) {
+            const value = (node as Element).getAttribute(name);
+            if (value) parts.push(value);
+          }
+          if ((node as Element).shadowRoot) walk((node as Element).shadowRoot!);
         }
       }
-    }
+    };
+    walk(document.querySelector("ha-klima-dashboard")!.shadowRoot!);
     return parts.join(" | ");
   });
 
@@ -2082,8 +2087,9 @@ test.describe("jazyky (CURRENT_SPEC.md, Jazyky)", () => {
         await openPopup(page, ".hvac");
         expect(tidy(await page.locator(".segment").allInnerTexts())).toEqual(expected.systems);
         await noCzech("Topení");
-        await page.locator(".option").nth(2).click();
-        await expect(page.locator(".timer-card")).toBeVisible();
+        // Ručně: the duration „Ručně platí“ is active.
+        await page.locator("kd-climate kd-segmented").first().getByRole("radio").nth(1).click();
+        await expect(page.locator("kd-climate .footer")).not.toBeEmpty();
         await noCzech("Topení: teplota a doba");
         await page.locator(".segment").nth(1).click();
         await noCzech("Klimatizace");
@@ -2401,7 +2407,8 @@ test.describe("popup: stránka pod ním se neposouvá", () => {
         await settle(page);
         const sheet = (await page.locator(".sheet").boundingBox())!;
         const spots: Array<[string, number, number]> = [
-          ["mimo popup", 196, 120],
+          // The popup Topení / Klimatizace is tall: outside means above its top edge.
+          ["mimo popup", 196, Math.max(20, Math.round(sheet.y / 2))],
           ["v popupu", 196, sheet.y + 150],
         ];
         for (const [place, x, y] of spots) {
@@ -2485,491 +2492,91 @@ test.describe("výkon", () => {
   });
 });
 
-// ------------------------------------------------- Topení: teplota a doba trvání
+// ------------------------------------------------- popup Topení / Klimatizace (společný z kitu)
 
-test.describe("Topení: Ručně s teplotou, Boost 25 °C a doba trvání (Ovládání Topení)", () => {
-  const heatingEntity = async (page: Page, room = 0) =>
-    (await hook<{ rooms: Array<{ heating: { climate: string; overlay: string; target: string } }> }>(page, "config")).rooms[room].heating;
-  const option = (page: Page, name: string) => page.locator(".sheet .option", { hasText: name });
+test.describe("popup Topení / Klimatizace (CURRENT_SPEC.md kitu, Popup Topení / Klimatizace; Ovládání Topení a Klimatizace)", () => {
   const services = (page: Page) => hook<unknown[]>(page, "services");
-  /** The state Tado CE reports: mode of the climate entity, its target and the overlay sensor. */
-  const push = async (page: Page, hvac: string, temperature: number, overlayState: string, remaining?: number, room = 0) => {
-    const ids = await heatingEntity(page, room);
-    await page.evaluate(
-      ([entities, mode, value, overlay, seconds]) => {
-        // @ts-expect-error test hook
-        const { states, update } = window.__test;
-        update({
-          [entities.climate]: { ...states[entities.climate], state: mode, attributes: { ...states[entities.climate].attributes, temperature: value } },
-          [entities.overlay]: { state: overlay, attributes: seconds ? { overlay_remaining_seconds: seconds } : {} },
-          [entities.target]: { ...states[entities.target], state: String(value) },
-        });
-      },
-      [ids, hvac, temperature, overlayState, remaining] as const,
-    );
-  };
-
-  const timer = (page: Page) => page.locator(".sheet .timer-slider");
-  const dial = (page: Page) => page.locator(".sheet .dial-ring");
-  /** Slider position (0 = plán, 1–10 = 15 min … 8 h, 11 = ∞) by the keyboard. */
-  const slot = async (page: Page, target: number) => {
-    await timer(page).focus();
-    await page.keyboard.press("Home");
-    for (let i = 0; i < target; i += 1) await page.keyboard.press("ArrowRight");
-  };
-
-  test("Topení: Ručně, Boost, Vypnuto a ∞", async ({ page }) => {
-    test.setTimeout(120000);
-    await test.step("Ručně: kruh s teplotou po celých stupních, výchozí doba „do další změny plánu“, odešle se až při zavření popupu", async () => {
-      await open(page);
-      const { climate } = await heatingEntity(page);
-      await openPopup(page, ".hvac");
-      await expect(page.locator(".sheet .timer-card")).toHaveClass(/dim/);
-      await option(page, "Ručně").click();
-      await expect(dial(page)).toHaveAttribute("role", "slider");
-      await expect(dial(page)).toHaveAttribute("aria-valuenow", "21");
-      await expect(timer(page)).toHaveAttribute("aria-valuenow", "0");
-      await expect(page.locator(".timer-read")).toHaveText("Do další změny plánu");
-      await expect(page.locator(".heat-note")).toHaveText("Použije se po zavření okna");
-      await dial(page).focus();
-      for (let i = 0; i < 2; i += 1) await page.keyboard.press("ArrowUp");
-      await expect(page.locator(".dial-big")).toHaveText("23°");
-      // Nothing is sent while the popup is open.
-      await page.waitForTimeout(2_500);
-      expect(await services(page)).toEqual([]);
-      await closePopup(page);
-      await expect.poll(() => services(page)).toEqual([
-        ["tado_ce", "set_climate_timer", { entity_id: climate, temperature: 23, overlay: "next_time_block" }],
-      ]);
-    });
-    await test.step("Boost: pevných 25 °C bez posuvné teploty, výchozí doba 30 min, time_period 00:30:00", async () => {
-      // Steps share one page: what an earlier step stored in the browser must not leak into this one.
-      await page.evaluate(() => { try { localStorage.clear(); } catch { /* no storage */ } });
-      await open(page);
-      const { climate } = await heatingEntity(page);
-      await openPopup(page, ".hvac");
-      await option(page, "Boost").click();
-      await expect(dial(page)).toHaveAttribute("role", "img");
-      await expect(page.locator(".dial-big")).toHaveText("25°");
-      await expect(timer(page)).toHaveAttribute("aria-valuenow", "2");
-      await expect(page.locator(".timer-read")).toContainText("30 min");
-      await expect(page.locator(".timer-read")).toContainText(/do \d{1,2}:\d{2}/);
-      await closePopup(page);
-      await expect.poll(() => services(page)).toEqual([
-        ["tado_ce", "set_climate_timer", { entity_id: climate, temperature: 25, time_period: "00:30:00" }],
-      ]);
-    });
-    await test.step("Vypnuto: výchozí „dokud neobnovíte plán“ = off; s dobou je to časovač 5 °C", async () => {
-      // Steps share one page: what an earlier step stored in the browser must not leak into this one.
-      await page.evaluate(() => { try { localStorage.clear(); } catch { /* no storage */ } });
-      await open(page);
-      const { climate } = await heatingEntity(page);
-      await openPopup(page, ".hvac");
-      await option(page, "Vypnuto").click();
-      await expect(timer(page)).toHaveAttribute("aria-valuenow", "11");
-      await expect(page.locator(".timer-read")).toHaveText("Dokud neobnovíte plán");
-      await expect(dial(page)).toHaveAttribute("role", "img");
-      await closePopup(page);
-      await expect.poll(() => services(page)).toEqual([["climate", "set_hvac_mode", { entity_id: climate, hvac_mode: "off" }]]);
-
-      await open(page);
-      await openPopup(page, ".hvac");
-      await option(page, "Vypnuto").click();
-      await slot(page, 4);
-      await expect(page.locator(".timer-read")).toContainText("1 h");
-      await expect(page.locator(".after-row")).toHaveClass(/away/);
-      await closePopup(page);
-      await expect.poll(() => services(page)).toEqual([
-        ["tado_ce", "set_climate_timer", { entity_id: climate, temperature: 5, time_period: "01:00:00" }],
-      ]);
-    });
-    await test.step("poslední zarážka ∞ u Ručně = overlay manual; ikona ∞ a plánu na koncích osy", async () => {
-      // Steps share one page: what an earlier step stored in the browser must not leak into this one.
-      await page.evaluate(() => { try { localStorage.clear(); } catch { /* no storage */ } });
-      await open(page);
-      const { climate } = await heatingEntity(page);
-      await openPopup(page, ".hvac");
-      await option(page, "Ručně").click();
-      await page.locator(".sheet .end-button").nth(1).click();
-      await expect(page.locator(".timer-read")).toHaveText("Dokud neobnovíte plán");
-      await expect(page.locator(".timer-ticks")).toContainText("Plán");
-      await expect(page.locator(".timer-ticks")).toContainText("∞");
-      await closePopup(page);
-      await expect.poll(() => services(page)).toEqual([
-        ["tado_ce", "set_climate_timer", { entity_id: climate, temperature: 21, overlay: "manual" }],
-      ]);
-    });
-  });
-
-  test("Topení: Po skončení, popup, přepínač systému a Plán", async ({ page }) => {
-    test.setTimeout(120000);
-    await test.step("Po skončení: Plán nebo Vypnuto; Vypnuto naplánuje vypnutí v Home Assistantu, volba se pamatuje", async () => {
-      await open(page);
-      const { climate } = await heatingEntity(page);
-      await openPopup(page, ".hvac");
-      await option(page, "Ručně").click();
-      // Without a time limit there is nothing to follow (the row keeps its place, hidden).
-      await expect(page.locator(".after-row")).toHaveClass(/away/);
-      await slot(page, 4);
-      const after = page.locator(".after-row .mini-segment");
-      await expect(after.nth(0)).toHaveAttribute("aria-pressed", "true");
-      await expect(page.locator(".timer-foot")).toContainText("potom přejde do Plánu");
-      await after.nth(1).click();
-      await expect(page.locator(".timer-foot")).toContainText("potom se topení vypne");
-      await closePopup(page);
-      await expect.poll(() => services(page)).toEqual([
-        ["tado_ce", "set_climate_timer", { entity_id: climate, temperature: 21, time_period: "01:00:00" }],
-      ]);
-      const scripts = await hook<Array<{ type: string; sequence: Array<Record<string, unknown>> }>>(page, "scripts");
-      expect(scripts).toHaveLength(1);
-      expect(scripts[0].type).toBe("execute_script");
-      expect(scripts[0].sequence[0]).toEqual({ delay: { hours: 1, minutes: 0, seconds: 15 } });
-      expect(scripts[0].sequence.at(-1)).toEqual({
-        action: "climate.set_hvac_mode",
-        target: { entity_id: climate },
-        data: { hvac_mode: "off" },
-      });
-      // The choice is remembered for the next time.
-      await openPopup(page, ".hvac");
-      await option(page, "Boost").click();
-      await expect(page.locator(".after-row .mini-segment").nth(1)).toHaveAttribute("aria-pressed", "true");
-    });
-    await test.step("otevřený popup ukáže kruh aktivního režimu; beze změny se nic neodešle; Plán se použije až při zavření", async () => {
-      // Steps share one page: what an earlier step stored in the browser must not leak into this one.
-      await page.evaluate(() => { try { localStorage.clear(); } catch { /* no storage */ } });
-      await open(page);
-      const { climate } = await heatingEntity(page);
-      await push(page, "heat", 22, "Manual");
-      await openPopup(page, ".hvac");
-      await expect(dial(page)).toHaveAttribute("aria-valuenow", "22");
-      await expect(option(page, "Ručně")).toHaveAttribute("aria-pressed", "true");
-      await closePopup(page);
-      await page.waitForTimeout(300);
-      expect(await services(page)).toEqual([]);
-
-      await openPopup(page, ".hvac");
-      await option(page, "Plán").click();
-      await expect(page.locator(".sheet .timer-card")).toHaveClass(/dim/);
-      await expect(option(page, "Plán")).toHaveAttribute("aria-pressed", "true");
-      expect(await services(page)).toEqual([]);
-      await closePopup(page);
-      await expect.poll(() => services(page)).toEqual([["climate", "set_hvac_mode", { entity_id: climate, hvac_mode: "auto" }]]);
-
-      // Choosing what the entity already has again drops the change.
-      await open(page);
-      await openPopup(page, ".hvac");
-      await option(page, "Boost").click();
-      await option(page, "Plán").click();
-      await expect(page.locator(".heat-note")).not.toHaveText("Použije se po zavření okna");
-      await closePopup(page);
-      await page.waitForTimeout(300);
-      expect(await services(page)).toHaveLength(0);
-    });
-    await test.step("přepínač Topení | Klimatizace je nahoře, čtyři ikony v jedné řadě; volby se při změně režimu nehýbou", async () => {
-      // Steps share one page: what an earlier step stored in the browser must not leak into this one.
-      await page.evaluate(() => { try { localStorage.clear(); } catch { /* no storage */ } });
-      await open(page);
-      await openPopup(page, ".hvac");
-      const options = page.locator(".sheet .icon-options .option");
-      await expect(options).toHaveCount(4);
-      const rects = async () => Promise.all([0, 1, 2, 3].map((index) => options.nth(index).boundingBox()));
-      const before = await rects();
-      expect(new Set(before.map((box) => Math.round(box!.y))).size).toBe(1);
-      const switcher = await page.locator(".segmented").boundingBox();
-      expect(switcher!.y + switcher!.height).toBeLessThan(before[0]!.y);
-      await option(page, "Ručně").click();
-      await expect(dial(page)).toHaveAttribute("role", "slider");
-      for (const [name, index] of [["Vypnuto", 0], ["Plán", 1], ["Ručně", 2], ["Boost", 3]] as const) {
-        await option(page, name).click();
-        const after = await rects();
-        expect(Math.round(after[index]!.x), `${name}: vodorovně`).toBe(Math.round(before[index]!.x));
-        expect(after[index]!.height, `${name}: výška`).toBe(before[index]!.height);
-      }
-      await option(page, "Plán").click();
-      await expect(page.locator(".sheet .timer-card")).toHaveClass(/dim/);
-    });
-    await test.step("Plán nikdy neukáže 5 °C z Vypnuto ani ruční cíl; v plánu je kruh oranžový", async () => {
-      // Steps share one page: what an earlier step stored in the browser must not leak into this one.
-      await page.evaluate(() => { try { localStorage.clear(); } catch { /* no storage */ } });
-      await open(page);
-      await openPopup(page, ".hvac");
-      await expect(page.locator(".sheet .dial")).toHaveCSS("--tone", /.+/);
-      const tone = await page.locator(".sheet .dial-value").evaluate((path) => getComputedStyle(path).stroke);
-      const orange = await page.locator(".sheet .option", { hasText: "Ručně" }).evaluate((node) => getComputedStyle(node.querySelector("svg")!).stroke);
-      expect(tone).toBe(orange);
-      await closePopup(page);
-      // Tado reports 5 °C while the heating is off, and the manual value while it is overridden.
-      await push(page, "off", 5, "Off");
-      await openPopup(page, ".hvac");
-      await option(page, "Ručně").click();
-      await option(page, "Plán").click();
-      await expect(page.locator(".dial-big")).toHaveText("––");
-      await option(page, "Vypnuto").click();
-      await option(page, "Plán").click();
-      await expect(page.locator(".dial-big")).toHaveText("––");
-      await closePopup(page);
-      await push(page, "auto", 20, "Schedule");
-      await openPopup(page, ".hvac");
-      await expect(page.locator(".dial-big")).toHaveText("20°");
-    });
-  });
-
-  test("Topení: chyba příkazu, bez Tado CE, stav z Tada, štítky, climate a axe", async ({ page }) => {
-    test.setTimeout(150000);
-    await test.step("chyba příkazu po zavření: haptika „failure“ místo hlášky v popupu", async () => {
-      await open(page);
-      await openPopup(page, ".hvac");
-      await option(page, "Boost").click();
-      await page.evaluate(() => {
-        // @ts-expect-error test hook
-        window.__test.failNext = true;
-      });
-      await closePopup(page);
-      await expect.poll(() => hook<string[]>(page, "haptics")).toContain("failure");
-    });
-    await test.step("bez akce tado_ce.set_climate_timer: Boost nedostupný, Ručně jen teplota přes climate.set_temperature, Vypnuto bez doby", async () => {
-      // Steps share one page: what an earlier step stored in the browser must not leak into this one.
-      await page.evaluate(() => { try { localStorage.clear(); } catch { /* no storage */ } });
-      await open(page, "full&timer=none");
-      const { climate } = await heatingEntity(page);
-      await openPopup(page, ".hvac");
-      await expect(option(page, "Boost")).toBeDisabled();
-      await expect(page.locator(".heat-note")).toHaveText("Boost: entita nenabízí");
-      await option(page, "Ručně").click();
-      await expect(timer(page)).toHaveCount(0);
-      await expect(page.locator(".sheet-message")).toContainText("Dobu nelze nastavit");
-      await dial(page).focus();
-      await page.keyboard.press("ArrowUp");
-      await closePopup(page);
-      await expect.poll(() => services(page)).toEqual([["climate", "set_temperature", { entity_id: climate, temperature: 22 }]]);
-
-      await open(page, "full&timer=none");
-      await openPopup(page, ".hvac");
-      await option(page, "Vypnuto").click();
-      await expect(timer(page)).toHaveCount(0);
-      await closePopup(page);
-      await expect.poll(() => services(page)).toEqual([["climate", "set_hvac_mode", { entity_id: climate, hvac_mode: "off" }]]);
-    });
-    await test.step("stav z Tada: ruční 25 °C je Boost, ruční 5 °C je Vypnuto; zbývající čas", async () => {
-      // Steps share one page: what an earlier step stored in the browser must not leak into this one.
-      await page.evaluate(() => { try { localStorage.clear(); } catch { /* no storage */ } });
-      await open(page);
-      await push(page, "heat", 25, "Manual", 1_500);
-      await openPopup(page, ".hvac");
-      await expect(option(page, "Boost")).toHaveAttribute("aria-pressed", "true");
-      await expect(option(page, "Ručně")).toHaveAttribute("aria-pressed", "false");
-      await expect(page.locator(".heat-note")).toHaveText("Zbývá 25 min");
-      await closePopup(page);
-      await push(page, "heat", 5, "Manual", 5_400);
-      await expect(rooms(page).first().locator(".hvac .system-row").first()).toContainText("Vypnuto");
-      await openPopup(page, ".hvac");
-      await expect(option(page, "Vypnuto")).toHaveAttribute("aria-pressed", "true");
-      await expect(option(page, "Ručně")).toHaveAttribute("aria-pressed", "false");
-      await expect(page.locator(".heat-note")).toHaveText("Zbývá 1\u00a0h 30\u00a0min");
-    });
-    await test.step("horní štítky: Ručně a Boost zvlášť s ikonou režimu, u názvu místnosti žádná ikona, Plán a Vypnuto bez štítku", async () => {
-      // Steps share one page: what an earlier step stored in the browser must not leak into this one.
-      await page.evaluate(() => { try { localStorage.clear(); } catch { /* no storage */ } });
-      await open(page);
-      const chips = async () => tidy(await page.locator(".summary .chip").allInnerTexts());
-      await expect(page.locator(".room-override")).toHaveCount(0);
-      expect((await chips()).some((text) => /^(Ručně|Boost):/.test(text))).toBe(false);
-      await push(page, "heat", 22, "Manual");
-      await expect.poll(chips).toContain("Ručně: Ložnice");
-      await push(page, "heat", 25, "Manual", undefined, 1);
-      await expect.poll(chips).toEqual(expect.arrayContaining(["Ručně: Ložnice", "Boost: Pracovna"]));
-      // The icon of the chip is the mode icon (not three waves).
-      const icons = await page.locator(".summary .chip").evaluateAll((items) =>
-        items.map((item) => [item.textContent?.trim(), item.querySelectorAll("path, circle").length]),
-      );
-      expect(icons.find(([text]) => String(text).startsWith("Ručně"))![1]).toBeGreaterThan(0);
-      await push(page, "off", 5, "Off");
-      await push(page, "auto", 21, "Schedule", undefined, 1);
-      await expect.poll(async () => (await chips()).some((text) => /^(Ručně|Boost):/.test(text))).toBe(false);
-      await expect(page.locator(".room-override")).toHaveCount(0);
-    });
-    await test.step("stav určuje climate entita: po Plánu starý senzor přepisu „Manual“ neukáže Ručně (a naopak)", async () => {
-      // Steps share one page: what an earlier step stored in the browser must not leak into this one.
-      await page.evaluate(() => { try { localStorage.clear(); } catch { /* no storage */ } });
-      await open(page);
-      const row = rooms(page).first().locator(".hvac .system-row").first();
-      await push(page, "auto", 21, "Manual");
-      await expect(row).toContainText("Plán");
-      await expect.poll(async () => (await page.locator(".summary .chip").allInnerTexts()).join()).not.toContain("Ručně");
-      await push(page, "heat", 22, "Schedule");
-      await expect(row).toContainText("Ručně");
-      await push(page, "auto", 21, "Off");
-      await expect(row).toContainText("Plán");
-    });
-    await test.step("axe a cíle 44 px: ovládání Topení ve tmavém i světlém vzhledu", async () => {
-      // Steps share one page: what an earlier step stored in the browser must not leak into this one.
-      await page.evaluate(() => { try { localStorage.clear(); } catch { /* no storage */ } });
-      for (const theme of ["dark", "light"] as const) {
-        await open(page, "full", 393, 852, theme);
-        await openPopup(page, ".hvac");
-        await option(page, "Ručně").click();
-        await expect(dial(page)).toHaveAttribute("role", "slider");
-        expect(await axeViolations(page), `${theme} Ručně`).toEqual([]);
-        await option(page, "Boost").click();
-        await expect(dial(page)).toHaveAttribute("role", "img");
-        expect(await axeViolations(page), `${theme} Boost`).toEqual([]);
-        const slider = await timer(page).boundingBox();
-        expect(slider!.height).toBeGreaterThanOrEqual(44);
-        expect(slider!.width).toBeLessThanOrEqual(393);
-        await closePopup(page);
-      }
-    });
-  });
-});
-
-test.describe("Topení: posuvníky prstem (dotykový tah)", () => {
-  test.use({ hasTouch: true, isMobile: true });
-
-  /** A finger drag from (x, y) to (x + dx, y) through the real touch input of the browser. */
-  const swipe = async (page: Page, x: number, y: number, dx: number) => {
-    const cdp = await page.context().newCDPSession(page);
-    await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y }] });
-    for (let step = 1; step <= 10; step += 1) {
-      await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: x + (dx * step) / 10, y }] });
-    }
-    await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
-    await cdp.detach();
-  };
-
-  test("tah prstem po časovači mění dobu a nehýbe stránkou", async ({ page, browserName }) => {
-    test.skip(browserName !== "chromium", "dotyk se simuluje přes CDP, ten má jen Chromium");
-    await open(page, "full", 393, 852);
-    await page.evaluate(() => window.scrollTo(0, 300));
-    await rooms(page).first().locator(".hvac").evaluate((button) => (button as HTMLElement).click());
-    await expect(page.locator(".sheet")).toBeVisible();
-    await settle(page);
-    await page.locator(".sheet .option", { hasText: "Ručně" }).click();
-    const slider = page.locator(".sheet .timer-slider");
-    const before = Number(await slider.getAttribute("aria-valuenow"));
-    const box = (await slider.boundingBox())!;
-    await swipe(page, box.x + 4, box.y + box.height / 2, 100);
-    const after = Number(await slider.getAttribute("aria-valuenow"));
-    expect(after - before, `${before} → ${after}`).toBeGreaterThan(0);
-    expect(await page.evaluate(() => Math.round(window.scrollY))).toBe(300);
-  });
-});
-
-test.describe("Hromadné nastavení a Klimatizace (Ovládání Topení a Klimatizace)", () => {
-  const services = (page: Page) => hook<unknown[]>(page, "services");
-  const option = (page: Page, name: string) => page.locator(".sheet .option", { hasText: name });
   const config = async (page: Page) =>
     hook<{ rooms: Array<{ name: string; heating: { climate: string }; air_conditioner: string }> }>(page, "config");
+  const roomTiles = (page: Page) =>
+    page.locator("kd-climate .rooms kd-tile").evaluateAll((items) => items.map((item: any) => ({ name: item.name, pressed: item.pressed })));
+  const slide = async (page: Page, value: number) => {
+    const input = page.locator("kd-climate kd-slider input");
+    await input.fill(String(value));
+    await input.dispatchEvent("change");
+  };
 
-  test("hromadné nastavení a Klimatizace", async ({ page }) => {
-    test.setTimeout(120000);
-    await test.step("štítek „Topí 3 místnosti“ otevře popup se všemi třemi, volba se pošle každé; ikona HVAC v místnosti jen té jedné", async () => {
-      await open(page);
-      const { rooms: all } = await config(page);
-      const chip = page.locator(".summary .chip-open", { hasText: "Topí" });
-      await expect(chip).toBeVisible();
-      await chip.click();
-      await expect(page.locator("#sheet-title")).toHaveText("Ložnice, Maxík, Obývák");
-      await option(page, "Boost").click();
-      // No detail link for a group (it has no single entity).
-      await expect(page.locator(".sheet-link")).toHaveCount(0);
-      await closePopup(page);
-      const heating = (name: string) => all.find((room) => room.name === name)!.heating.climate;
-      await expect.poll(() => services(page)).toEqual(
-        ["Ložnice", "Maxík", "Obývák"].map((name) => [
-          "tado_ce",
-          "set_climate_timer",
-          { entity_id: heating(name), temperature: 25, time_period: "00:30:00" },
-        ]),
-      );
+  test("řádek HVAC otevře popup s tou místností, přepínač systému, posunutí teploty je Ručně do změny plánu a pošle se při zavření", async ({ page }) => {
+    await open(page);
+    const { rooms: all } = await config(page);
+    await openPopup(page, ".hvac");
+    await expect(page.locator("#sheet-title")).toHaveText("Topení a klimatizace");
+    await expect(page.locator(".sheet .segment[aria-selected='true']")).toHaveText("Topení");
+    expect((await roomTiles(page)).filter((tile) => tile.pressed).map((tile) => tile.name)).toEqual(["Ložnice"]);
+    await expect(page.locator("kd-climate .big")).toHaveText("21°");
+    await slide(page, 22.5);
+    await expect(page.locator("kd-climate .big")).toHaveText("22,5°");
+    await expect(page.locator("kd-climate kd-segmented").first().locator('[aria-checked="true"]')).toHaveText("Ručně");
+    expect(await services(page)).toEqual([]);
+    await closePopup(page);
+    await expect.poll(() => services(page)).toEqual([
+      ["tado_ce", "set_climate_timer", { entity_id: all[0].heating.climate, temperature: 22.5, overlay: "next_time_block" }],
+    ]);
+  });
 
-      await openPopup(page, ".hvac");
-      await expect(page.locator("#sheet-title")).toHaveText("Ložnice");
-      await expect(page.locator(".sheet-link")).toHaveCount(1);
-    });
-    await test.step("štítek Klimatizace: režimy ve pořadí návrhu, WindFree jedním klepnutím (chlazení + předvolba), teplota po celých stupních", async () => {
-      // Steps share one page: what an earlier step stored in the browser must not leak into this one.
-      await page.evaluate(() => { try { localStorage.clear(); } catch { /* no storage */ } });
-      await open(page, "summer");
-      const chip = page.locator(".summary .chip-open", { hasText: "Klimatizace" });
-      await chip.click();
-      await expect(page.locator(".sheet .segment[aria-selected='true']")).toHaveText("Klimatizace");
-      expect(tidy(await page.locator(".sheet .climate-options .option").allInnerTexts())).toEqual([
-        "Vypnuto",
-        "Chlazení",
-        "WindFree",
-        "Topení",
-        "Větrání",
-        "Sušení",
-        "Auto",
-      ]);
-      const { rooms: all } = await config(page);
-      const names = (await page.locator("#sheet-title").innerText()).split(", ");
-      expect(names.length).toBeGreaterThan(0);
-      await option(page, "WindFree").click();
-      await expect.poll(async () => (await services(page)).length).toBe(2 * names.length);
-      const calls = (await services(page)) as Array<[string, string, Record<string, unknown>]>;
-      expect(calls.filter((call) => call[1] === "set_hvac_mode").every((call) => call[2].hvac_mode === "cool")).toBe(true);
-      expect(calls.filter((call) => call[1] === "set_preset_mode").every((call) => call[2].preset_mode === "wind_free")).toBe(true);
-      const ids = new Set(names.map((name) => all.find((room) => room.name === name)!.air_conditioner));
-      expect(new Set(calls.map((call) => call[2].entity_id))).toEqual(ids);
+  test("Boost je 25 °C na 30 min, Ručně platí má 30 min; bez Tado CE Boost ani Ručně platí není", async ({ page }) => {
+    await open(page);
+    const { rooms: all } = await config(page);
+    await openPopup(page, ".hvac");
+    await page.locator("kd-climate kd-segmented").first().getByRole("radio", { name: "Boost" }).click();
+    await expect(page.locator("kd-climate kd-segmented").nth(1).getByRole("radio")).toHaveText(["Do změny plánu", "30 min", "1 h", "3 h", "Trvale"]);
+    await closePopup(page);
+    await expect.poll(() => services(page)).toEqual([["tado_ce", "set_climate_timer", { entity_id: all[0].heating.climate, temperature: 25, time_period: "00:30:00" }]]);
+    await page.goto("/tests/harness.html?s=full&timer=none");
+    await page.locator(".room").first().waitFor();
+    await openPopup(page, ".hvac");
+    await expect(page.locator("kd-climate kd-segmented").first().getByRole("radio")).toHaveText(["Plán", "Ručně", "Vypnuto"]);
+    await expect(page.locator("kd-climate h3")).toHaveText(["Režim"]);
+  });
 
-      // The ring moves by whole degrees and is sent at once (keyboard) to every room.
-      await page.evaluate(() => {
-        // @ts-expect-error test hook
-        window.__test.services.length = 0;
-      });
-      const dial = page.locator(".sheet .dial-ring");
-      await expect(dial).toHaveAttribute("role", "slider");
-      await dial.focus();
-      await page.keyboard.press("ArrowUp");
-      await expect.poll(async () => (await services(page)).length).toBe(names.length);
-      const temperatures = ((await services(page)) as Array<[string, string, Record<string, unknown>]>).map((call) => call[2].temperature);
-      expect(new Set(temperatures).size).toBe(1);
-      expect(Number.isInteger(temperatures[0])).toBe(true);
-    });
-    await test.step("Klimatizace: časovač vypnutí naplánuje v Home Assistantu vypnutí; ∞ nic neplánuje", async () => {
-      // Steps share one page: what an earlier step stored in the browser must not leak into this one.
-      await page.evaluate(() => { try { localStorage.clear(); } catch { /* no storage */ } });
-      await open(page, "summer");
-      await openPopup(page, ".hvac");
-      await expect(page.locator(".sheet .segment[aria-selected='true']")).toHaveText("Klimatizace");
-      const slider = page.locator(".sheet .timer-slider");
-      await expect(slider).toHaveAttribute("aria-valuenow", "10");
-      await expect(page.locator(".timer-read")).toHaveText("Bez omezení");
-      await expect(page.locator(".timer-foot")).toHaveText("Klimatizace běží, dokud ji nevypnete.");
-      await slider.focus();
-      await page.keyboard.press("Home");
-      await page.keyboard.press("ArrowRight");
-      await expect(page.locator(".timer-read")).toContainText("30 min");
-      await expect(page.locator(".timer-foot")).toContainText("potom se klimatizace vypne");
-      await expect(page.locator(".after-row")).toHaveCount(0);
-      await closePopup(page);
-      const scripts = await hook<Array<{ sequence: Array<Record<string, unknown>> }>>(page, "scripts");
-      expect(scripts.length).toBeGreaterThan(0);
-      for (const script of scripts) {
-        expect(script.sequence[0]).toEqual({ delay: { hours: 0, minutes: 30, seconds: 0 } });
-        expect(script.sequence[1]).toMatchObject({ condition: "state", state: "cool" });
-        expect(script.sequence[2]).toMatchObject({ action: "climate.set_hvac_mode", data: { hvac_mode: "off" } });
-      }
+  test("štítek „Topí …“ otevře popup s jeho místnostmi, změna se pošle každé; odkaz na detail jen u jedné místnosti", async ({ page }) => {
+    await open(page);
+    const { rooms: all } = await config(page);
+    await page.locator(".summary .chip-open", { hasText: "Topí" }).click();
+    await expect(page.locator(".sheet")).toBeVisible();
+    expect((await roomTiles(page)).filter((tile) => tile.pressed).map((tile) => tile.name)).toEqual(["Ložnice", "Maxík", "Obývák"]);
+    await expect(page.locator("kd-climate").getByRole("button", { name: "Detail a historie" })).toHaveCount(0);
+    await page.locator("kd-climate kd-segmented").first().getByRole("radio", { name: "Vypnuto" }).click();
+    await closePopup(page);
+    const heating = (name: string) => all.find((room) => room.name === name)!.heating.climate;
+    await expect.poll(() => services(page)).toEqual(["Ložnice", "Maxík", "Obývák"].map((name) => ["climate", "set_hvac_mode", { entity_id: heating(name), hvac_mode: "off" }]));
+    await openPopup(page, ".hvac");
+    await page.locator("kd-climate").getByRole("button", { name: "Detail a historie" }).click();
+    await expect(page.locator(".sheet")).toHaveCount(0);
+    expect(await hook<string[]>(page, "moreInfo")).toEqual([all[0].heating.climate]);
+  });
 
-      await openPopup(page, ".hvac");
-      await slider.focus();
-      await page.keyboard.press("End");
-      await closePopup(page);
-      expect(await hook<unknown[]>(page, "scripts")).toHaveLength(scripts.length);
-    });
-    await test.step("světlý i tmavý vzhled: popup Klimatizace bez porušení axe, cíle aspoň 44 px", async () => {
-      // Steps share one page: what an earlier step stored in the browser must not leak into this one.
-      await page.evaluate(() => { try { localStorage.clear(); } catch { /* no storage */ } });
-      for (const theme of ["dark", "light"] as const) {
-        await open(page, "summer", 393, 852, theme);
-        await openPopup(page, ".hvac");
-        await expect(page.locator(".sheet .dial-ring")).toBeVisible();
-        expect(await axeViolations(page), theme).toEqual([]);
-        expect(await tooSmall(page, theme, ".sheet")).toEqual([]);
-        await closePopup(page);
-      }
-    });
+  test("Klimatizace: osm režimů, WindFree jedním klepnutím, síla větru, Vypnout za 3 h naplánuje vypnutí; přepnutí systému pošle, co čekalo", async ({ page }) => {
+    await open(page, "summer");
+    const { rooms: all } = await config(page);
+    await page.locator(".summary .chip-open", { hasText: "Klimatizace" }).click();
+    await expect(page.locator(".sheet .segment[aria-selected='true']")).toHaveText("Klimatizace");
+    await expect(page.locator("kd-climate .modes kd-tile")).toHaveText(["Vypnuto", "Chlazení", "WindFree", "Topení", "Větrání", "Sušení", "Auto", "Spánek"]);
+    await expect(page.locator("kd-climate h3")).toHaveText(["Režim", "Síla větru", "Směr proudění", "Vypnout za"]);
+    const selected = (await roomTiles(page)).filter((tile) => tile.pressed).map((tile) => tile.name);
+    await page.locator("kd-climate .modes kd-tile").filter({ hasText: "WindFree" }).click();
+    await page.locator("kd-climate kd-segmented").nth(2).getByRole("radio", { name: "3 h" }).click();
+    await page.locator('.segment[data-system="heating"]').click();
+    const ac = (name: string) => all.find((room) => room.name === name)!.air_conditioner;
+    await expect.poll(() => services(page)).toEqual(
+      selected.flatMap((name) => [
+        ["climate", "set_hvac_mode", { entity_id: ac(name), hvac_mode: "cool" }],
+        ["climate", "set_preset_mode", { entity_id: ac(name), preset_mode: "wind_free" }],
+      ]),
+    );
+    const scripts = await hook<Array<{ sequence: Array<Record<string, unknown>> }>>(page, "scripts");
+    expect(scripts.map((script) => script.sequence[1])).toEqual(selected.map((name) => ({ condition: "state", entity_id: ac(name), state: "cool" })));
+    expect(scripts[0].sequence[0]).toEqual({ delay: { hours: 3, minutes: 0, seconds: 0 } });
   });
 });
 

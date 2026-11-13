@@ -135,6 +135,7 @@ export interface DashboardConfig {
   ventilation_co2_full?: number;
   /** Minutes after the end of the ventilation mode at which the absolute humidity "settles" (default 25). */
   ventilation_settle_minutes?: number;
+  send_delay_seconds?: number;
   outside?: OutsideConfig;
   rooms: RoomConfig[];
   thresholds?: Partial<DashboardThresholds>;
@@ -193,6 +194,8 @@ export interface Settings {
   ventilationCo2Target: number;
   ventilationCo2Full: number;
   ventilationSettleMinutes: number;
+  /** The popup Topení / Klimatizace sends a change this long after the last one (or when it closes). */
+  sendDelaySeconds: number;
   outside?: OutsideConfig;
   /** Shared thresholds (outdoor air uses them; every room has its own merged copy). */
   thresholds: DashboardThresholds;
