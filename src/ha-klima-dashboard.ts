@@ -1840,7 +1840,6 @@ export class HaKlimaDashboard extends LitElement {
     `;
   }
 
-  /** Title of the Topení / Klimatizace popup: the room, or the rooms it sets together (names, or "all"). */
   /** Title of the Topení / Klimatizace popup: the system, or both when the switch under it chooses one. */
   private hvacTitle(kind: "heating" | "climate"): { title: string; sub?: string } {
     const rooms = this.sheetRooms();
@@ -1901,7 +1900,7 @@ export class HaKlimaDashboard extends LitElement {
             </button>`,
           )}
         </div>`
-      : html`<div class="sheet-label system-name">${t.system[kind]}</div>`;
+      : nothing;
     return html`${switcher}
       <div class="hvac-panel" role=${both ? "tabpanel" : nothing} id="hvac-panel" aria-labelledby=${both ? `tab-${kind}` : nothing}>
         ${panel}

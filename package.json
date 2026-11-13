@@ -1,6 +1,6 @@
 {
   "name": "ha-klima-dashboard",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "type": "module",
   "scripts": {
@@ -10,7 +10,7 @@
     "coverage": "node tests/coverage.mjs"
   },
   "dependencies": {
-    "ha-dashboard-kit": "git+https://github.com/michal-madle/ha-dashboard-kit.git#ad245964a8af61bdea471a24bf06e00bff9c466b",
+    "ha-dashboard-kit": "git+https://github.com/michal-madle/ha-dashboard-kit.git#b5feca396fea048921e924ce3338560b425c954d",
     "lit": "^3.3.1"
   },
   "devDependencies": {

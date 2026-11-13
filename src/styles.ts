@@ -45,7 +45,8 @@ export const styles = css`
       --kd-sheet-border: rgb(255 255 255 / 10%);
       --kd-grabber: rgb(255 255 255 / 28%);
       --kd-segmented-bg: rgb(118 118 128 / 24%);
-      --kd-segment-on: #636366;
+      /* The chosen segment as in the segmented control of the kit (white, black label), one visual language. */
+      --kd-segment-on: #ffffff;
       --kd-segment-shadow: 0 2px 6px rgb(0 0 0 / 30%);
       --kd-fill: rgb(255 255 255 / 5%);
       --kd-fill-border: rgb(255 255 255 / 8%);
@@ -1188,11 +1189,10 @@ export const styles = css`
     .segment[aria-selected="true"] {
       background: var(--kd-segment-on);
       box-shadow: var(--kd-segment-shadow);
+      color: #000000;
+      font-weight: 600;
     }
 
-    .system-name {
-      margin-top: 0;
-    }
 
     /* The shared popup Topení / Klimatizace of the kit: the colours of its tiles, slider and segmented control, the same as
        in the card Dům (one visual language, DASHBOARD_UX_SYSTEM.md). */
