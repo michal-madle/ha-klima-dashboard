@@ -3094,14 +3094,14 @@ function Qs(i) {
 }
 class ta {
   constructor(t, e = Date.now) {
-    this.onChange = t, this.now = e, this.known = /* @__PURE__ */ new Map(), this.wanted = /* @__PURE__ */ new Map(), this.scheduled = !1;
+    this.onChange = t, this.now = e, this.known = /* @__PURE__ */ new Map(), this.wanted = /* @__PURE__ */ new Map(), this.pending = /* @__PURE__ */ new Map(), this.scheduled = !1;
   }
   /** The moment (ms) the entity got its current state; undefined when the entity is missing or has no time. */
   of(t, e) {
     const n = Ui(t, e);
     if (!t || !e || !n) return;
     const o = Fn(n.last_changed), s = `${n.state}|${n.last_changed ?? ""}`, a = this.known.get(e);
-    return a?.key === s ? a.start === void 0 ? o : Math.min(a.start, o ?? a.start) : (this.hass = t, this.wanted.get(e) !== s && (this.wanted.set(e, s), this.schedule()), o);
+    return a?.key === s ? a.start === void 0 ? o : Math.min(a.start, o ?? a.start) : (this.hass = t, this.wanted.get(e) !== s && this.pending.get(e) !== s && (this.wanted.set(e, s), this.schedule()), o);
   }
   schedule() {
     this.scheduled || (this.scheduled = !0, Promise.resolve().then(() => this.flush()));
@@ -3110,6 +3110,7 @@ class ta {
     this.scheduled = !1;
     const t = this.hass, e = new Map(this.wanted);
     if (this.wanted.clear(), !t || !e.size) return;
+    for (const [s, a] of e) this.pending.set(s, a);
     const n = this.now();
     let o;
     try {
@@ -3127,7 +3128,7 @@ class ta {
       o = void 0;
     }
     for (const [s, a] of e) {
-      if (this.wanted.has(s)) continue;
+      if (this.pending.get(s) === a && this.pending.delete(s), this.wanted.has(s)) continue;
       const r = Qs(o?.[s]), l = Ui(this.hass, s)?.state;
       this.known.set(s, { key: a, start: r && r.state === l ? r.start : void 0 });
     }
