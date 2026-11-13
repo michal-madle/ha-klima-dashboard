@@ -1077,92 +1077,16 @@ export const styles = css`
       height: 100%;
     }
 
-    .backdrop {
-      position: fixed;
-      z-index: 9;
-      inset: 0;
-      display: flex;
-      align-items: flex-end;
-      justify-content: center;
-      background: rgb(0 0 0 / calc(var(--kd-backdrop) * var(--backdrop-opacity, 1)));
-      /* A drag on the dimmed area must not move the dashboard below. */
-      overscroll-behavior: contain;
-      touch-action: none;
-    }
-
-    .sheet {
-      box-sizing: border-box;
-      width: 100%;
-      max-width: 460px;
-      max-height: 90vh;
-      overflow: auto;
-      /* The end of the popup's own scrolling does not carry on to the page below it. */
-      overscroll-behavior: contain;
-      padding: 16px 16px max(16px, env(safe-area-inset-bottom));
-      border: 1px solid var(--kd-sheet-border);
-      border-bottom: 0;
-      border-radius: 24px 24px 0 0;
-      background: var(--kd-sheet-bg);
-      color: var(--kd-text);
-      animation: rise 220ms ease-out;
-      transition: transform 220ms ease-out;
-    }
-
-    .sheet:focus {
-      outline: none;
-    }
-
-    .sheet.dragging {
-      transition: none;
-    }
-
-    /* Grabber and title: pull down to close. */
-    .sheet-top {
-      margin: -8px -16px 0;
-      padding: 8px 16px 0;
-      touch-action: none;
-      cursor: grab;
-    }
-
-    .grabber {
-      width: 36px;
-      height: 5px;
-      margin: 0 auto 10px;
-      border-radius: 3px;
-      background: var(--kd-grabber);
-    }
-
-    @keyframes rise {
-      from {
-        transform: translateY(24px);
-        opacity: 0;
-      }
-    }
-
-    @media (min-width: 600px) {
-      .backdrop {
-        align-items: center;
-      }
-
-      .sheet {
-        border-bottom: 1px solid var(--kd-sheet-border);
-        border-radius: 24px;
-      }
-
-      .grabber {
-        display: none;
-      }
-    }
-
-    /*
-     * Phone on its side (or any short window): the history popup takes the whole width, so the
-     * chart uses the full width of the phone. The same query is in chartWidth().
-     */
-    @media (orientation: landscape) and (max-height: 600px) {
-      .sheet.history-sheet {
-        max-width: min(960px, calc(100% - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)));
-        max-height: calc(100% - 16px);
-      }
+    /* The sheet from the bottom of the kit (one look in every card): its colours are the Klima ones. */
+    kd-sheet {
+      --hdk-sheet-bg: var(--kd-sheet-bg);
+      --hdk-sheet-text: var(--kd-text);
+      --hdk-sheet-border: var(--kd-sheet-border);
+      --hdk-sheet-grabber: var(--kd-grabber);
+      --hdk-sheet-backdrop: var(--kd-backdrop);
+      --hdk-sheet-button: var(--kd-segmented-bg);
+      --hdk-secondary: var(--kd-label);
+      --hdk-accent: var(--kd-sky);
     }
 
     /* Topení | Klimatizace in the HVAC popup (iOS segmented control). */
@@ -1229,64 +1153,6 @@ export const styles = css`
       --hdk-bar: rgb(60 60 67 / 18%);
       --hdk-tick: rgb(60 60 67 / 30%);
       --hdk-seg-text: #000000;
-    }
-
-    .sheet-head {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 8px;
-      margin-bottom: 12px;
-    }
-
-    .sheet h2 {
-      margin: 0;
-      font-size: 20px;
-      font-weight: 600;
-      line-height: 26px;
-    }
-
-    .sheet-sub {
-      color: var(--kd-label);
-      font-size: 14px;
-      line-height: 20px;
-    }
-
-    /* A 30 px circle (normal button of the kit) inside a 44 px touch area. */
-    .close {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 44px;
-      height: 44px;
-      flex: 0 0 44px;
-      margin: -8px -8px 0 0;
-      color: var(--kd-label);
-    }
-
-    .close-icon {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      width: 30px;
-      height: 30px;
-      border-radius: 50%;
-      background: var(--kd-segmented-bg);
-    }
-
-    .close:active .close-icon {
-      background: rgb(118 118 128 / 36%);
-    }
-
-    .close:focus-visible {
-      border-radius: 50%;
-      outline: 2px solid var(--kd-sky);
-      outline-offset: -2px;
-    }
-
-    .close svg {
-      width: 12px;
-      height: 12px;
     }
 
     .sheet-message {
@@ -1818,7 +1684,6 @@ export const styles = css`
     }
 
     @media (prefers-reduced-motion: reduce) {
-      .sheet,
       .preset.sent svg,
       .preset.failed svg,
       .preset:active,
@@ -1827,10 +1692,6 @@ export const styles = css`
       .spark.loading,
       .cover-panel.moving .rail {
         animation: none;
-      }
-
-      .sheet {
-        transition: none;
       }
 
       /* Without the colour change, a held preset is lit and one on its way is half-lit. */

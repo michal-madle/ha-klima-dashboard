@@ -104,7 +104,10 @@ const reconfigure = (page: Page, top: Record<string, unknown>, roomPatches: Reco
 /** Waits until every finite animation (also inside shadow roots) has finished, e.g. a popup sliding in. */
 async function settle(page: Page): Promise<void> {
   await page.evaluate(async () => {
-    const roots = [document, ...[...document.querySelectorAll("*")].flatMap((node) => (node.shadowRoot ? [node.shadowRoot] : []))];
+    // Every shadow root, nested ones too (the sheet of the kit sits inside the card).
+    const shadows = (root: ParentNode): ShadowRoot[] =>
+      [...root.querySelectorAll("*")].flatMap((node) => (node.shadowRoot ? [node.shadowRoot, ...shadows(node.shadowRoot)] : []));
+    const roots = [document, ...shadows(document)];
     const finite = roots.flatMap((root) => root.getAnimations()).filter((a) => a.effect?.getComputedTiming().iterations !== Infinity);
     await Promise.all(finite.map((a) => a.finished.catch(() => undefined)));
   });
@@ -590,7 +593,7 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
     await expect(windowsChip).toHaveAttribute("aria-label", "Otevřená okna: Ložnice (2), Pracovna");
     // The popup lists both windows with their state; a row opens the window's own detail.
     await row.click();
-    await expect(page.locator("#sheet-title")).toHaveText("Okna");
+    await expect(page.locator("kd-sheet h2")).toHaveText("Okna");
     const options = page.locator(".window-option");
     await expect(options).toHaveCount(2);
     await expect(options.nth(0)).toContainText(/Okno.*Otevřeno\s*·\s*< 1 min/s);
@@ -635,7 +638,7 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
 
     await test.step("popup za běhu: Běží, Skončí nejpozději, Pracovna z 1 180 na 820 ppm = 47 % (100 % je 420 ppm), oranžové kolečko v místě třetího sloupce", async () => {
       await trigger.click();
-      await expect(page.locator("#sheet-title")).toHaveText("Větrací režim");
+      await expect(page.locator("kd-sheet h2")).toHaveText("Větrací režim");
       const summary = page.locator(".sheet .vent-summary");
       await expect(summary).toContainText(/Běží\s*4 min/);
       await expect(summary).toContainText(/Skončí nejpozději\s*\d{1,2}:\d{2}/);
@@ -667,7 +670,7 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
       await expect(page.locator(".sheet .timer-foot")).toHaveCount(0);
       const end = page.getByRole("button", { name: "Ukončit" });
       expect((await end.boundingBox())?.height ?? 0, "Ukončit 48 px").toBeGreaterThanOrEqual(48);
-      await expect(page.locator(".sheet")).toBeFocused();
+      await expect(page.locator("kd-sheet .panel")).toBeFocused();
     });
 
     await test.step("kolečko: oranžové nad 500 ppm, zelené na 500 ppm a méně (lze zavřít okna), 100 % až na 420 ppm, nikdy 100 % dřív", async () => {
@@ -692,7 +695,7 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
       expect((await room.boundingBox())!.height, "poznámka blok místnosti nezvětší").toBe(heightOpen);
       await setStates(page, { "binary_sensor.pracovna_okno_pracovna": "on", [CO2_PRACOVNA]: "820" });
       // A room that was fresh already at the start (400 ppm) and is at or below the target is 100 %, not 0 %.
-      await page.locator(".sheet .close").click();
+      await page.locator("kd-sheet .close").click();
       await page.evaluate(() => {
         // @ts-expect-error test hook
         const test = window.__test;
@@ -706,7 +709,7 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
       await expect(page.locator(".sheet .vent-room kd-ring")).toHaveAttribute("num", "100");
       await expect(page.locator(".sheet .vent-room kd-ring")).toHaveAttribute("style", /--kd-fresh/);
       await setStates(page, { [CO2_PRACOVNA]: "820" });
-      await page.locator(".sheet .close").click();
+      await page.locator("kd-sheet .close").click();
       await trigger.click();
       expect(await axeViolations(page), "axe popup").toEqual([]);
     });
@@ -755,7 +758,7 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
     });
 
     await test.step("poslední větrání starší než dnes: čas má před sebou den", async () => {
-      await page.locator(".sheet .close").click();
+      await page.locator("kd-sheet .close").click();
       await page.evaluate(() => {
         // @ts-expect-error test hook
         const test = window.__test;
@@ -780,7 +783,7 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
     });
 
     await test.step("chyba příkazu: text tlačítka Ukončit se nahradí hláškou, tlačítko zůstane aktivní, haptika failure", async () => {
-      await page.locator(".sheet .close").click();
+      await page.locator("kd-sheet .close").click();
       await setStates(page, { [MODE]: "on", [TIMER]: "active" });
       await trigger.click();
       await page.evaluate(() => {
@@ -800,7 +803,7 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
     });
 
     await test.step("nedostupná entita: tlačítko zmizí, nic se nehlásí a řádek nadpisu drží výšku", async () => {
-      await page.locator(".sheet .close").click();
+      await page.locator("kd-sheet .close").click();
       const before = (await titleRow.boundingBox())!.height;
       await setStates(page, { [MODE]: "unavailable" });
       await expect(trigger).toHaveCount(0);
@@ -820,7 +823,7 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
       await expect(page.locator(".sheet .static-row").first()).toBeVisible();
       expect(await axeViolations(page), "axe světlý, popup").toEqual([]);
       expect(await chipContrast(trigger), "zelené tlačítko, světlý režim").toBeGreaterThanOrEqual(4.5);
-      await page.locator(".sheet .close").click();
+      await page.locator("kd-sheet .close").click();
       await setStates(page, { [MODE]: "off" });
       expect(await axeViolations(page), "axe světlý, vypnuté tlačítko").toEqual([]);
       expect(await chipContrast(trigger), "šedé tlačítko, světlý režim").toBeGreaterThanOrEqual(3);
@@ -835,11 +838,11 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
       await setStates(page, { [CO2_PRACOVNA]: "790" });
       await expect(page.locator(".sheet .vent-room kd-ring")).toHaveAttribute("style", /--kd-fresh/);
       await setStates(page, { [CO2_PRACOVNA]: "820" });
-      await page.locator(".sheet .close").click();
+      await page.locator("kd-sheet .close").click();
       await reconfigure(page, { ventilation_timer_entity: undefined, ventilation_co2_target: undefined });
       await trigger.click();
       await expect(page.locator(".sheet .vent-summary")).not.toContainText("Skončí nejpozději");
-      await page.locator(".sheet .close").click();
+      await page.locator("kd-sheet .close").click();
       // Without the key there is neither the button nor the row.
       await reconfigure(page, { ventilation_entity: undefined, ventilation_timer_entity: undefined });
       await expect(trigger).toHaveCount(0);
@@ -880,7 +883,7 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
       ]);
       // history: 12 h, night 23–7 h.
       await rooms(page).first().locator(".temperature").click();
-      await expect(page.locator("#sheet-title")).toHaveText("Historie místnosti – 12 h");
+      await expect(page.locator("kd-sheet h2")).toHaveText("Historie místnosti – 12 h");
       await expect(page.locator(".chart .night")).toHaveCount(1);
       await expect(page.locator(".chart-wrap")).toHaveAccessibleName(/^Graf za 12 hodin\./);
       // The grid (uživatel 4. 11. 2026): 6 to 10 vertical divisions of the width and horizontal lines about as far apart (square cells).
@@ -1075,7 +1078,7 @@ test.describe("rozložení na všech šířkách (Room Card, Dashboard Domov)", 
       await open(page, "full", 852, 393);
       for (const [trigger, name] of [[".hvac", "Topení / Klimatizace"], [".temperature", "historie"]] as const) {
         await openPopup(page, trigger);
-        const box = await page.locator(".sheet").boundingBox();
+        const box = await page.locator("kd-sheet .panel").boundingBox();
         expect(box!.y, `${name}: začátek popupu`).toBeGreaterThanOrEqual(0);
         expect(box!.y + box!.height, `${name}: konec popupu`).toBeLessThanOrEqual(393);
         await closePopup(page);
@@ -1121,7 +1124,7 @@ test.describe("scénáře: stav místnosti, souhrn, barvy a konflikty (Stavový 
       // The block opens the CO₂ chart; a room without the PM2.5 entity has no second line.
       await reconfigure(page, {}, { 0: { pm25: undefined } });
       await rooms(page).first().locator(".air-block").click();
-      await expect(page.locator("#sheet-title")).toHaveText("Historie místnosti – 24 h");
+      await expect(page.locator("kd-sheet h2")).toHaveText("Historie místnosti – 24 h");
       await expect(page.locator(".readout-temp")).toContainText("ppm");
       await expect(page.locator(".segment"), "žádné záložky").toHaveCount(0);
       await closePopup(page);
@@ -1336,7 +1339,7 @@ test.describe("přístupnost", () => {
       const hvac = page.locator(".hvac").first();
       await hvac.focus();
       await page.keyboard.press("Enter");
-      await expect(page.locator(".sheet")).toBeFocused();
+      await expect(page.locator("kd-sheet .panel")).toBeFocused();
       await page.locator('.segment[data-system="heating"]').focus();
       await page.keyboard.press("ArrowRight");
       await expect(page.locator('.segment[data-system="climate"]')).toBeFocused();
@@ -1604,7 +1607,7 @@ test.describe("historie místnosti (Historie a grafy)", () => {
     await test.step("otevření, prohlížení myší a klávesnicí, překreslení po otočení", async () => {
       await open(page, "full");
       await rooms(page).first().locator(".temperature").click();
-      await expect(page.locator("#sheet-title")).toHaveText("Historie místnosti – 24 h");
+      await expect(page.locator("kd-sheet h2")).toHaveText("Historie místnosti – 24 h");
       await expect(page.locator(".readout-time")).toHaveText("Teď");
       const chart = page.locator("svg.chart");
       await expect(chart).toHaveAttribute("width", "361");
@@ -1627,7 +1630,7 @@ test.describe("historie místnosti (Historie a grafy)", () => {
       await page.evaluate(() => { try { localStorage.clear(); } catch { /* no storage */ } });
       await open(page, "full");
       await rooms(page).first().locator(".hvac").click();
-      const [x, y] = await centre(page, ".sheet-top");
+      const [x, y] = await centre(page, "kd-sheet .top");
       await page.mouse.move(x, y);
       await page.mouse.down();
       await page.mouse.move(x, y + 60, { steps: 5 });
@@ -1756,7 +1759,7 @@ test.describe("kvalita vzduchu, okno a hlavička (Room Card, Vizuální pravidla
     await test.step("blok CO₂ / PM2.5 otevře rovnou graf CO₂ s PM2.5 jako slabší čarou; teplota a vlhkost mají vlastní graf; žádné záložky", async () => {
       await open(page, "full");
       await rooms(page).first().locator(".air-block .slot-pm25").click();
-      await expect(page.locator("#sheet-title")).toHaveText("Historie místnosti – 24 h");
+      await expect(page.locator("kd-sheet h2")).toHaveText("Historie místnosti – 24 h");
       await expect(page.locator(".segment"), "žádné záložky").toHaveCount(0);
       await expect(page.locator(".readout-temp")).toContainText("ppm");
       await expect(page.locator(".readout-hum.pm25")).toContainText("µg/m³");
@@ -2095,11 +2098,11 @@ test.describe("jazyky (CURRENT_SPEC.md, Jazyky)", () => {
         await noCzech("Klimatizace");
         await closePopup(page);
         await openPopup(page, ".air-block");
-        await expect(page.locator("#sheet-title")).toHaveText(expected.history);
+        await expect(page.locator("kd-sheet h2")).toHaveText(expected.history);
         await noCzech("Historie CO₂");
         await closePopup(page);
         await openPopup(page, ".temperature");
-        await expect(page.locator("#sheet-title")).toHaveText(expected.history);
+        await expect(page.locator("kd-sheet h2")).toHaveText(expected.history);
         await expect(page.locator(".readout-time")).toHaveText(expected.now);
         await expect(page.locator(".legend")).toHaveCount(0);
         await page.locator(".chart-wrap").focus();
@@ -2405,7 +2408,7 @@ test.describe("popup: stránka pod ním se neposouvá", () => {
         await rooms(page).nth(0).locator(trigger).evaluate((button) => (button as HTMLElement).click());
         await expect(page.locator(".sheet")).toBeVisible();
         await settle(page);
-        const sheet = (await page.locator(".sheet").boundingBox())!;
+        const sheet = (await page.locator("kd-sheet .panel").boundingBox())!;
         const spots: Array<[string, number, number]> = [
           // The popup Topení / Klimatizace is tall: outside means above its top edge.
           ["mimo popup", 196, Math.max(20, Math.round(sheet.y / 2))],
@@ -2435,7 +2438,8 @@ test.describe("popup: stránka pod ním se neposouvá", () => {
       await expect(page.locator(".chart")).toBeVisible();
       const sizes = await page.evaluate(() => {
         const root = document.querySelector("ha-klima-dashboard")!.shadowRoot!;
-        const sheet = root.querySelector<HTMLElement>(".sheet")!;
+        // The scrolling panel of the sheet of the kit.
+        const sheet = root.querySelector("kd-sheet")!.shadowRoot!.querySelector<HTMLElement>(".panel")!;
         const chart = root.querySelector("svg.chart")!.getBoundingClientRect();
         const box = sheet.getBoundingClientRect();
         return { sheet: box.width, sheetHeight: box.height, chart: chart.width, scrolls: sheet.scrollHeight > sheet.clientHeight, screen: innerWidth };
@@ -2460,7 +2464,7 @@ test.describe("popup: stránka pod ním se neposouvá", () => {
       await open(page, "full", 1200, 852);
       await openPopup(page, ".temperature");
       await expect(page.locator(".chart")).toBeVisible();
-      expect(await page.locator(".sheet").evaluate((sheet) => Math.round(sheet.getBoundingClientRect().width))).toBe(460);
+      expect(await page.locator("kd-sheet .panel").evaluate((sheet) => Math.round(sheet.getBoundingClientRect().width))).toBe(460);
     });
   });
 });
@@ -2510,7 +2514,7 @@ test.describe("popup Topení / Klimatizace (CURRENT_SPEC.md kitu, Popup Topení 
     await open(page);
     const { rooms: all } = await config(page);
     await openPopup(page, ".hvac");
-    await expect(page.locator("#sheet-title")).toHaveText("Topení a klimatizace");
+    await expect(page.locator("kd-sheet h2")).toHaveText("Topení a klimatizace");
     await expect(page.locator(".sheet .segment[aria-selected='true']")).toHaveText("Topení");
     expect((await roomTiles(page)).filter((tile) => tile.pressed).map((tile) => tile.name)).toEqual(["Ložnice"]);
     await expect(page.locator("kd-climate .big")).toHaveText("21°");

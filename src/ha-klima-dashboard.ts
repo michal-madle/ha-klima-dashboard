@@ -109,22 +109,10 @@ const HINT_MS = 1_600;
 /** A failed preset stays visible longer: the person has to read it. */
 const ERROR_HINT_MS = 5_000;
 
-/** Pull-down distance or speed that closes a popup (iOS sheet). */
-const SHEET_CLOSE_DISTANCE = 100;
-const SHEET_CLOSE_SPEED = 0.6;
-const SHEET_DRAG_SLOP = 6;
-
 type TrendAxes = Partial<Record<TrendKind, TrendAxis>>;
 type HistoryStatus = "loading" | "ready" | "error";
 /** Haptic types forwarded by the Home Assistant app to the Taptic Engine. */
 type HapticType = "success" | "failure" | "warning" | "selection" | "light";
-
-interface SheetDrag {
-  pointerId: number;
-  startY: number;
-  startTime: number;
-  dragging: boolean;
-}
 
 
 export class HaKlimaDashboard extends LitElement {
@@ -176,14 +164,6 @@ export class HaKlimaDashboard extends LitElement {
   /** Time under the finger in the history chart; undefined = now. */
   @state()
   private _scrubTime?: number;
-  /** Where the finger touched the popup (clientY), to tell the direction of a drag. */
-  private _touchY?: number;
-
-  private _touchOnSlider = false;
-
-  /** Pull-down offset of the open popup in px. */
-  @state()
-  private _dragY = 0;
 
   /** Key of the blind preset that was just sent (brief confirmation flash). */
   @state()
@@ -221,7 +201,6 @@ export class HaKlimaDashboard extends LitElement {
 
   private _historyRequest = 0;
   private _scrubbing = false;
-  private _drag?: SheetDrag;
   private _trendTimer?: number;
 
   /** Re-renders the card every 30 s while a window is open or the ventilation mode runs, so the times keep counting. */
@@ -381,10 +360,6 @@ export class HaKlimaDashboard extends LitElement {
     if (this._focusSegment) {
       this.renderRoot.querySelector<HTMLElement>(`.segment[data-system="${this._focusSegment}"]`)?.focus();
       this._focusSegment = undefined;
-    }
-    if (changedProperties.has("_sheet") && this._sheet && !changedProperties.get("_sheet")) {
-      // The focus goes into the popup itself (a ring on the ✕ would be noise).
-      this.renderRoot.querySelector<HTMLElement>(".sheet")?.focus();
     }
   }
 
@@ -1793,51 +1768,16 @@ export class HaKlimaDashboard extends LitElement {
     body: TemplateResult,
     extraClass = "",
   ): TemplateResult {
-    const dragging = this._drag?.dragging === true;
-    return html`
-      <div
-        class="backdrop"
-        style=${`--backdrop-opacity: ${Math.max(0, 1 - this._dragY / 400).toFixed(2)}`}
-        @click=${() => this.closeSheet()}
-        @keydown=${this.handleSheetKeydown}
-        @touchstart=${this.sheetTouchStart}
-        @touchmove=${this.sheetTouchMove}
-        @wheel=${this.sheetWheel}
-      >
-        <div
-          class="sheet ${extraClass} ${dragging ? "dragging" : ""}"
-          style=${this._dragY > 0 ? `transform: translateY(${this._dragY}px)` : nothing}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="sheet-title"
-          tabindex="-1"
-          @click=${(event: Event) => event.stopPropagation()}
-        >
-          <div
-            class="sheet-top"
-            @pointerdown=${this.dragStart}
-            @pointermove=${this.dragMove}
-            @pointerup=${this.dragEnd}
-            @pointercancel=${this.dragEnd}
-          >
-            <div class="grabber" aria-hidden="true"></div>
-            <div class="sheet-head">
-              <div>
-                <h2 id="sheet-title">${title}</h2>
-                ${sub ? html`<div class="sheet-sub">${sub}</div>` : nothing}
-              </div>
-              <button type="button" class="plain-button close" aria-label=${this._i18n.t.sheet.close} @click=${() => this.closeSheet()}>
-                <span class="close-icon" aria-hidden="true"
-                  ><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round">
-                    <path d="M2 2l8 8M10 2l-8 8"></path></svg
-                ></span>
-              </button>
-            </div>
-          </div>
-          ${body}
-        </div>
-      </div>
-    `;
+    // The sheet from the bottom of the kit (one look in every card, uživatel 13. 11. 2026: „Preved vsechno na novy vzhled“).
+    return html`<kd-sheet
+      open
+      .heading=${title}
+      .sub=${sub ?? ""}
+      .closeLabel=${this._i18n.t.sheet.close}
+      ?wide=${extraClass === "history-sheet"}
+      @hdk-close=${() => this.closeSheet()}
+      ><div class="sheet ${extraClass}">${body}</div></kd-sheet
+    >`;
   }
 
   /** Title of the Topení / Klimatizace popup: the system, or both when the switch under it chooses one. */
@@ -1980,7 +1920,7 @@ export class HaKlimaDashboard extends LitElement {
 
   /** The chart is drawn 1:1 in CSS pixels at the inner width of the popup. */
   private chartWidth(): number {
-    // On its side the popup is as wide as the phone (styles.ts, the same query), otherwise 460 px at most.
+    // On its side the popup is as wide as the phone (the sheet of the kit, `wide`, the same query), otherwise 460 px at most.
     const landscape = window.matchMedia?.(LANDSCAPE_QUERY).matches === true;
     return Math.max(280, Math.min(landscape ? 960 : 460, window.innerWidth) - 32);
   }
@@ -2035,117 +1975,6 @@ export class HaKlimaDashboard extends LitElement {
     event.preventDefault();
   };
 
-  /**
-   * A finger drag or the wheel over a popup must not move the page under it.
-   * Outside the popup, and inside it when it cannot scroll further in that direction, the move is
-   * cancelled; a popup that does scroll keeps its own scrolling (`overscroll-behavior` covers the rest).
-   */
-  private sheetTouchStart = (event: TouchEvent): void => {
-    this._touchY = event.touches[0]?.clientY;
-    // A finger on a slider (range input) drags the slider: cancelling its moves would freeze it (iOS).
-    this._touchOnSlider = event
-      .composedPath()
-      .some((node) => (node instanceof HTMLInputElement && node.type === "range") || (node instanceof HTMLElement && "drag" in node.dataset));
-  };
-
-  private sheetTouchMove = (event: TouchEvent): void => {
-    if (this._touchOnSlider) {
-      return;
-    }
-    if (event.cancelable && this.sheetCannotScroll(event, (event.touches[0]?.clientY ?? 0) - (this._touchY ?? 0))) {
-      event.preventDefault();
-    }
-  };
-
-  private sheetWheel = (event: WheelEvent): void => {
-    if (event.cancelable && !event.ctrlKey && this.sheetCannotScroll(event, -event.deltaY)) {
-      event.preventDefault();
-    }
-  };
-
-  /** `movement` > 0 pulls the content down (towards its top), < 0 up. */
-  private sheetCannotScroll(event: Event, movement: number): boolean {
-    const sheet = this.renderRoot.querySelector<HTMLElement>(".sheet");
-    if (!sheet || !event.composedPath().includes(sheet)) {
-      return true;
-    }
-    const scrolls = sheet.scrollHeight > sheet.clientHeight + 1;
-    return (
-      !scrolls ||
-      (movement > 0 && sheet.scrollTop <= 0) ||
-      (movement < 0 && sheet.scrollTop + sheet.clientHeight >= sheet.scrollHeight - 1)
-    );
-  }
-
-  private dragStart = (event: PointerEvent): void => {
-    if (event.button !== 0) {
-      return;
-    }
-    this._drag = { pointerId: event.pointerId, startY: event.clientY, startTime: performance.now(), dragging: false };
-  };
-
-  private dragMove = (event: PointerEvent): void => {
-    const drag = this._drag;
-    if (!drag || drag.pointerId !== event.pointerId) {
-      return;
-    }
-    const distance = event.clientY - drag.startY;
-    if (!drag.dragging) {
-      if (distance < SHEET_DRAG_SLOP) {
-        return;
-      }
-      // Capture only once it is a drag, so a tap on ✕ still clicks.
-      drag.dragging = true;
-      (event.currentTarget as HTMLElement).setPointerCapture(event.pointerId);
-    }
-    this._dragY = Math.max(0, distance);
-  };
-
-  private dragEnd = (event: PointerEvent): void => {
-    const drag = this._drag;
-    this._drag = undefined;
-    if (!drag || !drag.dragging) {
-      return;
-    }
-    const distance = Math.max(0, event.clientY - drag.startY);
-    const speed = distance / Math.max(1, performance.now() - drag.startTime);
-    if (event.type === "pointerup" && (distance > SHEET_CLOSE_DISTANCE || speed > SHEET_CLOSE_SPEED)) {
-      this.closeSheet();
-    } else {
-      this._dragY = 0;
-    }
-  };
-
-  private handleSheetKeydown = (event: KeyboardEvent): void => {
-    if (event.key === "Escape") {
-      event.stopPropagation();
-      this.closeSheet();
-      return;
-    }
-    if (event.key !== "Tab") {
-      return;
-    }
-    // The popup Topení / Klimatizace of the kit has its controls in its own shadow roots: look into them too.
-    const selector = 'button:not([disabled]):not([tabindex="-1"]), input:not([disabled]), .chart-wrap';
-    const deep = (root: ParentNode): HTMLElement[] =>
-      [...root.querySelectorAll<HTMLElement>("*")].flatMap((element) => [
-        ...(element.matches(selector) ? [element] : []),
-        ...(element.shadowRoot ? deep(element.shadowRoot) : []),
-      ]);
-    const sheet = this.renderRoot.querySelector(".sheet");
-    const items = sheet ? deep(sheet).filter((element) => element.getClientRects().length > 0) : [];
-    if (items.length === 0) {
-      return;
-    }
-    const path = event.composedPath();
-    const index = items.findIndex((item) => path.includes(item));
-    const next = event.shiftKey
-      ? items[index <= 0 ? items.length - 1 : index - 1]
-      : items[index === -1 || index === items.length - 1 ? 0 : index + 1];
-    event.preventDefault();
-    next.focus();
-  };
-
   /** The history chart is drawn at the popup width; redraw it after rotation or resize. */
   private handleResize = (): void => {
     if (this._sheet?.kind === "history") {
@@ -2157,7 +1986,6 @@ export class HaKlimaDashboard extends LitElement {
     this._opener = event.currentTarget instanceof HTMLElement ? event.currentTarget : undefined;
     this._sheetError = undefined;
     this._announcement = "";
-    this._dragY = 0;
     this._sheet = { kind, room, metric: kind === "history" ? metric ?? "temperature" : undefined };
     if (kind === "heating" || kind === "climate") this._hvacSelected = this.hvacSelection(kind);
     window.addEventListener("resize", this.handleResize, { passive: true });
@@ -2232,8 +2060,6 @@ export class HaKlimaDashboard extends LitElement {
     window.clearTimeout(this._endTimer);
     this._scrubTime = undefined;
     this._scrubbing = false;
-    this._drag = undefined;
-    this._dragY = 0;
     if (restoreFocus) {
       this._opener?.focus();
     }
