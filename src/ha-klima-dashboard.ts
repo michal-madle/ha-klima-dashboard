@@ -44,6 +44,7 @@ import { absoluteHumidity, co2Value, lastSession, openDuring, progress } from ".
 import type { VentilationSession } from "./ventilation";
 import { pickText } from "ha-dashboard-kit/config";
 import { HoldOrDoubleTap } from "ha-dashboard-kit/gesture";
+import { RunStarts } from "ha-dashboard-kit/runstart";
 import { fitJoined, joined, joinedStyles, joinedText } from "ha-dashboard-kit/joined";
 import { cardLanguage, getI18n, hassLanguage } from "./i18n";
 import type { I18n } from "./i18n";
@@ -180,6 +181,9 @@ export class HaKlimaDashboard extends LitElement {
 
   @property({ attribute: false })
   hass?: HomeAssistant;
+
+  /** Since when a window is open and the ventilation mode runs: from the recorder, a restart of Home Assistant does not start them again. */
+  private readonly _starts = new RunStarts(() => this.requestUpdate());
 
   @state()
   private _sheet?: SheetState;
@@ -1089,7 +1093,7 @@ export class HaKlimaDashboard extends LitElement {
 
   // ---------------------------------------------------------------- window
 
-  /** One window: open / closed / unknown and, when open, for how many minutes (its last_changed). */
+  /** One window: open / closed / unknown and, when open, for how many minutes (since the recorder shows it open; a restart does not count). */
   private windowState(entityId: EntityId, now: number): { state: "open" | "closed" | "unknown"; minutesOpen?: number } {
     const entity = this.getState(entityId);
     const state = entity?.state.toLowerCase();
@@ -1099,8 +1103,8 @@ export class HaKlimaDashboard extends LitElement {
     if (state !== "on") {
       return { state: "closed" };
     }
-    const changed = Date.parse(entity?.last_changed ?? "");
-    return { state: "open", minutesOpen: Number.isNaN(changed) ? undefined : Math.max(0, (now - changed) / 60_000) };
+    const changed = this._starts.of(this.hass, entityId);
+    return { state: "open", minutesOpen: changed === undefined ? undefined : Math.max(0, (now - changed) / 60_000) };
   }
 
   /**
@@ -1368,8 +1372,8 @@ export class HaKlimaDashboard extends LitElement {
     const finishes =
       timer?.state.toLowerCase() === "active" ? Date.parse(String(timer.attributes.finishes_at ?? "")) : Number.NaN;
     const ends = Number.isNaN(finishes) || finishes <= now ? undefined : finishes;
-    const started = Date.parse(this.getState(config?.ventilationEntity)?.last_changed ?? "");
-    const minutes = Number.isNaN(started) ? undefined : Math.max(0, (now - started) / 60_000);
+    const started = this._starts.of(this.hass, config?.ventilationEntity);
+    const minutes = started === undefined ? undefined : Math.max(0, (now - started) / 60_000);
 
     // The rooms of the table: those whose window is open now or was open during this run (a room whose window was closed
     // while the mode runs stays, with a grey ring); running = CO₂ now, ended = CO₂ at the end.

@@ -1845,6 +1845,29 @@ test.describe("kvalita vzduchu, okno a hlavička (Room Card, Vizuální pravidla
   });
 });
 
+test.describe("restart Home Assistantu (CURRENT_SPEC.md kitu, Entity a data)", () => {
+  test("doba otevření okna a běhu větrání se po restartu nezačne znovu: začátek je z historie recorderu", async ({ page }) => {
+    await page.clock.install();
+    await open(page, "full");
+    const row = rooms(page).nth(1).locator(".slot-window");
+    await expect(row).toContainText(/Otevřeno\s*·\s*3 min/);
+    // Home Assistant restarted: the window comes back "on" with a new last_changed, the recorder has the same state since 2 hours.
+    await page.evaluate(() => {
+      const test = (window as any).__test;
+      const hours = (value: number) => (Date.now() - value * 3_600_000) / 1000;
+      test.runHistoryFor = (id: string) =>
+        id === "binary_sensor.pracovna_okno_pracovna" ? [{ s: "off", lu: hours(3) }, { s: "on", lu: hours(2) }, { s: "on", lu: hours(0.01) }] : undefined;
+    });
+    await setStates(page, { "binary_sensor.pracovna_okno_pracovna": "on" });
+    await expect(row).toContainText(/Otevřeno\s*·\s*2 h/);
+    // The window really closes and opens again: from zero.
+    await page.evaluate(() => ((window as any).__test.runHistoryFor = undefined));
+    await setStates(page, { "binary_sensor.pracovna_okno_pracovna": "off" });
+    await setStates(page, { "binary_sensor.pracovna_okno_pracovna": "on" });
+    await expect(row).toContainText(/Otevřeno\s*·\s*< 1 min/);
+  });
+});
+
 // ---------------------------------------------------------------- languages
 
 /**

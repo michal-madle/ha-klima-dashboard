@@ -237,7 +237,14 @@ const hass = {
         (test.scripts.push(message), {})
       : Object.fromEntries(
       message.entity_ids.map((id) => {
+        // The card asks the history for the start of the current state (a window, the ventilation mode): a week back.
+        // Like Home Assistant without a restart: one row, the state since its last_changed; `test.runHistoryFor` replaces it.
         const override = test.historyFor?.(id);
+        if (!override && Date.parse(message.end_time) - Date.parse(message.start_time) >= 7 * 24 * HOUR) {
+          const rows = test.runHistoryFor?.(id);
+          const entity = current.states[id];
+          return [id, rows ?? (entity ? [{ s: entity.state, lu: Date.parse(entity.last_changed) / 1000 }] : [])];
+        }
         if (override) return [id, override];
         const value = Number(states[id]?.state);
         return [id, Number.isFinite(value) ? series(value) : [{ s: states[id]?.state ?? "unknown", lu: (now - 20 * HOUR) / 1000 }]];
