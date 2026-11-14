@@ -31,7 +31,19 @@ export const cs = {
   lastSeen: (age: string) => `Naposledy před ${age}`,
 
   // Header (Dashboard Domov)
-  outsideAir: "Vzduch venku:",
+  /** The tile "Venku" at the top of the card and its popup (CURRENT_SPEC.md, Sjednocení s Energií a Domem, Horní řádek). */
+  outside: {
+    title: "Venku",
+    temperature: "Teplota",
+    weather: "Počasí",
+    humidity: "Vlhkost",
+    today: "Dnes",
+    rain: "Déšť",
+    air: "Vzduch venku",
+    spoken: "Otevře počasí venku.",
+  },
+  /** The states of a weather entity of Home Assistant in words. */
+  weatherState: { "clear-night": "Jasno", "cloudy": "Zataženo", "exceptional": "Mimořádné", "fog": "Mlha", "hail": "Kroupy", "lightning": "Bouřka", "lightning-rainy": "Bouřka s deštěm", "partlycloudy": "Polojasno", "pouring": "Lijavec", "rainy": "Déšť", "snowy": "Sněžení", "snowy-rainy": "Déšť se sněhem", "sunny": "Slunečno", "windy": "Větrno", "windy-variant": "Větrno, oblačno" } as Record<string, string>,
   airLevel: { good: "dobrý", moderate: "zhoršený", poor: "špatný" },
   summary: "Souhrn domu",
 
@@ -217,6 +229,12 @@ export const cs = {
 
   // Větrací režim: popup ze štítku souhrnu domu (CURRENT_SPEC.md, Větrací režim)
   ventilation: {
+    start: "Spustit větrání",
+    starting: "Spouští se…",
+    off: "Vypnuto",
+    /** In the tile: "naposledy 07:40", "do 18:17". */
+    lastAt: (time: string) => `naposledy ${time}`,
+    until: (time: string) => `do ${time}`,
     title: "Větrací režim",
     running: "Běží",
     endsBy: "Skončí nejpozději",

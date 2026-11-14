@@ -23,7 +23,7 @@ house_modes:
   winter: Zima                  # hodnota pro zimu (velikost písmen a diakritika nerozhodují)
   summer: Léto                  # hodnota pro léto
 
-# Větrací režim: tlačítko v řádku nadpisu a popup s dobou běhu a ukončením. Bez klíče se nezobrazuje.
+# Větrací režim: dlaždice nahoře a popup s dobou běhu, spuštěním a ukončením. Bez klíče se nezobrazuje.
 ventilation_entity: input_boolean.ventilation_mode    # entita režimu (zapnuto = štítek)
 ventilation_timer_entity: timer.ventilation_mode      # časovač režimu (konec nejpozději); bez klíče řádek konce zmizí
 ventilation_co2_target: 500                         # CO₂ (ppm), při kterém je kolečko zelené: lze zavřít okna
@@ -31,13 +31,15 @@ ventilation_co2_full: 420                           # CO₂ (ppm), při kterém 
 send_delay_seconds: 2                              # popup Topení / Klimatizace odešle změnu tolik sekund po poslední (nebo hned při zavření)
 ventilation_settle_minutes: 25                      # absolutní vlhkost (počítá karta z teploty a relativní vlhkosti místnosti) „po ustálení“: tolik minut po skončení režimu (do té doby „Teď“)
 
-# Venkovní podmínky v hlavičce. Teplota je z OpenWeatherMap; ostatní entity v domě nejsou, proto prázdné.
+# Venkovní podmínky v dlaždici „Venku“ nahoře a v jejím popupu. Teplota je z OpenWeatherMap; ostatní jsou prázdné, doplň vlastní entity.
 outside:
   temperature: sensor.openweathermap_temperature   # aktuální venkovní teplota
   minimum: null                 # denní minimum
   maximum: null                 # denní maximum
   rain_probability: null        # pravděpodobnost deště (%)
   pm25: null                    # venkovní PM2.5 (µg/m³)
+  weather: weather.openweathermap                  # entita počasí: její stav je počasí slovem („Zataženo“)
+  humidity: sensor.openweathermap_humidity         # venkovní relativní vlhkost (%)
 
 # Prahy (místnost je může přepsat vlastním "thresholds" níže).
 thresholds:

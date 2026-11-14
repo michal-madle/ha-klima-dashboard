@@ -150,74 +150,35 @@ export const styles = css`
       line-height: 1.2;
     }
 
-    /* Title row of a card with the ventilation mode: the title on the left, the button on the right
-       (above the blind buttons); the row keeps its height whatever the button shows. */
-    .title-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      min-height: 36px;
-    }
-
-    .plain-button.vent-trigger {
-      position: relative;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      flex: none;
-      min-width: 36px;
-      height: 36px;
-      margin-left: auto;
-      box-sizing: border-box;
-      justify-content: center;
-      border-radius: 18px;
-      color: var(--vent-color);
-      font-size: 15px;
-      font-weight: 500;
-      line-height: 20px;
-      white-space: nowrap;
-      background: color-mix(in srgb, var(--vent-color) var(--kd-chip-tint), var(--kd-card-bg));
-    }
-
-    .vent-trigger.on {
-      --vent-color: var(--kd-fresh);
-      padding: 0 16px 0 11px;
-    }
-
-    /* Idle: the grey of the "Ukončit" button (24 %), opaque like the running state, so the circle stays visible on a
-       light page and the icon contrast does not depend on the page behind the card. */
-    .vent-trigger.off {
-      --vent-color: var(--kd-label);
-      padding: 0;
-      background: color-mix(in srgb, rgb(118 118 128) 24%, var(--kd-card-bg));
-    }
-
-    /* The touch area is 44 px (the button itself 36 px). */
-    .vent-trigger::after {
-      content: "";
-      position: absolute;
-      inset: -4px;
-    }
-
-    /* The blades fill about 70 % of the 24 px frame, so 26 px gives a glyph of about 18 px. */
-    .vent-icon {
-      display: flex;
-      width: 26px;
-      height: 26px;
-    }
-
-    .vent-icon svg {
-      width: 26px;
-      height: 26px;
-    }
-
-    .outside {
+    /* The top row (CURRENT_SPEC.md, Sjednocení s Energií a Domem, Horní řádek): two tiles of the kit, "Venku" and
+       "Větrací režim"; the running mode is the fresh green of the card, not the blue of a control. */
+    .top-tiles {
       display: grid;
-      gap: 2px;
-      margin-top: 5px;
-      color: var(--secondary-text-color);
-      font-size: 0.9rem;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      --hdk-tile: var(--kd-card-bg);
+      --hdk-tile-text: var(--kd-text);
+      --hdk-secondary: var(--kd-label);
+      --hdk-tile-border: var(--kd-separator-strong, rgb(84 84 88 / 65%));
+      --hdk-accent: var(--kd-sky);
+    }
+    .top-tiles.single {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .vent-tile {
+      --hdk-tile-on: color-mix(in srgb, var(--kd-fresh) var(--kd-chip-tint), var(--kd-card-bg));
+      --hdk-tile-on-text: var(--kd-fresh);
+      --hdk-tile-on-sub: var(--kd-fresh);
+    }
+    :host([data-theme="light"]) .top-tiles {
+      --hdk-tile-border: rgb(60 60 67 / 29%);
+    }
+    :host([data-theme="light"]) .top-tiles kd-tile:not(.off) {
+      border-radius: 12px;
+      box-shadow: var(--kd-card-shadow);
+    }
+    .top-tiles + .summary {
+      margin-top: 8px;
     }
 
     /* House summary: chips only for what differs from a quiet house. */
@@ -1530,6 +1491,15 @@ export const styles = css`
       color: var(--kd-text);
       font-size: 17px;
       text-align: center;
+    }
+
+    .vent-start {
+      background: #0a6ed1;
+      color: #ffffff;
+      font-weight: 600;
+    }
+    .vent-end.vent-start:active:not(:disabled) {
+      background: #095fb5;
     }
 
     .vent-end:active:not(:disabled) {

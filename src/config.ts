@@ -108,7 +108,7 @@ const ROOM_KEYS = [
   "link",
 ];
 const HEATING_KEYS = ["climate", "overlay", "target", "intensity"];
-const OUTSIDE_KEYS = ["temperature", "minimum", "maximum", "rain_probability", "pm25"];
+const OUTSIDE_KEYS = ["temperature", "minimum", "maximum", "rain_probability", "pm25", "weather", "humidity"];
 const PRESET_KEYS = ["name", "position", "tilt", "icon", "description"];
 const WINDOW_KEYS = ["entity", "name"];
 

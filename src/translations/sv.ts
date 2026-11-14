@@ -24,7 +24,19 @@ export const sv: Texts = {
   noData: (what, age) => `Inga data · ${what}${age === undefined ? "" : ` (för ${age} sedan)`}`,
   lastSeen: (age) => `Senaste rapport för ${age} sedan`,
 
-  outsideAir: "Utomhusluft:",
+  /** The tile "Venku" at the top of the card and its popup (CURRENT_SPEC.md, Sjednocení s Energií a Domem, Horní řádek). */
+  outside: {
+    title: "Ute",
+    temperature: "Temperatur",
+    weather: "Väder",
+    humidity: "Luftfuktighet",
+    today: "I dag",
+    rain: "Regn",
+    air: "Utomhusluft",
+    spoken: "Öppnar vädret ute.",
+  },
+  /** The states of a weather entity of Home Assistant in words. */
+  weatherState: { "clear-night": "Klart", "cloudy": "Molnigt", "exceptional": "Exceptionellt", "fog": "Dimma", "hail": "Hagel", "lightning": "Åska", "lightning-rainy": "Åska med regn", "partlycloudy": "Halvklart", "pouring": "Skyfall", "rainy": "Regn", "snowy": "Snö", "snowy-rainy": "Snöblandat regn", "sunny": "Soligt", "windy": "Blåsigt", "windy-variant": "Blåsigt, molnigt" },
   airLevel: { good: "bra", moderate: "måttlig", poor: "dålig" },
   summary: "Sammanfattning av hemmet",
 
@@ -188,6 +200,12 @@ export const sv: Texts = {
   },
 
   ventilation: {
+    start: "Starta vädring",
+    starting: "Startar…",
+    off: "Av",
+    /** In the tile: "naposledy 07:40", "do 18:17". */
+    lastAt: (time) => `senast ${time}`,
+    until: (time) => `till ${time}`,
     title: "Ventilationsläge",
     running: "Pågår",
     endsBy: "Slutar senast",

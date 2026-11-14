@@ -428,24 +428,21 @@ export class HaKlimaDashboard extends LitElement {
     const now = Date.now();
     // No title: the name of the dashboard is at the top of Home Assistant (uživatel 12. 11. 2026: „nechci title … To zrus“).
     // The header disappears when nothing else is in it (CURRENT_SPEC.md, Dashboard Domov).
-    const outside = this.renderOutside();
+    const tiles = this.renderTopTiles(now);
     const chips = houseSummary(
       this._config.rooms,
       (entityId) => this.getState(entityId),
       this.coldRooms(isSummer, modeKnown, now),
       this._i18n,
     );
-    // The ventilation button sits in the title row (also without a title); a card with its key always has the header.
-    const hasVentilation = this._config.ventilationEntity !== undefined;
-    const hasHeader = outside !== nothing || chips.length > 0 || hasVentilation;
+    const hasHeader = tiles !== nothing || chips.length > 0;
 
     return html`
       <ha-card>
         <div class="dashboard">
           ${hasHeader
             ? html`<header class="dashboard-header">
-                ${hasVentilation ? html`<div class="title-row">${this.renderVentilationButton()}</div>` : nothing}
-                ${outside} ${this.renderSummary(chips)}
+                ${tiles} ${this.renderSummary(chips)}
               </header>`
             : nothing}
           <div class="rooms n${Math.min(this._config.rooms.length, 4)}">
@@ -503,53 +500,114 @@ export class HaKlimaDashboard extends LitElement {
 
   // ---------------------------------------------------------------- header
 
-  private renderOutside(): TemplateResult | typeof nothing {
+  /** What is known about the outside now: the temperature, the weather in words, the range of the day, the rain, the humidity and the air. */
+  private outsideFacts(): { temperature?: number; condition?: string; range?: string; rain?: number; humidity?: number; air?: { label: string; color: string } } | undefined {
     const outside = this._config?.outside;
     if (!outside) {
-      return nothing;
+      return undefined;
     }
-
     const { t, whole } = this._i18n;
-    const temperature = this.numberState(outside.temperature);
     const minimum = this.numberState(outside.minimum);
     const maximum = this.numberState(outside.maximum);
-    const rain = this.numberState(outside.rain_probability);
     const pm25 = this.numberState(outside.pm25);
-
-    const range =
-      minimum !== undefined && maximum !== undefined
-        ? `${whole(minimum)}–${whole(maximum)}${NBSP}°C`
-        : undefined;
-    const parts = [
-      temperature === undefined ? undefined : `${whole(temperature)}${NBSP}°C`,
-      range,
-      rain === undefined ? undefined : `☂${NBSP}${this._i18n.percent(whole(rain))}`,
-    ].filter((part): part is string => part !== undefined);
-
+    const weather = this.entityState(outside.weather)?.toLowerCase();
     // Outdoor air uses the shared PM2.5 limits of the rooms (CURRENT_SPEC.md, Dashboard Domov).
     const thresholds = this._config!.thresholds;
-    let airLabel = "––";
-    let airColor = COLORS.label;
-    if (pm25 !== undefined) {
-      if (pm25 >= thresholds.pm25_critical) {
-        airLabel = t.airLevel.poor;
-        airColor = COLORS.alert;
-      } else if (pm25 >= thresholds.pm25_warning) {
-        airLabel = t.airLevel.moderate;
-        airColor = COLORS.warning;
-      } else {
-        airLabel = t.airLevel.good;
-      }
-    }
+    const air =
+      pm25 === undefined
+        ? undefined
+        : pm25 >= thresholds.pm25_critical
+          ? { label: t.airLevel.poor, color: COLORS.alert }
+          : pm25 >= thresholds.pm25_warning
+            ? { label: t.airLevel.moderate, color: COLORS.warning }
+            : { label: t.airLevel.good, color: "var(--kd-text)" };
+    return {
+      temperature: this.numberState(outside.temperature),
+      condition: weather === undefined ? undefined : t.weatherState[weather],
+      range: minimum !== undefined && maximum !== undefined ? `${whole(minimum)}–${whole(maximum)}${NBSP}°C` : undefined,
+      rain: this.numberState(outside.rain_probability),
+      humidity: this.numberState(outside.humidity),
+      air,
+    };
+  }
 
-    if (parts.length === 0 && !outside.pm25) {
+  /**
+   * The top row (uživatel 14. 11. 2026: „Q230 B“): two tiles of the kit beside each other, "Venku" and "Větrací režim",
+   * each with its name, its state in words and a chevron into its popup. A tile without data is left out and the other
+   * takes the whole row.
+   */
+  private renderTopTiles(now: number): TemplateResult | typeof nothing {
+    const { t, whole } = this._i18n;
+    const facts = this.outsideFacts();
+    const parts = facts
+      ? [facts.condition, facts.range, facts.rain === undefined ? undefined : `☂${NBSP}${this._i18n.percent(whole(facts.rain))}`].filter((part): part is string => part !== undefined)
+      : [];
+    const hasOutside = facts !== undefined && (facts.temperature !== undefined || parts.length > 0 || facts.air !== undefined);
+    const outsideName = facts?.temperature === undefined ? t.outside.title : `${t.outside.title} ${whole(facts.temperature)}${NBSP}°C`;
+    const outsideText = parts.join(" · ");
+    const outside = hasOutside
+      ? html`<kd-tile
+          class="outside-tile"
+          kind="open"
+          state="idle"
+          .name=${outsideName}
+          .text=${outsideText}
+          .label=${[outsideName, outsideText, t.outside.spoken].filter(Boolean).join(". ")}
+          @hdk-open=${(event: Event) => this.openHouseSheet("outside", event)}
+        ></kd-tile>`
+      : nothing;
+    const state = this.ventilationState();
+    let vent: TemplateResult | typeof nothing = nothing;
+    if (state !== undefined) {
+      const running = state === "on";
+      const entityId = this._config!.ventilationEntity!;
+      const since = this._starts.of(this.hass, entityId);
+      const timer = this._config!.ventilationTimerEntity;
+      const finishes = timer ? Date.parse(String(this.getState(timer)?.attributes.finishes_at ?? "")) : NaN;
+      const when = (time: number): string => (new Date(time).toDateString() === new Date(now).toDateString() ? this._i18n.time(time) : `${this._i18n.day(time)} ${this._i18n.time(time)}`);
+      const text = running
+        ? [`${t.ventilation.running}${since === undefined ? "" : ` ${formatDuration(Math.max(0, (now - since) / 60_000))}`}`, ...(Number.isFinite(finishes) ? [t.ventilation.until(this._i18n.time(finishes))] : [])].join(" · ")
+        : [t.ventilation.off, ...(since === undefined ? [] : [t.ventilation.lastAt(when(since))])].join(" · ");
+      vent = html`<kd-tile
+        class="vent-tile ${running ? "on" : "off"}"
+        kind="open"
+        state=${running ? "on" : "off"}
+        .name=${t.ventilation.title}
+        .text=${text}
+        .label=${`${t.ventilation.title}. ${text}. ${running ? t.summaryChips.ventilationSpoken : t.summaryChips.ventilationOffSpoken}`}
+        @hdk-open=${(event: Event) => this.openVentilationSheet(event)}
+      ></kd-tile>`;
+    }
+    if (outside === nothing && vent === nothing) {
       return nothing;
     }
-    return html`<div class="outside">
-      ${parts.length > 0 ? html`<div>${joined(parts)}</div>` : nothing}
-      ${outside.pm25
-        ? html`<div>${t.outsideAir} <span style=${`color: ${airColor}`}>${airLabel}</span></div>`
-        : nothing}
+    return html`<div class="top-tiles ${outside !== nothing && vent !== nothing ? "" : "single"}">${outside}${vent}</div>`;
+  }
+
+  /** A popup of the whole house (Venku): it has no room; the first one stands in. */
+  private openHouseSheet(kind: "outside", event: Event): void {
+    const room = this._config?.rooms[0];
+    if (room) {
+      this.openSheet(kind, room, event);
+    }
+  }
+
+  /** The popup "Venku": what the tile says, row by row, with the humidity also as grams of water in the air. */
+  private renderOutsideBody(): TemplateResult {
+    const { t, whole } = this._i18n;
+    const facts = this.outsideFacts() ?? {};
+    const absolute = facts.temperature !== undefined && facts.humidity !== undefined ? absoluteHumidity(facts.temperature, facts.humidity) : undefined;
+    const rows: Array<[string, string | TemplateResult]> = [];
+    if (facts.temperature !== undefined) rows.push([t.outside.temperature, `${this._i18n.one(facts.temperature)}${NBSP}°C`]);
+    if (facts.condition !== undefined) rows.push([t.outside.weather, facts.condition]);
+    if (facts.range !== undefined) rows.push([t.outside.today, facts.range]);
+    if (facts.rain !== undefined) rows.push([t.outside.rain, this._i18n.percent(whole(facts.rain))]);
+    if (facts.humidity !== undefined) {
+      rows.push([t.outside.humidity, joined([this._i18n.percent(whole(facts.humidity)), ...(absolute === undefined ? [] : [`${this._i18n.one(absolute)}${NBSP}g/m³`])])]);
+    }
+    if (facts.air !== undefined) rows.push([t.outside.air, html`<span style=${`color: ${facts.air.color}`}>${facts.air.label}</span>`]);
+    return html`<div class="static-list outside-list" role="group" aria-label=${t.outside.title}>
+      ${rows.map(([label, value]) => html`<div class="static-row"><span class="option-text"><span>${label}</span></span><span class="list-value">${value}</span></div>`)}
     </div>`;
   }
 
@@ -1273,31 +1331,6 @@ export class HaKlimaDashboard extends LitElement {
     return (this._config?.rooms ?? []).filter((room) => room.cover && room.windows.length > 0 && room.carbon_dioxide);
   }
 
-  /**
-   * The ventilation mode in the title row, on the right: a green pill with the text while it runs,
-   * a grey icon while it does not (CURRENT_SPEC.md, Větrací režim). Nothing when its state is unknown.
-   */
-  private renderVentilationButton(): TemplateResult | typeof nothing {
-    const state = this.ventilationState();
-    if (state === undefined) {
-      return nothing;
-    }
-    const { t } = this._i18n;
-    const running = state === "on";
-    const spoken = `${t.ventilation.title}. ${running ? t.summaryChips.ventilationSpoken : t.summaryChips.ventilationOffSpoken}`;
-    return html`<button
-      type="button"
-      class="plain-button vent-trigger ${running ? "on" : "off"}"
-      title=${spoken}
-      aria-label=${spoken}
-      aria-haspopup="dialog"
-      @click=${(event: Event) => this.openVentilationSheet(event)}
-    >
-      <span class="vent-icon" aria-hidden="true">${renderClimateIcon("fan", running ? COLORS.fresh : COLORS.label, false)}</span>
-      ${running ? html`<span>${t.ventilation.title}</span>` : nothing}
-    </button>`;
-  }
-
   /** The popup of the ventilation mode (it has no room; the first one stands in). */
   private openVentilationSheet(event: Event): void {
     const room = this._config?.rooms[0];
@@ -1542,17 +1575,29 @@ export class HaKlimaDashboard extends LitElement {
               class="plain-button vent-end ${error ? "error" : ""}"
               ?disabled=${this._ventilationEnding}
               aria-busy=${this._ventilationEnding ? "true" : "false"}
-              @click=${() => void this.endVentilation()}
+              @click=${() => void this.switchVentilation("turn_off")}
             >
               ${error ?? (this._ventilationEnding ? text.ending : text.end)}
             </button>
             ${error ? html`<span class="sr-only" role="alert">${error}</span>` : nothing}`
-        : nothing}
+        : data === undefined
+          ? nothing
+          : html`<button
+                type="button"
+                class="plain-button vent-end vent-start ${error ? "error" : ""}"
+                ?disabled=${this._ventilationEnding}
+                aria-busy=${this._ventilationEnding ? "true" : "false"}
+                @click=${() => void this.switchVentilation("turn_on")}
+              >
+                ${error ?? (this._ventilationEnding ? text.starting : text.start)}
+              </button>
+              ${error ? html`<span class="sr-only" role="alert">${error}</span>` : nothing}`}
     `;
   }
 
   /** "Ukončit": turns the mode off; Home Assistant switches the fans off and returns the slats (kit, Home Assistant: větrací režim). */
-  private async endVentilation(): Promise<void> {
+  /** Starts the mode (uživatel 14. 11. 2026: „Q232 A“) or ends it; the popup stays and shows the new state once Home Assistant reports it. */
+  private async switchVentilation(service: "turn_on" | "turn_off"): Promise<void> {
     const entityId = this._config?.ventilationEntity;
     if (!entityId || !this.hass || this._ventilationEnding) {
       return;
@@ -1560,7 +1605,7 @@ export class HaKlimaDashboard extends LitElement {
     this._ventilationEnding = true;
     this._sheetError = undefined;
     try {
-      await this.hass.callService(entityId.split(".")[0], "turn_off", { entity_id: entityId });
+      await this.hass.callService(entityId.split(".")[0], service, { entity_id: entityId });
       this.haptic("success");
       // The popup closes when the mode reports off; if it never does, the button works again.
       window.clearTimeout(this._endTimer);
@@ -1568,7 +1613,7 @@ export class HaKlimaDashboard extends LitElement {
         this._ventilationEnding = false;
       }, 10_000);
     } catch (error) {
-      console.error("Klima Dashboard: ending the ventilation mode failed", error);
+      console.error("Klima Dashboard: switching the ventilation mode failed", error);
       this._sheetError = this._i18n.t.sheet.commandFailed;
       this._ventilationEnding = false;
       this.haptic("failure");
@@ -1873,6 +1918,9 @@ export class HaKlimaDashboard extends LitElement {
     }
     if (sheet.kind === "ventilation") {
       return this.renderSheetFrame(t.ventilation.title, undefined, this.renderVentilationBody(Date.now()));
+    }
+    if (sheet.kind === "outside") {
+      return this.renderSheetFrame(t.outside.title, undefined, this.renderOutsideBody());
     }
     const { title, sub } = this.hvacTitle(sheet.kind);
     return this.renderSheetFrame(title, sub, this.renderHvacBody(sheet.room, sheet.kind, isSummer));

@@ -382,7 +382,7 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
     const all = [
       "type", "theme", "language", "house_mode_entity", "house_modes.winter", "house_modes.summer",
       "ventilation_entity", "ventilation_timer_entity", "ventilation_co2_target", "ventilation_co2_full", "ventilation_settle_minutes", "send_delay_seconds",
-      ...["temperature", "minimum", "maximum", "rain_probability", "pm25"].map((key) => `outside.${key}`),
+      ...["temperature", "minimum", "maximum", "rain_probability", "pm25", "weather", "humidity"].map((key) => `outside.${key}`),
       ...["humidity_min", "humidity_max", "co2_warning", "co2_critical", "pm25_warning", "pm25_critical", "winter_min",
         "winter_max", "summer_min", "summer_max", "stale_minutes", "heating_waves_2", "heating_waves_3"].map((key) => `thresholds.${key}`),
       ...["minutes", "samples", "temperature_step", "co2_step", "pm25_step"].map((key) => `trends.${key}`),
@@ -608,33 +608,29 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
     await expect(row).toHaveAccessibleDescription(/stav oken neznámý/);
   });
 
-  test("větrací režim: tlačítko v řádku nadpisu vpravo, popup s dobou, poklesem CO₂ a odhadem, výsledek po konci, Ukončit a nedostupná entita", async ({ page }) => {
+  test("větrací režim: dlaždice v horním řádku vpravo, popup s dobou, poklesem CO₂ a odhadem, výsledek po konci, Ukončit a nedostupná entita", async ({ page }) => {
     const MODE = "input_boolean.ventilation_mode";
     const TIMER = "timer.ventilation_mode";
     const CO2_PRACOVNA = "sensor.pracovna_teplomer_pracovna_carbon_dioxide";
     await open(page, "vent");
-    const trigger = page.locator(".title-row .vent-trigger");
-    const titleRow = page.locator(".title-row");
+    // The top row (uživatel 14. 11. 2026: „Q230 B“): the tile of the kit "Větrací režim"; its button carries the spoken name.
+    const trigger = page.locator(".top-tiles .vent-tile");
+    const tileButton = trigger.locator("button");
+    const titleRow = page.locator(".top-tiles");
 
-    await test.step("tlačítko je zelená kapsle s textem v řádku nadpisu vpravo; souhrn domu už větrací režim nemá", async () => {
+    await test.step("dlaždice za běhu je zelená, říká dobu běhu a konec; je v horním řádku vpravo a souhrn domu větrací režim nemá", async () => {
       await expect(page.locator(".summary .chip").filter({ hasText: "Větrací" }), "štítek v souhrnu").toHaveCount(0);
       await expect(trigger).toHaveClass(/\bon\b/);
-      await expect(trigger).toHaveText("Větrací režim");
-      await expect(trigger).toHaveAttribute("aria-label", "Větrací režim. Zapnutý. Otevře podrobnosti a ukončení.");
-      await expect(trigger).toHaveAttribute("aria-haspopup", "dialog");
-      await expect(trigger.locator(".vent-icon svg")).toHaveCount(1);
+      await expect(trigger).toContainText("Větrací režim");
+      await expect(trigger).toContainText(/Běží\s*4 min\s*·\s*do \d{1,2}:\d{2}/);
+      await expect(tileButton).toHaveAttribute("aria-label", /^Větrací režim\. Běží 4 min · do \d{1,2}:\d{2}\. Zapnutý\. Otevře podrobnosti a ukončení\.$/);
+      await expect(tileButton).toHaveAttribute("aria-haspopup", "dialog");
       const row = (await titleRow.boundingBox())!;
       const box = (await trigger.boundingBox())!;
-      // No title (uživatel 12. 11. 2026: „nechci title“): the row keeps only the button, on the right.
+      // No title (uživatel 12. 11. 2026: „nechci title“). Without the outside tile the mode takes the whole row.
       await expect(page.locator("h1")).toHaveCount(0);
-      expect(row.x + row.width - (box.x + box.width), "vpravo, nad tlačítky žaluzií").toBeLessThanOrEqual(8);
-      expect(box.height, "tlačítko 36 px").toBeGreaterThanOrEqual(36);
-      // The touch area is 44 px: a point 3 px beyond the edge still hits the button.
-      const hit = await page.evaluate(([x, y]) => {
-        const root = document.querySelector("ha-klima-dashboard")!.shadowRoot!;
-        return root.elementFromPoint(x, y)?.closest(".vent-trigger") !== null;
-      }, [box.x - 3, box.y + box.height / 2]);
-      expect(hit, "dotyková plocha 44 px").toBe(true);
+      expect(row.x + row.width - (box.x + box.width), "do pravého okraje").toBeLessThanOrEqual(1);
+      expect(box.height, "dotyková plocha aspoň 44 px").toBeGreaterThanOrEqual(44);
     });
 
     await test.step("popup za běhu: Běží, Skončí nejpozději, Pracovna z 1 180 na 820 ppm = 47 % (100 % je 420 ppm), oranžové kolečko v místě třetího sloupce", async () => {
@@ -752,10 +748,10 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
       await expect(page.getByRole("button", { name: /Ukončit|Ukončuje/ })).toHaveCount(0);
       await expect(page.locator("[role=status]")).toHaveText("Větrací režim skončil.");
       await expect(trigger).toHaveClass(/\boff\b/);
-      await expect(trigger).toHaveText("");
-      await expect(trigger).toHaveAttribute("aria-label", "Větrací režim. Vypnutý. Otevře poslední větrání.");
+      // The tile is never without a word (the old grey circle had none): "Vypnuto" and when the mode ended.
+      await expect(trigger).toContainText(/Vypnuto\s*·\s*naposledy/);
+      await expect(tileButton).toHaveAttribute("aria-label", /^Větrací režim\. Vypnuto · naposledy .*\. Vypnutý\. Otevře poslední větrání\.$/);
       expect(await axeViolations(page), "axe výsledek").toEqual([]);
-      expect(await chipContrast(trigger), "šedé tlačítko, tmavý režim").toBeGreaterThanOrEqual(3);
     });
 
     await test.step("poslední větrání starší než dnes: čas má před sebou den", async () => {
@@ -803,12 +799,11 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
       expect(await hook<string[]>(page, "haptics")).toContain("failure");
     });
 
-    await test.step("nedostupná entita: tlačítko zmizí, nic se nehlásí a řádek nadpisu drží výšku", async () => {
+    await test.step("nedostupná entita: dlaždice zmizí a nic se nehlásí; zapnutí a vypnutí výšku řádku nemění", async () => {
       await page.locator("kd-sheet .close").click();
       const before = (await titleRow.boundingBox())!.height;
       await setStates(page, { [MODE]: "unavailable" });
       await expect(trigger).toHaveCount(0);
-      expect((await titleRow.boundingBox())!.height, "výška řádku").toBe(before);
       await setStates(page, { [MODE]: "unknown" });
       await expect(trigger).toHaveCount(0);
       await setStates(page, { [MODE]: "on" });
@@ -823,11 +818,11 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
       await trigger.click();
       await expect(page.locator(".sheet .static-row").first()).toBeVisible();
       expect(await axeViolations(page), "axe světlý, popup").toEqual([]);
-      expect(await chipContrast(trigger), "zelené tlačítko, světlý režim").toBeGreaterThanOrEqual(4.5);
+      expect(await chipContrast(tileButton), "zelená dlaždice, světlý režim").toBeGreaterThanOrEqual(4.5);
       await page.locator("kd-sheet .close").click();
       await setStates(page, { [MODE]: "off" });
       expect(await axeViolations(page), "axe světlý, vypnuté tlačítko").toEqual([]);
-      expect(await chipContrast(trigger), "šedé tlačítko, světlý režim").toBeGreaterThanOrEqual(3);
+      await expect(trigger).toHaveClass(/\boff\b/);
     });
 
     await test.step("cíl CO₂ je konfigurace; bez časovače chybí řádek konce; bez nadpisu zůstane jen tlačítko; bez klíče není tlačítko ani řádek", async () => {
@@ -2078,7 +2073,8 @@ test.describe("jazyky (CURRENT_SPEC.md, Jazyky)", () => {
         // The card: header, statuses, values in the number format of the language, rows, presets.
         await load("full");
         const first = rooms(page).first();
-        expect(tidy(await page.locator(".outside > div").allInnerTexts())).toEqual(expected.outside);
+        // The tile "Venku": the temperature in its name, the range of the day and the rain under it; the air is in its popup.
+        expect(tidy((await page.locator(".outside-tile button").innerText()).split("\n"))).toEqual(expected.outside);
         expect(tidy(await statuses(page))).toEqual(Array(5).fill(expected.status));
         await expect(first.locator(".temperature")).toHaveText(expected.temperature);
         await expect(first.locator(".humidity")).toHaveText(expected.humidity);
@@ -2235,7 +2231,7 @@ test.describe("jazyky (CURRENT_SPEC.md, Jazyky)", () => {
       status: "Behagligt",
       temperature: "21,3 °C",
       humidity: "52 %",
-      outside: ["21 °C · 20–23 °C · ☂ 52 %", "Utomhusluft: bra"],
+      outside: ["Ute 21 °C", "›", "20–23 °C · ☂ 52 %"],
       heating: "Schema · 21 °C",
       window: "Öppet · 3 min",
       presets: ["Dag", "Skugga", "Mörker"],
@@ -2252,7 +2248,7 @@ test.describe("jazyky (CURRENT_SPEC.md, Jazyky)", () => {
       status: "Comfortable",
       temperature: "21.3 °C",
       humidity: "52%",
-      outside: ["21 °C · 20–23 °C · ☂ 52%", "Outdoor air: good"],
+      outside: ["Outside 21 °C", "›", "20–23 °C · ☂ 52%"],
       heating: "Schedule · 21 °C",
       window: "Open · 3 min",
       presets: ["Day", "Shade", "Dark"],
@@ -2821,5 +2817,39 @@ test.describe("detail místnosti (CURRENT_SPEC.md, Sjednocení s Energií a Dome
     await closePopup(page);
     // Nothing on the card opens a dialog of Home Assistant any more.
     expect(await hook(page, "moreInfo")).toEqual([]);
+  });
+});
+
+test.describe("horní řádek (CURRENT_SPEC.md, Sjednocení s Energií a Domem)", () => {
+  test("dlaždice Venku s počasím slovem a její popup; Větrací režim jde z popupu spustit jedním klepnutím", async ({ page }) => {
+    await open(page, "vent");
+    await reconfigure(page, { outside: { temperature: "sensor.out_temperature", weather: "weather.out", humidity: "sensor.out_humidity" } });
+    await page.evaluate(() => {
+      // @ts-expect-error test hook
+      window.__test.update({
+        "sensor.out_temperature": { state: "8", attributes: {} },
+        "weather.out": { state: "cloudy", attributes: {} },
+        "sensor.out_humidity": { state: "81", attributes: {} },
+        "input_boolean.ventilation_mode": { state: "off", attributes: {} },
+      });
+    });
+    // Two tiles of the kit beside each other, equally tall (uživatel 14. 11. 2026: „Q230 B“).
+    const outside = page.locator(".outside-tile");
+    const vent = page.locator(".vent-tile");
+    await expect(outside).toContainText(/Venku 8\s°C/);
+    await expect(outside).toContainText("Zataženo");
+    const [left, right] = [(await outside.boundingBox())!, (await vent.boundingBox())!];
+    expect(left.y).toBe(right.y);
+    expect(left.height).toBe(right.height);
+    expect(right.x).toBeGreaterThan(left.x + left.width);
+    // The popup "Venku": the same facts row by row, the humidity also as grams of water in the air.
+    await outside.click();
+    await expect(page.locator("kd-sheet h2")).toHaveText("Venku");
+    await expect(page.locator(".outside-list .static-row")).toHaveText([/Teplota\s*8,0\s°C/, /Počasí\s*Zataženo/, /Vlhkost\s*81\s%\s*·\s*6,7\sg\/m³/]);
+    await closePopup(page);
+    // The mode does not run: its popup offers to start it (uživatel 14. 11. 2026: „Q232 A“), one tap, no guard in a sheet.
+    await vent.click();
+    await page.getByRole("button", { name: "Spustit větrání" }).click();
+    await expect.poll(async () => (await hook<unknown[]>(page, "services")).at(-1)).toEqual(["input_boolean", "turn_on", { entity_id: "input_boolean.ventilation_mode" }]);
   });
 });

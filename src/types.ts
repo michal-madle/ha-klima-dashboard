@@ -66,6 +66,10 @@ export interface OutsideConfig {
   maximum?: EntityId;
   rain_probability?: EntityId;
   pm25?: EntityId;
+  /** The weather entity: its state is the weather in words ("Zataženo"). */
+  weather?: EntityId;
+  /** Outdoor relative humidity (%). */
+  humidity?: EntityId;
 }
 
 export interface DashboardThresholds {
@@ -276,7 +280,7 @@ export interface BlindPreset {
  * history (opened from the temperature), the air quality, or the windows of a room with more than one.
  */
 /** "ventilation" is the house-wide popup of the summary chip; its `room` is only the first room (unused). */
-export type SheetKind = "heating" | "climate" | "history" | "ventilation";
+export type SheetKind = "heating" | "climate" | "history" | "ventilation" | "outside";
 
 /** The part of the room detail the sheet opens at: a chart, the windows or the blind. */
 export type DetailFocus = "temperature" | "air" | "windows" | "cover";

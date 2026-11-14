@@ -24,7 +24,19 @@ export const en: Texts = {
   noData: (what, age) => `No data · ${what}${age === undefined ? "" : ` (${age} ago)`}`,
   lastSeen: (age) => `Last report ${age} ago`,
 
-  outsideAir: "Outdoor air:",
+  /** The tile "Venku" at the top of the card and its popup (CURRENT_SPEC.md, Sjednocení s Energií a Domem, Horní řádek). */
+  outside: {
+    title: "Outside",
+    temperature: "Temperature",
+    weather: "Weather",
+    humidity: "Humidity",
+    today: "Today",
+    rain: "Rain",
+    air: "Outdoor air",
+    spoken: "Opens the weather outside.",
+  },
+  /** The states of a weather entity of Home Assistant in words. */
+  weatherState: { "clear-night": "Clear", "cloudy": "Cloudy", "exceptional": "Exceptional", "fog": "Fog", "hail": "Hail", "lightning": "Thunderstorm", "lightning-rainy": "Thunderstorm with rain", "partlycloudy": "Partly cloudy", "pouring": "Pouring", "rainy": "Rain", "snowy": "Snow", "snowy-rainy": "Sleet", "sunny": "Sunny", "windy": "Windy", "windy-variant": "Windy, cloudy" },
   airLevel: { good: "good", moderate: "moderate", poor: "poor" },
   summary: "Home summary",
 
@@ -187,6 +199,12 @@ export const en: Texts = {
   },
 
   ventilation: {
+    start: "Start ventilation",
+    starting: "Starting…",
+    off: "Off",
+    /** In the tile: "naposledy 07:40", "do 18:17". */
+    lastAt: (time) => `last ${time}`,
+    until: (time) => `until ${time}`,
     title: "Ventilation mode",
     running: "Running",
     endsBy: "Ends by",
