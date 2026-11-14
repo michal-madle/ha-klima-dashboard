@@ -353,7 +353,7 @@ async function historyChart(page: Page, history: History) {
     };
   }, history);
   await rooms(page).first().locator(".temperature").click();
-  await expect(page.locator("svg.chart")).toBeVisible();
+  await expect(page.locator(".chart-wrap.temperature svg.chart")).toBeVisible();
   const chart = await page.evaluate(() => {
     const svg = document.querySelector("ha-klima-dashboard")!.shadowRoot!.querySelector("svg.chart")!;
     const ys = (path: Element | undefined) => [...(path?.getAttribute("d") ?? "").matchAll(/[ML]([\d.]+) ([\d.]+)/g)].map((m) => Number(m[2]));
@@ -591,16 +591,17 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
     const windowsChip = page.locator(".summary .chip").filter({ hasText: "okna otevřená" });
     await expect(windowsChip).toHaveText(/3 okna otevřená/);
     await expect(windowsChip).toHaveAttribute("aria-label", "Otevřená okna: Ložnice (2), Pracovna");
-    // The popup lists both windows with their state; a row opens the window's own detail.
+    // The room detail lists both windows with their state (uživatel 14. 11. 2026: „Q234 A“); no dialog of Home Assistant opens.
     await row.click();
-    await expect(page.locator("kd-sheet h2")).toHaveText("Okna");
+    await expect(page.locator("kd-sheet h2")).toHaveText("Ložnice");
     const options = page.locator(".window-option");
     await expect(options).toHaveCount(2);
     await expect(options.nth(0)).toContainText(/Okno.*Otevřeno\s*·\s*< 1 min/s);
     await expect(options.nth(1)).toContainText(/Balkon.*Otevřeno\s*·\s*5 min/s);
-    await options.nth(1).click();
-    await expect(page.locator(".sheet")).toHaveCount(0);
-    expect(await hook(page, "moreInfo")).toEqual([balkon]);
+    // The detail opens at its windows: the first of them is in view.
+    await expect(options.nth(0)).toBeInViewport();
+    await closePopup(page);
+    expect(await hook(page, "moreInfo")).toEqual([]);
     // Unknown is never taken as closed: none open and one unavailable is "––".
     await setStates(page, { [okno]: "off", [balkon]: "unavailable" });
     await expect(row).toHaveText(/^\s*––\s*$/);
@@ -876,22 +877,26 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
       expect(statusTops[0]).toBeCloseTo(statusTops[1], 0);
       const link = rooms(page).first().locator(".room-link");
       await expect(link).toHaveAccessibleName("Ložnice");
-      await expect(link).toHaveAccessibleDescription("Otevře stránku místnosti.");
+      // The name opens the room detail (uživatel 14. 11. 2026: „Q234 A“); the link of the room is a row of it.
+      await expect(link).toHaveAccessibleDescription("Otevře detail místnosti.");
       await link.click();
+      await page.locator('.detail-list [data-part="link"]').click();
       expect(await hook(page, "actions")).toEqual([
         { config: { tap_action: { action: "navigate", navigation_path: "/lovelace/loznice" } }, action: "tap" },
       ]);
       // history: 12 h; the night is not drawn (uživatel 14. 11. 2026: „nepotřebuju vidět noc/den“).
       await rooms(page).first().locator(".temperature").click();
-      await expect(page.locator("kd-sheet h2")).toHaveText("Historie místnosti – 12 h");
-      await expect(page.locator(".chart .night")).toHaveCount(0);
+      await expect(page.locator("kd-sheet h2")).toHaveText("Ložnice");
+      // The period of the detail: 12 h of the configuration, or a week.
+      await expect(page.locator(".detail-period").getByRole("radio")).toHaveText(["12 h", "7 dní"]);
+      await expect(page.locator(".chart-wrap.temperature .chart .night")).toHaveCount(0);
       // The second line (humidity) is a full line, not a dashed one; the target of Topení is an area from the bottom.
-      await expect(page.locator(".chart .humidity-line")).toHaveCount(1);
-      expect(await page.locator(".chart .humidity-line").getAttribute("stroke-dasharray")).toBeNull();
-      await expect(page.locator(".chart .target-area")).toHaveCount(1);
-      await expect(page.locator(".chart-wrap")).toHaveAccessibleName(/^Graf za 12 hodin\./);
+      await expect(page.locator(".chart-wrap.temperature .chart .humidity-line")).toHaveCount(1);
+      expect(await page.locator(".chart-wrap.temperature .chart .humidity-line").getAttribute("stroke-dasharray")).toBeNull();
+      await expect(page.locator(".chart-wrap.temperature .chart .target-area")).toHaveCount(1);
+      await expect(page.locator(".chart-wrap.temperature")).toHaveAccessibleName(/^Graf za 12 hodin\./);
       // The grid (uživatel 4. 11. 2026): 6 to 10 vertical divisions of the width and horizontal lines about as far apart (square cells).
-      const gridOfChart = await page.locator("svg.chart").evaluate((chart) => {
+      const gridOfChart = await page.locator(".chart-wrap.temperature svg.chart").evaluate((chart) => {
         const lines = [...chart.querySelectorAll("line")];
         const xs = lines.filter((line) => line.getAttribute("x1") === line.getAttribute("x2") && line.getAttribute("style")?.includes("--kd-grid-soft")).map((line) => Number(line.getAttribute("x1")));
         const ys = lines.filter((line) => line.getAttribute("y1") === line.getAttribute("y2") && line.getAttribute("style")?.includes("--kd-grid")).map((line) => Number(line.getAttribute("y1")));
@@ -906,7 +911,7 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
       expect(gridOfChart.divisions).toBeLessThanOrEqual(10);
       expect(gridOfChart.cell[1] / gridOfChart.cell[0]).toBeGreaterThan(0.4);
       expect(gridOfChart.cell[1] / gridOfChart.cell[0]).toBeLessThan(2.2);
-      await expect(page.locator(".chart .temperature-curve")).toHaveCount(1);
+      await expect(page.locator(".chart-wrap.temperature .chart .temperature-curve")).toHaveCount(1);
       // The chart has no legend under it: the values are in the readout above.
       await expect(page.locator(".legend")).toHaveCount(0);
     });
@@ -917,8 +922,8 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
         await page.clock.setFixedTime(new Date(when));
         await open(page, "full");
         await rooms(page).first().locator(".temperature").click();
-        await expect(page.locator("svg.chart")).toBeVisible();
-        return page.locator("svg.chart").evaluate((chart) => ({
+        await expect(page.locator(".chart-wrap.temperature svg.chart")).toBeVisible();
+        return page.locator(".chart-wrap.temperature svg.chart").evaluate((chart) => ({
           ticks: [...chart.querySelectorAll("text.tick")].map((text) => text.textContent ?? ""),
         }));
       };
@@ -931,16 +936,16 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
       // Steps share one page: what an earlier step stored in the browser must not leak into this one.
       await page.evaluate(() => { try { localStorage.clear(); } catch { /* no storage */ } });
       await page.clock.setFixedTime(new Date("2026-10-24T09:00:00+02:00"));
-      const axis = async () => (await page.locator(".chart .tick").allTextContents()).map(clean);
+      const axis = async () => (await page.locator(".chart-wrap.temperature .chart .tick").allTextContents()).map(clean);
       const readout = async () => {
-        await page.locator(".chart-wrap").focus();
+        await page.locator(".chart-wrap.temperature").focus();
         await page.keyboard.press("Home");
-        return clean(await page.locator(".readout-time").textContent());
+        return clean(await page.locator(".chart-wrap.temperature .readout-time").textContent());
       };
       // English writes AM / PM by default.
       await open(page, "full", 393, 852, "dark", "en");
       await rooms(page).first().locator(".temperature").click();
-      await expect(page.locator(".chart")).toBeVisible();
+      await expect(page.locator(".chart-wrap.temperature .chart")).toBeVisible();
       expect((await axis()).every((label) => /^\d{1,2} [AP]M$/.test(label)), (await axis()).join("|")).toBe(true);
       expect(await readout()).toMatch(/^[\p{L}]+ \d{1,2}:\d{2} [AP]M$/u);
       // 24 h from the profile: 18:00 and "yesterday 09:00".
@@ -968,9 +973,9 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
       // Three days of history: the axis shows dates at midnight.
       await reconfigure(page, { history: { hours: 72 } });
       await rooms(page).first().locator(".temperature").click();
-      await expect(page.locator(".chart")).toBeVisible();
+      await expect(page.locator(".chart-wrap.temperature .chart")).toBeVisible();
       // The first date among the labels (the hours between the midnights have the clock).
-      const first = async () => (await page.locator(".chart .tick").allTextContents()).map(clean).find((label) => label.includes(".")) ?? "";
+      const first = async () => (await page.locator(".chart-wrap.temperature .chart .tick").allTextContents()).map(clean).find((label) => label.includes(".")) ?? "";
       // Czech writes the day first ("22. 10."); the month 10 is the second number.
       await expect.poll(first).toMatch(/^\d{1,2}\. 10\.$/);
       for (const [format, monthFirst] of [["MDY", true], ["YMD", true], ["DMY", false], ["language", false]] as const) {
@@ -1121,8 +1126,8 @@ test.describe("scénáře: stav místnosti, souhrn, barvy a konflikty (Stavový 
       // The block opens the CO₂ chart; a room without the PM2.5 entity has no second line.
       await reconfigure(page, {}, { 0: { pm25: undefined } });
       await rooms(page).first().locator(".air-block").click();
-      await expect(page.locator("kd-sheet h2")).toHaveText("Historie místnosti – 24 h");
-      await expect(page.locator(".readout-temp")).toContainText("ppm");
+      await expect(page.locator("kd-sheet h2")).toHaveText("Ložnice");
+      await expect(page.locator(".chart-wrap.air .readout-temp")).toContainText("ppm");
       await expect(page.locator(".segment"), "žádné záložky").toHaveCount(0);
       await closePopup(page);
     });
@@ -1283,9 +1288,9 @@ test.describe("scénáře: stav místnosti, souhrn, barvy a konflikty (Stavový 
 test.describe("přístupnost", () => {
   /** What each popup shows once it is ready. */
   const POPUP_CONTENT: Record<string, string> = {
-    ".air-block": ".chart",
+    ".air-block": ".chart-wrap.air .chart",
     ".hvac": ".hvac-panel",
-    ".temperature": ".readout",
+    ".temperature": ".chart-wrap.temperature .readout",
     ".slot-window": ".list-options",
   };
 
@@ -1302,6 +1307,9 @@ test.describe("přístupnost", () => {
           await openPopup(page, trigger);
           // Check the loaded content, not the placeholder (the history chart loads asynchronously).
           await expect(page.locator(POPUP_CONTENT[trigger])).toBeVisible();
+          // axe finds the ground of the chosen period only where it is on screen (its white thumb is a layer of its own): the
+          // detail opened at a lower part is scrolled back to its top for the check.
+          if (trigger !== ".hvac") await page.locator(".detail-period").scrollIntoViewIfNeeded();
           expect(await axeViolations(page), `${scenario} ${trigger}`).toEqual([]);
           await closePopup(page);
         }
@@ -1604,20 +1612,20 @@ test.describe("historie místnosti (Historie a grafy)", () => {
     await test.step("otevření, prohlížení myší a klávesnicí, překreslení po otočení", async () => {
       await open(page, "full");
       await rooms(page).first().locator(".temperature").click();
-      await expect(page.locator("kd-sheet h2")).toHaveText("Historie místnosti – 24 h");
-      await expect(page.locator(".readout-time")).toHaveText("Teď");
-      const chart = page.locator("svg.chart");
+      await expect(page.locator("kd-sheet h2")).toHaveText("Ložnice");
+      await expect(page.locator(".chart-wrap.temperature .readout-time")).toHaveText("Teď");
+      const chart = page.locator(".chart-wrap.temperature svg.chart");
       await expect(chart).toHaveAttribute("width", "361");
       const box = (await chart.boundingBox())!;
       await page.mouse.move(box.x + box.width * 0.5, box.y + 60);
-      await expect(page.locator(".readout-time")).not.toHaveText("Teď");
+      await expect(page.locator(".chart-wrap.temperature .readout-time")).not.toHaveText("Teď");
       await page.mouse.move(box.x + box.width * 0.5, box.y - 200);
-      await expect(page.locator(".readout-time")).toHaveText("Teď");
-      await page.locator(".chart-wrap").focus();
+      await expect(page.locator(".chart-wrap.temperature .readout-time")).toHaveText("Teď");
+      await page.locator(".chart-wrap.temperature").focus();
       await page.keyboard.press("ArrowLeft");
-      await expect(page.locator(".readout-time")).not.toHaveText("Teď");
+      await expect(page.locator(".chart-wrap.temperature .readout-time")).not.toHaveText("Teď");
       await page.keyboard.press("End");
-      await expect(page.locator(".readout-time")).toHaveText("Teď");
+      await expect(page.locator(".chart-wrap.temperature .readout-time")).toHaveText("Teď");
       // The chart is drawn at the popup width and follows a rotation or a resize.
       await page.setViewportSize({ width: 700, height: 852 });
       await expect(chart).toHaveAttribute("width", "428");
@@ -1692,28 +1700,28 @@ test.describe("historie místnosti (Historie a grafy)", () => {
     });
     await test.step("CO₂: hranice 1 000 (hodnota ji dosáhla, kritická 1 500 ne, proto se nekreslí), křivka s tvrdými zarážkami, pásma a pruhy", async () => {
       await rooms(page).nth(1).locator(".air-block .slot-co2").click();
-      await expect(page.locator(".limit-line")).toHaveCount(1);
+      await expect(page.locator(".chart-wrap.air .limit-line")).toHaveCount(1);
       await expect(page.locator(".limit-label")).toHaveText(["1 000"]);
-      await expect(page.locator(".temperature-curve")).toHaveAttribute("style", /url\(#history-curve\)/);
-      await expect(page.locator("#history-curve stop")).toHaveCount(4);
+      await expect(page.locator(".chart-wrap.air .temperature-curve")).toHaveAttribute("style", /url\(#history-curve-air\)/);
+      await expect(page.locator("#history-curve-air stop")).toHaveCount(4);
       // Without the second row of states: the windows and the ventilation are in the bands and in the bars.
-      await expect(page.locator(".readout-system")).toHaveCount(0);
-      await expect(page.locator(".window-band")).toHaveCount(1);
-      await expect(page.locator(".ventilation-band")).toHaveCount(1);
-      await expect(page.locator(".strip-row")).toHaveClass([/ventilation/, /windows/]);
+      await expect(page.locator(".chart-wrap.air .readout-system")).toHaveCount(0);
+      await expect(page.locator(".chart-wrap.air .window-band")).toHaveCount(1);
+      await expect(page.locator(".chart-wrap.air .ventilation-band")).toHaveCount(1);
+      await expect(page.locator(".chart-wrap.air .strip-row")).toHaveClass([/ventilation/, /windows/]);
     });
     await test.step("PM2.5: slabší vyhlazená čára (průměr za 5 minut) pod CO₂, přesná 0 je platná hodnota", async () => {
-      const path = (await page.locator(".pm25-line").getAttribute("d")) ?? "";
+      const path = (await page.locator(".chart-wrap.air .pm25-line").getAttribute("d")) ?? "";
       // Smoothed: a point every minute or so, no vertical steps (the changes are slopes).
       expect(path.match(/L/g)?.length, "vyhlazená čára").toBeGreaterThan(100);
       // "Teď" is the reading of the card (9 µg/m³), not the last recorded value (18).
-      await expect(page.locator(".readout-hum.pm25")).toContainText("9 µg/m³");
+      await expect(page.locator(".chart-wrap.air .readout-hum.pm25")).toContainText("9 µg/m³");
     });
     await test.step("prohlížení: hodnota a čas pod prstem", async () => {
-      const box = await page.locator("svg.chart").boundingBox();
+      const box = await page.locator(".chart-wrap.air svg.chart").boundingBox();
       await page.mouse.move((box?.x ?? 0) + 4 + (313 * (24 - 9.3)) / 24, (box?.y ?? 0) + 60);
-      await expect(page.locator(".readout-time")).not.toHaveText("Teď");
-      await expect(page.locator(".readout-temp")).toContainText("ppm");
+      await expect(page.locator(".chart-wrap.air .readout-time")).not.toHaveText("Teď");
+      await expect(page.locator(".chart-wrap.air .readout-temp")).toContainText("ppm");
     });
     await test.step("teplota: křivka je oranžová nad horní mezí komfortu (24 °C v zimě) a modrá pod dolní (20 °C), jinak bílá", async () => {
       await closePopup(page);
@@ -1728,22 +1736,22 @@ test.describe("historie místnosti (Historie a grafy)", () => {
           id === entity ? [{ s: "21", lu: now - 20 * h }, { s: "25", lu: now - 12 * h }, { s: "18.5", lu: now - 5 * h }] : previous(id);
       });
       await rooms(page).nth(1).locator(".temperature").click();
-      await expect(page.locator(".temperature-curve")).toHaveAttribute("style", /url\(#history-curve\)/);
+      await expect(page.locator(".chart-wrap.temperature .temperature-curve")).toHaveAttribute("style", /url\(#history-curve\)/);
       const stops = await page.locator("#history-curve stop").evaluateAll((items) => items.map((item) => item.getAttribute("style") ?? ""));
       expect(stops).toHaveLength(6);
       expect(stops[0]).toContain("--kd-warning");
       expect(stops[2]).toContain("--kd-text");
       expect(stops[5]).toContain("--kd-sky");
       // The plan of Topení is a calm grey under the chart, not the white of an active heating.
-      const plan = await page.locator(".strip-row.heating rect").nth(1).evaluate((rect) => getComputedStyle(rect).fill);
+      const plan = await page.locator(".chart-wrap.temperature .strip-row.heating rect").nth(1).evaluate((rect) => getComputedStyle(rect).fill);
       expect(plan).not.toBe("rgb(242, 242, 247)");
     });
     await test.step("Obývák není v režimu: bez pásma a pruhu větrání, okno zůstává", async () => {
       await closePopup(page);
       await rooms(page).nth(4).locator(".air-block .slot-co2").click();
-      await expect(page.locator(".ventilation-band")).toHaveCount(0);
-      await expect(page.locator(".strip-row.ventilation")).toHaveCount(0);
-      await expect(page.locator(".strip-row.windows")).toHaveCount(1);
+      await expect(page.locator(".chart-wrap.air .ventilation-band")).toHaveCount(0);
+      await expect(page.locator(".chart-wrap.air .strip-row.ventilation")).toHaveCount(0);
+      await expect(page.locator(".chart-wrap.air .strip-row.windows")).toHaveCount(1);
     });
   });
 });
@@ -1756,21 +1764,21 @@ test.describe("kvalita vzduchu, okno a hlavička (Room Card, Vizuální pravidla
     await test.step("blok CO₂ / PM2.5 otevře rovnou graf CO₂ s PM2.5 jako slabší čarou; teplota a vlhkost mají vlastní graf; žádné záložky", async () => {
       await open(page, "full");
       await rooms(page).first().locator(".air-block .slot-pm25").click();
-      await expect(page.locator("kd-sheet h2")).toHaveText("Historie místnosti – 24 h");
+      await expect(page.locator("kd-sheet h2")).toHaveText("Ložnice");
       await expect(page.locator(".segment"), "žádné záložky").toHaveCount(0);
-      await expect(page.locator(".readout-temp")).toContainText("ppm");
-      await expect(page.locator(".readout-hum.pm25")).toContainText("µg/m³");
-      await expect(page.locator(".pm25-line")).toHaveCount(1);
-      await expect(page.locator(".chart")).toBeVisible();
+      await expect(page.locator(".chart-wrap.air .readout-temp")).toContainText("ppm");
+      await expect(page.locator(".chart-wrap.air .readout-hum.pm25")).toContainText("µg/m³");
+      await expect(page.locator(".chart-wrap.air .pm25-line")).toHaveCount(1);
+      await expect(page.locator(".chart-wrap.air .chart")).toBeVisible();
       // A limit of the room is a dashed line only when a value reaches it: 656 ppm is below 1 000, so there is none.
-      await expect(page.locator(".limit-line")).toHaveCount(0);
+      await expect(page.locator(".chart-wrap.air .limit-line")).toHaveCount(0);
       await expect(page.locator(".sheet-link"), "žádný odkaz na detail").toHaveCount(0);
       await closePopup(page);
       // The temperature and its micro trend open the temperature and humidity chart, as before.
       await rooms(page).first().locator(".temperature").click();
-      await expect(page.locator(".readout-temp")).toContainText("°C");
-      await expect(page.locator(".readout-hum")).toContainText("%");
-      await expect(page.locator(".pm25-line")).toHaveCount(0);
+      await expect(page.locator(".chart-wrap.temperature .readout-temp")).toContainText("°C");
+      await expect(page.locator(".chart-wrap.temperature .readout-hum")).toContainText("%");
+      await expect(page.locator(".chart-wrap.temperature .pm25-line")).toHaveCount(0);
       await expect(page.locator(".sheet-link")).toHaveCount(0);
       await closePopup(page);
     });
@@ -1907,7 +1915,7 @@ function dictionaryWords(dictionary: object): Set<string> {
 }
 
 /** Words that are the same in Czech and in English or Swedish (checked by hand). */
-const SHARED_WORDS = new Set(["auto", "boost", "ce", "co", "data", "den", "end", "konflikt", "min", "minut", "pm", "ppm", "tado", "turbo", "windfree"]);
+const SHARED_WORDS = new Set(["auto", "boost", "ce", "co", "data", "den", "detail", "end", "konflikt", "min", "minut", "pm", "ppm", "tado", "turbo", "windfree"]);
 
 /** Czech words: none of them may appear on a Swedish or English card. */
 const CZECH_ONLY = [...dictionaryWords(cs)].filter((word) => !SHARED_WORDS.has(word));
@@ -2019,7 +2027,7 @@ test.describe("jazyky (CURRENT_SPEC.md, Jazyky)", () => {
     });
     await test.step("name místností, oken a předvoleb: text, nebo jazyk → text (jazyk karty, angličtina, první uvedený)", async () => {
       await open(page, "full", 393, 852, "dark", "cs");
-      const names = () => page.locator(".room-title, .room-name").allTextContents();
+      const names = () => page.locator(".room-name").allTextContents();
       const before = await names();
       expect(before.length).toBeGreaterThan(0);
       await page.evaluate(() => {
@@ -2095,16 +2103,16 @@ test.describe("jazyky (CURRENT_SPEC.md, Jazyky)", () => {
         await noCzech("Klimatizace");
         await closePopup(page);
         await openPopup(page, ".air-block");
-        await expect(page.locator("kd-sheet h2")).toHaveText(expected.history);
+        await expect(page.locator(".detail-period").getByRole("radio").nth(1)).toHaveText(expected.week);
         await noCzech("Historie CO₂");
         await closePopup(page);
         await openPopup(page, ".temperature");
-        await expect(page.locator("kd-sheet h2")).toHaveText(expected.history);
-        await expect(page.locator(".readout-time")).toHaveText(expected.now);
+        await expect(page.locator(".detail-period").getByRole("radio").nth(1)).toHaveText(expected.week);
+        await expect(page.locator(".chart-wrap.temperature .readout-time")).toHaveText(expected.now);
         await expect(page.locator(".legend")).toHaveCount(0);
-        await page.locator(".chart-wrap").focus();
+        await page.locator(".chart-wrap.temperature").focus();
         await page.keyboard.press("Home");
-        await expect(page.locator(".readout-time")).not.toHaveText(expected.now);
+        await expect(page.locator(".chart-wrap.temperature .readout-time")).not.toHaveText(expected.now);
         await noCzech("Historie místnosti");
         await closePopup(page);
         for (const history of ["empty", "error"]) {
@@ -2203,7 +2211,7 @@ test.describe("jazyky (CURRENT_SPEC.md, Jazyky)", () => {
         expect(await axeViolations(page), language).toEqual([]);
         for (const trigger of [".hvac", ".temperature", ".air-block"]) {
           await openPopup(page, trigger);
-          await expect(page.locator(trigger === ".hvac" ? ".hvac-panel" : ".readout")).toBeVisible();
+          await expect(page.locator(trigger === ".hvac" ? ".hvac-panel" : ".chart-wrap.temperature .readout")).toBeVisible();
           const cut = await page.evaluate(() => {
             const sheet = document.querySelector("ha-klima-dashboard")!.shadowRoot!.querySelector(".sheet")!;
             const right = sheet.getBoundingClientRect().right;
@@ -2212,6 +2220,9 @@ test.describe("jazyky (CURRENT_SPEC.md, Jazyky)", () => {
               .map((element) => element.textContent?.trim());
           });
           expect(cut, `${language} ${trigger}`).toEqual([]);
+          // axe finds the ground of the chosen period only where it is on screen (its white thumb is a layer of its own): the
+          // detail opened at a lower part is scrolled back to its top for the check.
+          if (trigger !== ".hvac") await page.locator(".detail-period").scrollIntoViewIfNeeded();
           expect(await axeViolations(page), `${language} ${trigger}`).toEqual([]);
           await closePopup(page);
         }
@@ -2231,7 +2242,7 @@ test.describe("jazyky (CURRENT_SPEC.md, Jazyky)", () => {
       hvac: "R1: Värme Schema 21 °C, Luftkonditionering Av. Öppnar styrningen av värmen.",
       windowDescription: "R2: fönstret öppet i 3 minuter. Öppnar detaljer och historik.",
       systems: ["Värme", "Luftkonditionering"],
-      history: "Rumshistorik – 24 h",
+      week: "7 dagar",
       now: "Nu",
       windows: ["Fönster 1", "Fönster 2"],
       openCount: "2 öppna",
@@ -2248,7 +2259,7 @@ test.describe("jazyky (CURRENT_SPEC.md, Jazyky)", () => {
       hvac: "R1: Heating Schedule 21 °C, Air conditioning Off. Opens the heating controls.",
       windowDescription: "R2: window open for 3 minutes. Opens details and history.",
       systems: ["Heating", "Air conditioning"],
-      history: "Room history – 24 h",
+      week: "7 days",
       now: "Now",
       windows: ["Window 1", "Window 2"],
       openCount: "2 open",
@@ -2432,7 +2443,7 @@ test.describe("popup: stránka pod ním se neposouvá", () => {
       await page.evaluate(() => { try { localStorage.clear(); } catch { /* no storage */ } });
       await open(page, "full", 852, 393);
       await openPopup(page, ".temperature");
-      await expect(page.locator(".chart")).toBeVisible();
+      await expect(page.locator(".chart-wrap.temperature .chart")).toBeVisible();
       const sizes = await page.evaluate(() => {
         const root = document.querySelector("ha-klima-dashboard")!.shadowRoot!;
         // The scrolling panel of the sheet of the kit.
@@ -2455,12 +2466,12 @@ test.describe("popup: stránka pod ním se neposouvá", () => {
       await closePopup(page);
       await open(page, "full", 393, 852);
       await openPopup(page, ".temperature");
-      await expect(page.locator(".chart")).toBeVisible();
-      expect(await page.locator("svg.chart").evaluate((chart) => Math.round(chart.getBoundingClientRect().width))).toBeLessThanOrEqual(393 - 32);
+      await expect(page.locator(".chart-wrap.temperature .chart")).toBeVisible();
+      expect(await page.locator(".chart-wrap.temperature svg.chart").evaluate((chart) => Math.round(chart.getBoundingClientRect().width))).toBeLessThanOrEqual(393 - 32);
       // A wide window that is tall enough keeps the 460 px popup.
       await open(page, "full", 1200, 852);
       await openPopup(page, ".temperature");
-      await expect(page.locator(".chart")).toBeVisible();
+      await expect(page.locator(".chart-wrap.temperature .chart")).toBeVisible();
       expect(await page.locator("kd-sheet .panel").evaluate((sheet) => Math.round(sheet.getBoundingClientRect().width))).toBe(460);
     });
   });
@@ -2559,9 +2570,15 @@ test.describe("popup Topení / Klimatizace (CURRENT_SPEC.md kitu, Popup Topení 
     const heating = (name: string) => all.find((room) => room.name === name)!.heating.climate;
     await expect.poll(() => services(page)).toEqual(["Ložnice", "Maxík", "Obývák"].map((name) => ["climate", "set_hvac_mode", { entity_id: heating(name), hvac_mode: "off" }]));
     await openPopup(page, ".hvac");
+    // "Detail a historie" is the room detail of the card (uživatel 14. 11. 2026: „Q234 A“), not a dialog of Home Assistant.
     await page.locator("kd-climate").getByRole("button", { name: "Detail a historie" }).click();
-    await expect(page.locator(".sheet")).toHaveCount(0);
-    expect(await hook<string[]>(page, "moreInfo")).toEqual([all[0].heating.climate]);
+    await expect(page.locator("kd-sheet h2")).toHaveText("Ložnice");
+    await expect(page.locator(".chart-wrap.temperature .chart")).toBeVisible();
+    expect(await hook<string[]>(page, "moreInfo")).toEqual([]);
+    // And back: the row Topení of the detail opens the popup of that room.
+    await page.locator('.detail-list [data-system="heating"]').click();
+    await expect(page.locator("kd-climate")).toBeVisible();
+    expect((await roomTiles(page)).filter((tile) => tile.pressed).map((tile) => tile.name)).toEqual(["Ložnice"]);
   });
 
   test("Klimatizace: osm režimů, WindFree jedním klepnutím, síla větru, Vypnout za 3 h naplánuje vypnutí; přepnutí systému pošle, co čekalo", async ({ page }) => {
@@ -2601,7 +2618,7 @@ test.describe("historie místnosti: pruhy Topení, Klimatizace a okna pod grafem
       test.historyFor = (entity: string) => (entity === id ? samples.map(([hoursAgo, s]) => ({ s, lu: now - hoursAgo * 3600 })) : undefined);
     });
     await rooms(page).first().locator(".temperature").click();
-    await expect(page.locator("svg.chart")).toBeVisible();
+    await expect(page.locator(".chart-wrap.temperature svg.chart")).toBeVisible();
   };
 
   test("historie: pruhy Topení, Klimatizace a okna", async ({ page }) => {
@@ -2640,7 +2657,7 @@ test.describe("historie místnosti: pruhy Topení, Klimatizace a okna pod grafem
       // Steps share one page: what an earlier step stored in the browser must not leak into this one.
       await page.evaluate(() => { try { localStorage.clear(); } catch { /* no storage */ } });
       await openHistory(page);
-      await expect(page.locator("svg.chart .window-open")).toHaveCount(2);
+      await expect(page.locator(".chart-wrap.temperature svg.chart .window-open")).toHaveCount(2);
       const lines = await page.evaluate(() => {
         const svg = document.querySelector("ha-klima-dashboard")!.shadowRoot!.querySelector("svg.chart")!;
         const num = (element: Element, name: string) => Number(element.getAttribute(name));
@@ -2672,7 +2689,7 @@ test.describe("historie místnosti: pruhy Topení, Klimatizace a okna pod grafem
           test.historyFor = (entity: string) => (entity === room.heating.climate || entity === room.air_conditioner ? off : undefined);
         });
         await rooms(page).first().locator(".temperature").click();
-        await expect(page.locator("svg.chart")).toBeVisible();
+        await expect(page.locator(".chart-wrap.temperature svg.chart")).toBeVisible();
         const fills = await page.evaluate(() => {
           const svg = document.querySelector("ha-klima-dashboard")!.shadowRoot!.querySelector("svg.chart")!;
           const fillOf = (row: string) => {
@@ -2693,14 +2710,14 @@ test.describe("historie místnosti: pruhy Topení, Klimatizace a okna pod grafem
       await page.evaluate(() => { try { localStorage.clear(); } catch { /* no storage */ } });
       await open(page);
       await rooms(page).first().locator(".temperature").click();
-      await expect(page.locator("svg.chart")).toBeVisible();
-      await expect(page.locator("svg.chart .window-open")).toHaveCount(0);
-      await expect(page.locator("svg.chart .strip-row.windows")).toHaveCount(1);
+      await expect(page.locator(".chart-wrap.temperature svg.chart")).toBeVisible();
+      await expect(page.locator(".chart-wrap.temperature svg.chart .window-open")).toHaveCount(0);
+      await expect(page.locator(".chart-wrap.temperature svg.chart .strip-row.windows")).toHaveCount(1);
       await closePopup(page);
       await reconfigure(page, {}, { 0: { window: undefined } });
       await rooms(page).first().locator(".temperature").click();
-      await expect(page.locator("svg.chart")).toBeVisible();
-      await expect(page.locator("svg.chart .strip-row")).toHaveCount(2);
+      await expect(page.locator(".chart-wrap.temperature svg.chart")).toBeVisible();
+      await expect(page.locator(".chart-wrap.temperature svg.chart .strip-row")).toHaveCount(2);
     });
   });
 });
@@ -2722,7 +2739,7 @@ test.describe("historie místnosti: nuly po zapnutí čidla", () => {
             : undefined;
     });
     await rooms(page).first().locator(".temperature").click();
-    await expect(page.locator("svg.chart")).toBeVisible();
+    await expect(page.locator(".chart-wrap.temperature svg.chart")).toBeVisible();
     const chart = await page.evaluate(() => {
       const svg = document.querySelector("ha-klima-dashboard")!.shadowRoot!.querySelector("svg.chart")!;
       const ys = (path: Element | undefined) => [...(path?.getAttribute("d") ?? "").matchAll(/[ML]([\d.]+) ([\d.]+)/g)].map((m) => Number(m[2]));
@@ -2760,5 +2777,49 @@ test.describe("řádky HVAC (Room Card)", () => {
     });
     await openPopup(page, ".hvac");
     await expect(selected()).toContainText("Klimatizace");
+  });
+});
+
+test.describe("detail místnosti (CURRENT_SPEC.md, Sjednocení s Energií a Domem)", () => {
+  test("jeden list: oba grafy se společným ukazatelem času, období 24 h | 7 dní, žaluzie předvolbou a posuvníky; žádné okno Home Assistantu", async ({ page }) => {
+    await open(page, "full");
+    const COVER = "cover.loznice_zaluzie_loznice";
+    // The name of the room, the humidity and the panel of the blind all open the same sheet (uživatel 14. 11. 2026: „Q234 A“).
+    for (const trigger of [".room-link", ".humidity", ".cover-panel"]) {
+      await rooms(page).first().locator(trigger).click();
+      await expect(page.locator("kd-sheet h2"), trigger).toHaveText("Ložnice");
+      await expect(page.locator("kd-sheet .sub"), trigger).toHaveText("Příjemné");
+      if (trigger === ".cover-panel") await expect(page.locator('.detail-list [data-part="cover"]')).toBeInViewport();
+      await closePopup(page);
+    }
+    await rooms(page).first().locator(".room-link").click();
+    // Both charts in full under each other: each with its scale, grid and rows under it.
+    const temperature = page.locator(".chart-wrap.temperature");
+    const air = page.locator(".chart-wrap.air");
+    await expect(temperature.locator("svg.chart")).toBeVisible();
+    await expect(air.locator("svg.chart")).toBeVisible();
+    expect(await temperature.locator(".strip-row").count()).toBeGreaterThanOrEqual(2);
+    expect((await air.locator("text.tick").allTextContents()).length).toBeGreaterThanOrEqual(6);
+    // One pointer of time: moving over the temperature chart moves the time of the air chart too.
+    const box = (await temperature.locator("svg.chart").boundingBox())!;
+    await page.mouse.move(box.x + box.width * 0.5, box.y + 60);
+    await expect(temperature.locator(".readout-time")).not.toHaveText("Teď");
+    await expect(air.locator(".readout-time")).toHaveText((await temperature.locator(".readout-time").textContent())!);
+    await page.mouse.move(box.x + box.width * 0.5, box.y - 200);
+    await expect(air.locator(".readout-time")).toHaveText("Teď");
+    // The period (uživatel 14. 11. 2026: „Q235 ano“): a week shows days on the axis of both charts.
+    await page.locator(".detail-period").getByRole("radio", { name: "7 dní" }).click();
+    await expect.poll(async () => (await temperature.locator("text.tick").allTextContents()).some((label) => /\d+\.\s*\d+\./.test(label))).toBe(true);
+    expect((await air.locator("text.tick").allTextContents()).some((label) => /\d+\.\s*\d+\./.test(label))).toBe(true);
+    // The blind: a preset on one tap (the sheet was opened on purpose) and the sliders of the position and of the slats.
+    await page.locator(".detail-presets").getByRole("radio", { name: "Den" }).click();
+    await expect.poll(async () => (await hook<unknown[]>(page, "services")).at(-1)).toEqual(["script", "zaluzie_posun", { entity: COVER, pos: 100, tilt: 100 }]);
+    const tilt = page.locator('kd-slider[data-cover="tilt"] input');
+    await tilt.fill("50");
+    await tilt.dispatchEvent("change");
+    await expect.poll(async () => (await hook<unknown[]>(page, "services")).at(-1)).toEqual(["script", "zaluzie_posun", { entity: COVER, pos: 0, tilt: 50 }]);
+    await closePopup(page);
+    // Nothing on the card opens a dialog of Home Assistant any more.
+    expect(await hook(page, "moreInfo")).toEqual([]);
   });
 });

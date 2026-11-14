@@ -575,6 +575,11 @@ export function renderRoomChart(
   const yHumidity = (value: number): number =>
     PLOT_BOTTOM - ((value - humidityLow) / (humidityHigh - humidityLow)) * PLOT_HEIGHT;
   const right = PAD_LEFT + plotWidth(width);
+  // Both charts of the room detail are in one document: the definitions of the air chart have their own ids.
+  const suffix = air ? "-air" : "";
+  const clipId = `${CLIP_ID}${suffix}`;
+  const plotClipId = `${PLOT_CLIP_ID}${suffix}`;
+  const curveId = `${CURVE_ID}${suffix}`;
 
   const line = (points: Point[], y: (value: number) => number): string =>
     points.map((point, index) => `${index === 0 ? "M" : "L"}${x(point.t).toFixed(1)} ${y(point.v).toFixed(1)}`).join(" ");
@@ -675,7 +680,8 @@ export function renderRoomChart(
           : svg`${block(model.windows ?? [], y, "var(--kd-sky)", "window-open", 1.5)}`;
   const scrubX = scrubTime === undefined ? undefined : x(scrubTime);
   const scrubValue = scrubTime === undefined ? undefined : valueAt(curve, scrubTime);
-  // Over the plot, behind the curve: the times the windows were open and the ventilation mode ran (the air charts).
+  // Over the plot, behind the curve: the times the windows were open (both charts of the room detail, so the drop of the
+  // temperature and of CO₂ line up) and the times the ventilation mode ran (the air charts).
   const bands = (segments: Segment[] | undefined, color: string, className: string, token: string): TemplateResult[] =>
     (segments ?? []).map(
       (segment) => svg`<rect class=${className} x=${x(segment.start).toFixed(1)} y=${PLOT_TOP}
@@ -719,12 +725,12 @@ export function renderRoomChart(
       aria-hidden="true"
     >
       <defs>
-        <clipPath id=${CLIP_ID}><path d=${curveArea}></path></clipPath>
-        <clipPath id=${PLOT_CLIP_ID}>
+        <clipPath id=${clipId}><path d=${curveArea}></path></clipPath>
+        <clipPath id=${plotClipId}>
           <rect x=${PAD_LEFT} y=${PLOT_TOP} width=${plotWidth(width)} height=${PLOT_HEIGHT} rx="8"></rect>
         </clipPath>
         ${gradient.length > 0
-          ? svg`<linearGradient id=${CURVE_ID} gradientUnits="userSpaceOnUse" x1="0" x2="0" y1=${PLOT_TOP} y2=${PLOT_BOTTOM}>
+          ? svg`<linearGradient id=${curveId} gradientUnits="userSpaceOnUse" x1="0" x2="0" y1=${PLOT_TOP} y2=${PLOT_BOTTOM}>
               ${gradient.map(
                 ([at, color]) => svg`<stop offset=${`${(at * 100).toFixed(2)}%`} style=${`stop-color: ${color}`}></stop>`,
               )}
@@ -732,9 +738,9 @@ export function renderRoomChart(
           : nothing}
       </defs>
       <rect x=${PAD_LEFT} y=${PLOT_TOP} width=${plotWidth(width)} height=${PLOT_HEIGHT} rx="8" style=${fill("var(--kd-fill)")}></rect>
-      <g clip-path=${`url(#${PLOT_CLIP_ID})`}>
+      <g clip-path=${`url(#${plotClipId})`}>
         ${targetArea ? svg`<path class="target-area" d=${targetArea} style=${`${fill(COLORS.plan)}; opacity: var(--kd-target-area)`}></path>` : nothing}
-        ${air ? bands(model.windows, "var(--kd-sky)", "window-band", "--kd-band-window") : nothing}
+        ${bands(model.windows, "var(--kd-sky)", "window-band", "--kd-band-window")}
         ${air ? bands(model.ventilation, COLORS.fresh, "ventilation-band", "--kd-band-ventilation") : nothing}
       </g>
       ${grid.map((value) => {
@@ -752,11 +758,11 @@ export function renderRoomChart(
           <text class="limit-label" x=${right + 6} y=${(yOf(limit.value) + 4).toFixed(1)} style=${fill(limit.color)} font-size=${FONT}
             font-weight="600">${gridLabel(limit.value)}</text>`,
       )}
-      <g clip-path=${`url(#${PLOT_CLIP_ID})`}>
+      <g clip-path=${`url(#${plotClipId})`}>
         ${curveArea && air ? svg`<path d=${curveArea} style=${fill("var(--kd-area)")}></path>` : nothing}
       </g>
       ${!air
-        ? svg`<g clip-path=${`url(#${CLIP_ID})`}>
+        ? svg`<g clip-path=${`url(#${clipId})`}>
         ${model.intensity.map(
           (segment) => svg`<rect x=${x(segment.start).toFixed(1)} y=${PLOT_TOP}
             width=${Math.max(x(segment.end) - x(segment.start), 0.8).toFixed(1)} height=${PLOT_HEIGHT}
@@ -766,20 +772,20 @@ export function renderRoomChart(
         : nothing}
       ${secondaryLine
         ? svg`<path class="pm25-line" d=${secondaryLine} fill="none" style=${stroke(COLORS.pm25)}
-            stroke-width="1.5" stroke-linejoin="round" opacity="0.75" clip-path=${`url(#${PLOT_CLIP_ID})`}></path>`
+            stroke-width="1.5" stroke-linejoin="round" opacity="0.75" clip-path=${`url(#${plotClipId})`}></path>`
         : nothing}
       ${!air && model.humidity.length > 0
         ? svg`<path class="humidity-line" d=${line(model.humidity, yHumidity)} fill="none" style=${stroke(COLORS.humidityLine)}
-            stroke-width="1.5" stroke-linejoin="round" opacity="0.75" clip-path=${`url(#${PLOT_CLIP_ID})`}></path>`
+            stroke-width="1.5" stroke-linejoin="round" opacity="0.75" clip-path=${`url(#${plotClipId})`}></path>`
         : nothing}
       ${targetPath
         ? svg`<path class="target-line" d=${targetPath} fill="none" style=${stroke(COLORS.plan)} stroke-width="1"
-            opacity="0.5" clip-path=${`url(#${PLOT_CLIP_ID})`}></path>`
+            opacity="0.5" clip-path=${`url(#${plotClipId})`}></path>`
         : nothing}
       ${curveLine
         ? svg`<path class="temperature-curve" d=${curveLine} fill="none"
-            style=${stroke(gradient.length > 0 ? `url(#${CURVE_ID})` : COLORS.white)} stroke-width="2.5"
-            stroke-linejoin="round" stroke-linecap="round" clip-path=${`url(#${PLOT_CLIP_ID})`}></path>`
+            style=${stroke(gradient.length > 0 ? `url(#${curveId})` : COLORS.white)} stroke-width="2.5"
+            stroke-linejoin="round" stroke-linecap="round" clip-path=${`url(#${plotClipId})`}></path>`
         : nothing}
       ${last && scrubTime === undefined
         ? svg`<circle class="end-dot" cx=${x(last.t).toFixed(1)} cy=${yOf(last.v).toFixed(1)} r="4"

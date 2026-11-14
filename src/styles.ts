@@ -1120,7 +1120,8 @@ export const styles = css`
 
     /* The shared popup Topení / Klimatizace of the kit: the colours of its tiles, slider and segmented control, the same as
        in the card Dům (one visual language, DASHBOARD_UX_SYSTEM.md). */
-    kd-climate {
+    kd-climate,
+    .history-sheet {
       --hdk-accent: #0a84ff;
       --hdk-secondary: var(--kd-label);
       --hdk-tile: #2c2c2e;
@@ -1140,7 +1141,8 @@ export const styles = css`
       color: var(--kd-text);
     }
 
-    :host([data-theme="light"]) kd-climate {
+    :host([data-theme="light"]) kd-climate,
+    :host([data-theme="light"]) .history-sheet {
       --hdk-accent: #0a6ed1;
       --hdk-tile: #f2f2f7;
       --hdk-tile-border: rgb(60 60 67 / 29%);
@@ -1198,6 +1200,71 @@ export const styles = css`
       align-items: center;
       justify-content: center;
       color: var(--tone);
+    }
+
+    /* Room detail (CURRENT_SPEC.md, Sjednocení s Energií a Domem): the switch of the period, two charts under each other and
+       the rows of the room in the list of the kit. A chart keeps its height while it loads, so the parts under it do not jump. */
+    .detail-period {
+      display: block;
+      margin: 0 0 12px;
+    }
+    .detail-chart {
+      min-height: 290px;
+    }
+    .detail-chart.double {
+      min-height: 588px;
+    }
+    .detail-chart + .detail-chart {
+      margin-top: 8px;
+    }
+    .detail-list {
+      margin-top: 16px;
+    }
+    .detail-row {
+      cursor: pointer;
+    }
+    .option-text {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+    .list-option .option-hint.detail-state {
+      font-size: 15px;
+      line-height: 20px;
+    }
+    .detail-list .list-option {
+      box-sizing: border-box;
+    }
+    .detail-cover {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 12px;
+      padding-top: 10px;
+      padding-bottom: 14px;
+    }
+    .detail-cover-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .detail-cover .option-icon {
+      color: var(--kd-label);
+    }
+    .detail-presets {
+      display: block;
+    }
+    .detail-slider-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin: 0 4px 6px;
+      font-size: 15px;
+      line-height: 20px;
+    }
+    .detail-slider-value {
+      font-size: 17px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
     }
 
     /* Lists in popups (Kvalita vzduchu, Okna, Větrací režim) follow the kit, Seznam: one group of rows with a 12 px

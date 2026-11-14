@@ -33,7 +33,6 @@ export const sv: Texts = {
   humidityLabel: (room, value, stale) => `${room}: luftfuktighet ${value ?? "okänd"}${stale}, detaljer och historik`,
   temperatureTrendLabel: (room, period, direction, history) =>
     `${room}: temperaturen${direction ? ` ${direction}` : ""} under ${period}, rumshistorik för ${history}`,
-  link: { page: "Öppnar rummets sida.", web: "Öppnar länken." },
 
   airSensor: (label, value, trend, stale) => `${label} ${value ?? "okänt"}${trend ? `, ${trend}` : ""}${stale}`,
   airDescription: (room, sensors, period) =>
@@ -63,7 +62,6 @@ export const sv: Texts = {
     openCount: (count) => `${count} öppna`,
     closed: "Stängt",
     defaultName: (number) => `Fönster ${number}`,
-    popup: "Fönster",
     spokenSingle: (state, duration) =>
       state === "unknown"
         ? "fönstrets läge okänt"
@@ -130,9 +128,24 @@ export const sv: Texts = {
     failed: "Det gick inte",
   },
   sheet: {
+    /** Room detail: the switch of the period of its charts and what the rows under them are called. */
+    period: "Period",
+    hoursShort: (hours) => `${hours} h`,
+    week: "7 dagar",
+    openDetail: "Öppnar rummets detaljer.",
+    cover: "Persienn",
+    coverPosition: "Läge",
+    coverTilt: "Lameller",
+    coverDown: "Nere",
+    coverUp: "Uppe",
+    coverShut: "Stängda",
+    coverOpened: "Öppna",
+    coverPreset: "Förval",
+    coverCustom: "Eget läge",
+    linkPage: "Rummets sida",
+    linkWeb: "Länk",
     hvac: "Värme och luftkonditionering",
     close: "Stäng",
-    history: (hours) => `Rumshistorik – ${hours} h`,
     systems: "System",
     commandFailed: "Kommandot kunde inte skickas.",
     loading: "Läser in historik…",

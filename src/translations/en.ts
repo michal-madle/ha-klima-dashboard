@@ -33,7 +33,6 @@ export const en: Texts = {
   humidityLabel: (room, value, stale) => `${room}: humidity ${value ?? "unknown"}${stale}, details and history`,
   temperatureTrendLabel: (room, period, direction, history) =>
     `${room}: temperature${direction ? ` ${direction}` : ""} over ${period}, room history for ${history}`,
-  link: { page: "Opens the room page.", web: "Opens the link." },
 
   airSensor: (label, value, trend, stale) => `${label} ${value ?? "unknown"}${trend ? `, ${trend}` : ""}${stale}`,
   airDescription: (room, sensors, period) =>
@@ -63,7 +62,6 @@ export const en: Texts = {
     openCount: (count) => `${count} open`,
     closed: "Closed",
     defaultName: (number) => `Window ${number}`,
-    popup: "Windows",
     spokenSingle: (state, duration) =>
       state === "unknown"
         ? "window state unknown"
@@ -129,9 +127,24 @@ export const en: Texts = {
     failed: "It did not work",
   },
   sheet: {
+    /** Room detail: the switch of the period of its charts and what the rows under them are called. */
+    period: "Period",
+    hoursShort: (hours) => `${hours} h`,
+    week: "7 days",
+    openDetail: "Opens the room detail.",
+    cover: "Blind",
+    coverPosition: "Position",
+    coverTilt: "Slats",
+    coverDown: "Down",
+    coverUp: "Up",
+    coverShut: "Closed",
+    coverOpened: "Open",
+    coverPreset: "Preset",
+    coverCustom: "Custom position",
+    linkPage: "Room page",
+    linkWeb: "Link",
     hvac: "Heating and air conditioning",
     close: "Close",
-    history: (hours) => `Room history – ${hours} h`,
     systems: "System",
     commandFailed: "The command could not be sent.",
     loading: "Loading history…",

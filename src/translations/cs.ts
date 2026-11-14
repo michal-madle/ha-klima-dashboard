@@ -43,7 +43,6 @@ export const cs = {
   /** Temperature trend button: "Ložnice: teplota za 2 hodiny stoupá, historie místnosti za 24 hodin". */
   temperatureTrendLabel: (room: string, period: string, direction: string | undefined, history: string) =>
     `${room}: teplota za ${period}${direction ? ` ${direction}` : ""}, historie místnosti za ${history}`,
-  link: { page: "Otevře stránku místnosti.", web: "Otevře odkaz." },
 
   // CO₂ and PM2.5
   /** "CO₂ 656 ppm, za 2 hodiny stoupá, naposledy před 2 h". */
@@ -84,7 +83,6 @@ export const cs = {
     closed: "Zavřeno",
     /** Name in the "Okna" popup of a window without `name` in the YAML. */
     defaultName: (number: number) => `Okno ${number}`,
-    popup: "Okna",
     spokenSingle: (state: "open" | "closed" | "unknown", duration: string | undefined) =>
       state === "unknown"
         ? "okno neznámé"
@@ -155,9 +153,24 @@ export const cs = {
     failed: "Nepodařilo se",
   },
   sheet: {
+    /** Room detail: the switch of the period of its charts and what the rows under them are called. */
+    period: "Období",
+    hoursShort: (hours: number) => `${hours} h`,
+    week: "7 dní",
+    openDetail: "Otevře detail místnosti.",
+    cover: "Žaluzie",
+    coverPosition: "Poloha",
+    coverTilt: "Lamely",
+    coverDown: "Dole",
+    coverUp: "Nahoře",
+    coverShut: "Zavřené",
+    coverOpened: "Otevřené",
+    coverPreset: "Předvolba",
+    coverCustom: "Vlastní poloha",
+    linkPage: "Stránka místnosti",
+    linkWeb: "Odkaz",
     hvac: "Topení a klimatizace",
     close: "Zavřít",
-    history: (hours: number) => `Historie místnosti – ${hours} h`,
     systems: "Systém",
     commandFailed: "Příkaz se nepodařilo odeslat.",
     loading: "Načítám historii…",

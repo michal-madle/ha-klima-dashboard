@@ -42,6 +42,7 @@ import type {
   Reading,
   Room,
   Settings,
+  DetailFocus,
   HistoryMetric,
   SheetKind,
   SheetState,
@@ -105,6 +106,10 @@ const FLASH_MS = 700;
 /** How long the "hold or double tap" hint stays after a single tap on a preset. */
 /** A phone on its side or any short window: the history popup is full width (styles.ts). */
 const LANDSCAPE_QUERY = "(orientation: landscape) and (max-height: 600px)";
+/** The longer period of the charts of the room detail: a week. */
+const WEEK_HOURS = 168;
+/** The id of a position and tilt set by the sliders of the room detail (no preset of the room has it). */
+const CUSTOM_PRESET = "custom";
 const HINT_MS = 1_600;
 /** A failed preset stays visible longer: the person has to read it. */
 const ERROR_HINT_MS = 5_000;
@@ -164,6 +169,15 @@ export class HaKlimaDashboard extends LitElement {
   /** Time under the finger in the history chart; undefined = now. */
   @state()
   private _scrubTime?: number;
+
+  /** Period of the charts of the room detail in hours: `history.hours`, or a week (CURRENT_SPEC.md, Sjednocení, Období historie). */
+  @state()
+  private _historyHours = 24;
+  /** The part the room detail scrolls to once it is drawn. */
+  private _focusPart?: DetailFocus;
+  /** A position and tilt set by the sliders of the detail, shown until the blind arrives. */
+  @state()
+  private _coverTarget: Record<string, { position: number; tilt: number }> = {};
 
   /** Key of the blind preset that was just sent (brief confirmation flash). */
   @state()
@@ -357,6 +371,18 @@ export class HaKlimaDashboard extends LitElement {
       window.clearInterval(this._trendTimer);
       this._trendTimer = window.setInterval(() => void this.refreshTrends(), TREND_REFRESH_MS);
     }
+    if (this._focusPart && this._sheet?.kind === "history") {
+      const part = this.renderRoot.querySelector<HTMLElement>(`[data-part="${this._focusPart}"]`);
+      if (part) {
+        this._focusPart = undefined;
+        // The temperature chart is at the top already; the other parts are brought to the top of the sheet, once the sheet
+        // of the kit has drawn itself and can scroll.
+        if (part.dataset.part !== "temperature") {
+          const sheet = this.renderRoot.querySelector("kd-sheet") as (Element & { updateComplete?: Promise<unknown> }) | null;
+          void Promise.resolve(sheet?.updateComplete).then(() => requestAnimationFrame(() => part.scrollIntoView({ block: "start" })));
+        }
+      }
+    }
     if (this._focusSegment) {
       this.renderRoot.querySelector<HTMLElement>(`.segment[data-system="${this._focusSegment}"]`)?.focus();
       this._focusSegment = undefined;
@@ -428,7 +454,7 @@ export class HaKlimaDashboard extends LitElement {
             )}
           </div>
         </div>
-        ${this.renderSheet(isSummer)}
+        ${this.renderSheet(isSummer, modeKnown, now)}
         <div class="sr-only" role="status" aria-live="polite">${this._announcement}</div>
       </ha-card>
     `;
@@ -645,7 +671,8 @@ export class HaKlimaDashboard extends LitElement {
               humidity.value === undefined ? undefined : this._i18n.percent(Math.round(humidity.value)),
               this.staleSpoken(humidity),
             )}
-            @click=${() => this.showMoreInfo(room.humidity)}
+            aria-haspopup="dialog"
+            @click=${(event: Event) => this.openSheet("history", room, event)}
           >
             ${humidity.value === undefined
               ? html`<span class="missing">––</span>`
@@ -687,21 +714,19 @@ export class HaKlimaDashboard extends LitElement {
 
   /** Room name; with `link` a button that opens the page or address (CURRENT_SPEC.md, Room Card). */
   private renderTitle(room: Room, index: number): TemplateResult {
-    const link = room.link;
-    if (!link) {
-      return html`<div class="room-title">${this.roomLabel(room)}</div>`;
-    }
-    const descriptionId = `link-description-${index}`;
+    // The name opens the room detail (uživatel 14. 11. 2026: „Q234 A“); a `link` of the room is a row of that detail.
+    const descriptionId = `detail-description-${index}`;
     return html`
       <button
         type="button"
         class="plain-button room-title room-link"
+        aria-haspopup="dialog"
         aria-describedby=${descriptionId}
-        @click=${() => this.openLink(link)}
+        @click=${(event: Event) => this.openSheet("history", room, event)}
       >
         <span class="room-name">${this.roomLabel(room)}</span><span class="room-chevron" aria-hidden="true">›</span>
       </button>
-      <span class="sr-only" id=${descriptionId}>${link.startsWith("/") ? this._i18n.t.link.page : this._i18n.t.link.web}</span>
+      <span class="sr-only" id=${descriptionId}>${this._i18n.t.sheet.openDetail}</span>
     `;
   }
 
@@ -789,7 +814,7 @@ export class HaKlimaDashboard extends LitElement {
         ?disabled=${!room.carbon_dioxide && !room.pm25}
         aria-haspopup="dialog"
         aria-describedby=${descriptionId}
-        @click=${(event: Event) => this.openSheet("history", room, event, room.hasCo2 ? "co2" : "pm25")}
+        @click=${(event: Event) => this.openSheet("history", room, event, "air")}
       >
         ${room.hasCo2
           ? this.renderAirRow("co2", room.carbon_dioxide, html`<ha-icon icon="mdi:molecule-co2"></ha-icon>`,
@@ -1076,9 +1101,9 @@ export class HaKlimaDashboard extends LitElement {
         class="plain-button system-row slot-window ${opened ? "strong" : ""}"
         style=${`--row-color: ${color}`}
         ?disabled=${!firstWindow}
-        aria-haspopup=${multiple ? "dialog" : nothing}
+        aria-haspopup="dialog"
         aria-describedby=${descriptionId}
-        @click=${(event: Event) => (multiple ? this.openSheet("windows", room, event) : this.showMoreInfo(firstWindow))}
+        @click=${(event: Event) => this.openSheet("history", room, event, "windows")}
       >
         <span class="row-main">
           <span class="row-icon">${renderWindowIcon(unavailable ? COLORS.off : color, unavailable)}</span>
@@ -1099,26 +1124,43 @@ export class HaKlimaDashboard extends LitElement {
 
   /** Name of a window in the "Okna" popup: from the YAML, otherwise "Okno 1", "Window 1", … */
   private windowName(room: Room, window: WindowConfig): string {
-    return pickText(window.name, this._i18n.language) ?? this._i18n.t.window.defaultName(room.windows.indexOf(window) + 1);
+    const named = pickText(window.name, this._i18n.language);
+    if (named !== undefined) return named;
+    // The only window of a room needs no number: "Okno", not "Okno 1".
+    const numbered = this._i18n.t.window.defaultName(room.windows.indexOf(window) + 1);
+    return room.windows.length === 1 ? numbered.replace(/\s*1$/, "") : numbered;
   }
 
-  /** Popup "Okna" of a room with several windows: each window with its state; a row opens its detail. */
-  private renderWindowsBody(room: Room, now: number): TemplateResult {
+  /** The rows of the room detail under its charts: Topení, Klimatizace, every window, the blind and the link of the room. */
+  private renderDetailRows(room: Room, now: number): TemplateResult {
     const { t } = this._i18n;
+    const heating = room.heating?.climate ? roomHeating(room, (entityId) => this.getState(entityId), this._i18n) : undefined;
+    const climate = room.air_conditioner ? climateView(this.getState(room.air_conditioner), this._i18n) : undefined;
+    const systemRow = (kind: "heating" | "climate", icon: TemplateResult, view: SystemView) => html`<button
+      type="button"
+      class="plain-button option list-option detail-row"
+      data-system=${kind}
+      @click=${() => this.openSystemFromDetail(kind, room)}
+    >
+      <span class="option-icon" aria-hidden="true">${icon}</span>
+      <span class="option-text">
+        <span>${t.system[kind]}</span>
+        <span class="option-hint detail-state" style=${`color: ${view.active ? view.color : "var(--kd-label)"}`}
+          >${view.unknown ? html`<span aria-hidden="true">––</span><span class="sr-only">${t.unknownValue}</span>` : joined([view.label, ...(view.extra ? [view.extra.replace(/^·\s*/, "")] : [])])}</span
+        >
+      </span>
+      <span class="list-chevron" aria-hidden="true">›</span>
+    </button>`;
+    const link = room.link;
     return html`
-      <div class="options list-options" role="group" aria-label=${t.window.popup}>
-        ${room.windows.map((window) => {
+      <div class="options list-options detail-list">
+        ${heating ? systemRow("heating", renderHeatingWaves(heating.unknown ? 0 : heating.waves, heating.unknown), heating) : nothing}
+        ${climate ? systemRow("climate", renderClimateIcon(climate.mode, climate.color, climate.unknown), climate) : nothing}
+        ${room.windows.map((window, index) => {
           const { state, minutesOpen } = this.windowState(window.entity, now);
           const unknown = state === "unknown";
           const color = state === "open" ? COLORS.sky : COLORS.label;
-          return html`<button
-            type="button"
-            class="plain-button option list-option window-option"
-            @click=${() => {
-              this.closeSheet(false);
-              this.showMoreInfo(window.entity);
-            }}
-          >
+          return html`<div class="option list-option window-option" data-part=${index === 0 ? "windows" : nothing}>
             <span class="option-icon" aria-hidden="true">${renderWindowIcon(unknown ? COLORS.off : color, unknown)}</span>
             <span class="option-text">
               <span>${this.windowName(room, window)}</span>
@@ -1128,11 +1170,90 @@ export class HaKlimaDashboard extends LitElement {
                   : joined([state === "open" ? t.window.open : t.window.closed, ...(minutesOpen === undefined ? [] : [formatDuration(minutesOpen)])])}
               </span>
             </span>
-            <span class="list-chevron" aria-hidden="true">›</span>
-          </button>`;
+          </div>`;
         })}
+        ${room.cover ? this.renderDetailCover(room, room.cover) : nothing}
+        ${link
+          ? html`<button type="button" class="plain-button option list-option detail-row" data-part="link" @click=${() => {
+              // The link leaves the card: the sheet closes first.
+              this.closeSheet(false);
+              this.openLink(link);
+            }}>
+              <span class="option-text"><span>${link.startsWith("/") ? t.sheet.linkPage : t.sheet.linkWeb}</span></span>
+              <span class="list-chevron" aria-hidden="true">›</span>
+            </button>`
+          : nothing}
       </div>
     `;
+  }
+
+  /** The blind in the room detail: its state in words, the presets on one tap and the sliders of the position and of the slats. */
+  private renderDetailCover(room: Room, entityId: EntityId): TemplateResult {
+    const { t } = this._i18n;
+    const entity = this.getState(entityId);
+    const state = entity?.state.toLowerCase();
+    const available = state !== undefined && !isUnavailable(state);
+    const target = this._moving[room.name] === CUSTOM_PRESET ? this._coverTarget[room.name] : undefined;
+    const position = target?.position ?? (available ? numberAttribute(entity?.attributes.current_position) : undefined);
+    const tilt = target?.tilt ?? (available ? numberAttribute(entity?.attributes.current_tilt_position) : undefined);
+    const known = position !== undefined && tilt !== undefined;
+    const pendingId = this._moving[room.name];
+    const active = room.presets.find((preset) => (pendingId !== undefined ? preset.id === pendingId : blindMatchesPreset(position, tilt, preset, this.tolerance())));
+    const text = !available ? t.cover.unavailable : active ? presetName(active, t, this._i18n.language) : known ? t.sheet.coverCustom : t.cover.unknown;
+    const slider = (kind: "position" | "tilt", value: number | undefined) => html`<div class="detail-slider">
+      <div class="detail-slider-head"><span>${kind === "position" ? t.sheet.coverPosition : t.sheet.coverTilt}</span><span class="detail-slider-value">${value === undefined ? "––" : this._i18n.percent(Math.round(value))}</span></div>
+      <kd-slider
+        data-cover=${kind}
+        .min=${0}
+        .max=${100}
+        .step=${5}
+        .tickStep=${25}
+        .value=${Math.round((value ?? 0) / 5) * 5}
+        .label=${`${t.sheet.cover}: ${kind === "position" ? t.sheet.coverPosition : t.sheet.coverTilt}`}
+        .valueText=${value === undefined ? "" : this._i18n.percent(Math.round(value))}
+        .minLabel=${kind === "position" ? t.sheet.coverDown : t.sheet.coverShut}
+        .maxLabel=${kind === "position" ? t.sheet.coverUp : t.sheet.coverOpened}
+        .disabled=${!known}
+        @hdk-input=${(event: Event) => event.stopPropagation()}
+        @hdk-change=${(event: CustomEvent<{ value: number }>) => {
+          event.stopPropagation();
+          if (!known) return;
+          void this.moveCover(room, kind === "position" ? event.detail.value : Math.round(position), kind === "tilt" ? event.detail.value : Math.round(tilt));
+        }}
+      ></kd-slider>
+    </div>`;
+    return html`<div class="option list-option detail-cover" data-part="cover">
+      <div class="detail-cover-head">
+        <span class="option-icon" aria-hidden="true">${renderPresetIcon(active?.icon ?? "shade")}</span>
+        <span class="option-text">
+          <span>${t.sheet.cover}</span>
+          <span class="option-hint detail-state">${known && !active ? joined([text, t.cover.position(Math.round(position), Math.round(tilt))]) : text}</span>
+        </span>
+      </div>
+      ${room.presets.length > 0
+        ? html`<kd-segmented
+            class="detail-presets"
+            .label=${t.sheet.coverPreset}
+            .options=${room.presets.map((preset) => ({ value: preset.id, label: presetName(preset, t, this._i18n.language) }))}
+            .value=${active?.id ?? ""}
+            .disabled=${!available}
+            .pending=${pendingId !== undefined && pendingId !== CUSTOM_PRESET}
+            @hdk-select=${(event: CustomEvent<{ value: string }>) => {
+              event.stopPropagation();
+              const preset = room.presets.find((item) => item.id === event.detail.value);
+              if (preset) void this.applyPreset(room, preset);
+            }}
+          ></kd-segmented>`
+        : nothing}
+      ${slider("position", position)} ${slider("tilt", tilt)}
+    </div>`;
+  }
+
+  /** A position and tilt from the sliders of the detail go through the same script as the presets. */
+  private async moveCover(room: Room, position: number, tilt: number): Promise<void> {
+    if (!room.cover) return;
+    this._coverTarget = { ...this._coverTarget, [room.name]: { position, tilt } };
+    await this.applyPreset(room, { id: CUSTOM_PRESET, icon: "shade", position, tilt });
   }
 
   // ------------------------------------------------------------ ventilation
@@ -1472,7 +1593,8 @@ export class HaKlimaDashboard extends LitElement {
         type="button"
         class="plain-button cover-panel ${moving ? "moving" : ""}"
         aria-label=${t.cover.label(this.roomLabel(room), description, moving)}
-        @click=${() => this.showMoreInfo(entityId)}
+        aria-haspopup="dialog"
+        @click=${(event: Event) => this.openSheet("history", room, event, "cover")}
       >
         <svg
           viewBox="0 0 ${BLIND_WIDTH} ${BLIND_HEIGHT}"
@@ -1734,28 +1856,94 @@ export class HaKlimaDashboard extends LitElement {
 
   // ----------------------------------------------------------------- sheet
 
-  private renderSheet(isSummer: boolean): TemplateResult | typeof nothing {
+  private renderSheet(isSummer: boolean, modeKnown: boolean, now: number): TemplateResult | typeof nothing {
     const sheet = this._sheet;
     if (!sheet) {
       return nothing;
     }
     const { t } = this._i18n;
     if (sheet.kind === "history") {
+      // The room detail: the name of the room and its state, as in the header of its card.
       return this.renderSheetFrame(
-        t.sheet.history(this._config?.history.hours ?? 24),
         this.roomLabel(sheet.room),
-        this.renderHistoryBody(sheet.room, sheet.metric ?? "temperature", isSummer),
+        this.roomStatusLabel(sheet.room, isSummer, modeKnown, now),
+        this.renderRoomDetail(sheet.room, isSummer, now),
         "history-sheet",
       );
     }
     if (sheet.kind === "ventilation") {
       return this.renderSheetFrame(t.ventilation.title, undefined, this.renderVentilationBody(Date.now()));
     }
-    if (sheet.kind === "windows") {
-      return this.renderSheetFrame(t.window.popup, this.roomLabel(sheet.room), this.renderWindowsBody(sheet.room, Date.now()));
-    }
     const { title, sub } = this.hvacTitle(sheet.kind);
     return this.renderSheetFrame(title, sub, this.renderHvacBody(sheet.room, sheet.kind, isSummer));
+  }
+
+  /** The state of a room in words, as its card says it ("Příjemné", "Vydýchaný vzduch"). */
+  private roomStatusLabel(room: Room, isSummer: boolean, modeKnown: boolean, now: number): string {
+    const stale = room.thresholds.stale_minutes;
+    return getRoomStatus(
+      {
+        temperature: this.reading(room.temperature, stale, now),
+        humidity: this.reading(room.humidity, stale, now),
+        co2: this.reading(room.carbon_dioxide, stale, now),
+        pm25: this.pm25Reading(room, now),
+      },
+      isSummer,
+      modeKnown,
+      room,
+      this._i18n.t,
+    ).label;
+  }
+
+  /**
+   * The room detail (CURRENT_SPEC.md, Sjednocení s Energií a Domem, Detail místnosti): the switch of the period, the chart
+   * of the temperature with the humidity and the chart of CO₂ with PM2.5 under each other with one pointer of time, and
+   * under them the heating, the air conditioner, the windows and the blind of the room.
+   */
+  private renderRoomDetail(room: Room, isSummer: boolean, now: number): TemplateResult {
+    const { t } = this._i18n;
+    const base = this._config?.history.hours ?? 24;
+    const air: HistoryMetric | undefined = room.hasCo2 ? "co2" : room.hasPm25 ? "pm25" : undefined;
+    const period =
+      base === WEEK_HOURS
+        ? nothing
+        : html`<kd-segmented
+            class="detail-period"
+            .label=${t.sheet.period}
+            .options=${[
+              { value: String(base), label: t.sheet.hoursShort(base) },
+              { value: String(WEEK_HOURS), label: t.sheet.week },
+            ]}
+            .value=${String(this._historyHours)}
+            @hdk-select=${(event: CustomEvent<{ value: string }>) => {
+              event.stopPropagation();
+              this._historyHours = Number(event.detail.value);
+              this._scrubTime = undefined;
+              void this.loadRoomHistory(room);
+            }}
+          ></kd-segmented>`;
+    // Loading, an error and a history without any data are said once for both charts, in the place of both.
+    const model = this._historyModel;
+    const ready = this._historyStatus === "ready" && model !== undefined;
+    const empty = ready && !hasChartData(model, "temperature") && (!air || !hasChartData(model, air));
+    const charts =
+      !ready || empty
+        ? html`<section class="detail-chart ${air ? "double" : ""}" data-part="temperature">${this.renderHistoryBody(room, "temperature", isSummer)}</section>`
+        : html`<section class="detail-chart" data-part="temperature">${this.renderHistoryBody(room, "temperature", isSummer)}</section>
+            ${air ? html`<section class="detail-chart" data-part="air">${this.renderHistoryBody(room, air, isSummer)}</section>` : nothing}`;
+    return html`
+      ${period} ${charts}
+      ${this.renderDetailRows(room, now)}
+    `;
+  }
+
+  /** From the room detail to the popup Topení / Klimatizace of that room (the sheet stays, its content changes). */
+  private openSystemFromDetail(kind: "heating" | "climate", room: Room): void {
+    this._historyRequest += 1;
+    this._scrubTime = undefined;
+    this._sheetError = undefined;
+    this._sheet = { kind, room };
+    this._hvacSelected = this.hvacSelection(kind);
   }
 
   /**
@@ -1810,9 +1998,14 @@ export class HaKlimaDashboard extends LitElement {
       @hdk-select-rooms=${(event: CustomEvent<{ selected: EntityId[] }>) => (this._hvacSelected = event.detail.selected)}
       @hdk-error=${(event: CustomEvent<{ message: string }>) => (this._sheetError = event.detail.message)}
       @hdk-more-info=${async (event: CustomEvent<{ entityId: EntityId }>) => {
+        // "Detail a historie" is the room detail of the card, not a dialog of Home Assistant.
         await this.flushClimate();
-        this.closeSheet(false);
-        this.showMoreInfo(event.detail.entityId);
+        const room = all.find((item) => this.hvacEntity(item, kind) === event.detail.entityId);
+        if (!room) return;
+        this._sheet = { kind: "history", room, focus: "temperature" };
+        this._scrubTime = undefined;
+        this._historyHours = this._config?.history.hours ?? 24;
+        void this.loadRoomHistory(room);
       }}
     ></kd-climate>`;
 
@@ -1889,7 +2082,7 @@ export class HaKlimaDashboard extends LitElement {
 
   /** „Historie místnosti – 24 h“ with a readout that follows the finger (or the arrow keys). */
   private renderHistoryBody(room: Room, metric: HistoryMetric, isSummer: boolean): TemplateResult {
-    const hours = this._config?.history.hours ?? 24;
+    const hours = this._historyHours;
     const { t } = this._i18n;
     let body: TemplateResult;
     const model = this._historyModel;
@@ -1901,10 +2094,10 @@ export class HaKlimaDashboard extends LitElement {
       body = html`<p class="sheet-message">${t.sheet.noHistory(hours)}</p>`;
     } else {
       body = html`<div
-        class="chart-wrap"
+        class="chart-wrap ${metric === "temperature" ? "temperature" : "air"}"
         tabindex="0"
         role="group"
-        aria-label=${t.sheet.chart(this.historyPeriod())}
+        aria-label=${t.sheet.chart(spokenPeriod(hours * 60, t))}
         @pointerdown=${this.chartPointer}
         @pointermove=${this.chartPointer}
         @pointerup=${this.chartPointerEnd}
@@ -1982,15 +2175,17 @@ export class HaKlimaDashboard extends LitElement {
     }
   };
 
-  private openSheet(kind: SheetKind, room: Room, event: Event, metric?: HistoryMetric): void {
+  private openSheet(kind: SheetKind, room: Room, event: Event, focus?: DetailFocus): void {
     this._opener = event.currentTarget instanceof HTMLElement ? event.currentTarget : undefined;
     this._sheetError = undefined;
     this._announcement = "";
-    this._sheet = { kind, room, metric: kind === "history" ? metric ?? "temperature" : undefined };
+    this._sheet = { kind, room, focus: kind === "history" ? focus ?? "temperature" : undefined };
     if (kind === "heating" || kind === "climate") this._hvacSelected = this.hvacSelection(kind);
     window.addEventListener("resize", this.handleResize, { passive: true });
     if (kind === "history") {
       this._scrubTime = undefined;
+      this._historyHours = this._config?.history.hours ?? 24;
+      this._focusPart = focus;
       void this.loadRoomHistory(room);
     }
   }
@@ -2089,7 +2284,7 @@ export class HaKlimaDashboard extends LitElement {
     ].filter((entityId): entityId is EntityId => Boolean(entityId));
     const settings = this._config!.history;
     const endMs = Date.now();
-    const startMs = endMs - settings.hours * HOUR_MS;
+    const startMs = endMs - this._historyHours * HOUR_MS;
     try {
       const history = await fetchHistory(this.hass, ids, startMs, endMs);
       if (request !== this._historyRequest) {
@@ -2236,18 +2431,5 @@ export class HaKlimaDashboard extends LitElement {
 
   private entityState(entityId: EntityId | undefined): string | undefined {
     return this.getState(entityId)?.state;
-  }
-
-  private showMoreInfo(entityId: EntityId | undefined): void {
-    if (!entityId) {
-      return;
-    }
-    this.dispatchEvent(
-      new CustomEvent("hass-more-info", {
-        detail: { entityId },
-        bubbles: true,
-        composed: true,
-      }),
-    );
   }
 }
