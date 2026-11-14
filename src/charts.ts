@@ -8,6 +8,7 @@ import { climateShape, heatingWavesShape, renderClimateIcon, renderHeatingWaves,
 import type { ClimateMode, HistoryMetric, HistorySettings, Room } from "./types";
 import { CLIMATE_COLORS, COLORS, climateModeFromState, heatingWaveCount } from "./utils";
 import { joinedText } from "ha-dashboard-kit/joined";
+import { absoluteHumidity } from "./ventilation";
 
 const NBSP = " ";
 
@@ -467,6 +468,8 @@ function renderReadout(model: RoomChartModel, time: number | undefined, i18n: I1
   const target = segmentAt(model.target, at, model.range.endMs);
   const climate = segmentAt(model.climate, at, model.range.endMs) as ClimateMode | undefined;
 
+  // Relative humidity always comes with the absolute one (uživatel 14. 11. 2026: „Vsude kde se zobrazuje relativni vlhkost chci i absolutni“).
+  const absolute = absoluteHumidity(temperature, humidity);
   const when = readoutTime(model, time, i18n);
   const heatingText =
     heating === undefined
@@ -485,7 +488,10 @@ function renderReadout(model: RoomChartModel, time: number | undefined, i18n: I1
           ${humidity === undefined
             ? nothing
             : html`<span class="readout-hum"
-                ><span class="readout-swatch" aria-hidden="true"></span><span class="sr-only">${t.required.humidity} </span>${i18n.percent(Math.round(humidity))}</span
+                ><span class="readout-swatch" aria-hidden="true"></span><span class="sr-only">${t.required.humidity} </span>${i18n.percent(Math.round(humidity))}${absolute ===
+                undefined
+                  ? nothing
+                  : html`<span class="readout-abs">${NBSP}·${NBSP}${i18n.one(absolute)}${NBSP}g/m³</span>`}</span
               >`}
         </span>
         <span class="readout-time">${when}</span>
@@ -580,6 +586,7 @@ export function renderRoomChart(
   const clipId = `${CLIP_ID}${suffix}`;
   const plotClipId = `${PLOT_CLIP_ID}${suffix}`;
   const curveId = `${CURVE_ID}${suffix}`;
+  const hatchId = `history-ventilation${suffix}`;
 
   const line = (points: Point[], y: (value: number) => number): string =>
     points.map((point, index) => `${index === 0 ? "M" : "L"}${x(point.t).toFixed(1)} ${y(point.v).toFixed(1)}`).join(" ");
@@ -729,6 +736,14 @@ export function renderRoomChart(
         <clipPath id=${plotClipId}>
           <rect x=${PAD_LEFT} y=${PLOT_TOP} width=${plotWidth(width)} height=${PLOT_HEIGHT} rx="8"></rect>
         </clipPath>
+        ${air
+          ? // The ventilation mode is a hatched green band, the open window a plain blue one: they overlap and must be told apart
+            // (uživatel 14. 11. 2026: „šrafu vetraci rezim trochu vice rozlisit“).
+            svg`<pattern id=${hatchId} patternUnits="userSpaceOnUse" width="7" height="7" patternTransform="rotate(45)">
+              <rect width="7" height="7" style=${`${fill(COLORS.fresh)}; opacity: var(--kd-band-ventilation)`}></rect>
+              <line x1="0" y1="0" x2="0" y2="7" style=${`${stroke(COLORS.fresh)}; opacity: var(--kd-hatch-ventilation)`} stroke-width="2.5"></line>
+            </pattern>`
+          : nothing}
         ${gradient.length > 0
           ? svg`<linearGradient id=${curveId} gradientUnits="userSpaceOnUse" x1="0" x2="0" y1=${PLOT_TOP} y2=${PLOT_BOTTOM}>
               ${gradient.map(
@@ -741,7 +756,12 @@ export function renderRoomChart(
       <g clip-path=${`url(#${plotClipId})`}>
         ${targetArea ? svg`<path class="target-area" d=${targetArea} style=${`${fill(COLORS.plan)}; opacity: var(--kd-target-area)`}></path>` : nothing}
         ${bands(model.windows, "var(--kd-sky)", "window-band", "--kd-band-window")}
-        ${air ? bands(model.ventilation, COLORS.fresh, "ventilation-band", "--kd-band-ventilation") : nothing}
+        ${air
+          ? (model.ventilation ?? []).map(
+              (segment) => svg`<rect class="ventilation-band" x=${x(segment.start).toFixed(1)} y=${PLOT_TOP}
+                width=${Math.max(x(segment.end) - x(segment.start), 2).toFixed(1)} height=${PLOT_HEIGHT} fill=${`url(#${hatchId})`}></rect>`,
+            )
+          : nothing}
       </g>
       ${grid.map((value) => {
         const y = yOf(value);

@@ -54,7 +54,10 @@ export const styles = css`
       --kd-grid-soft: rgb(255 255 255 / 6%);
       --kd-area: rgb(255 255 255 / 7%);
       --kd-band-window: 0.14;
-      --kd-band-ventilation: 0.2;
+      --kd-band-ventilation: 0.16;
+      --kd-hatch-ventilation: 0.6;
+      /* Humidity in the chart: its own colour, not the sky of a cold temperature and of the windows. */
+      --kd-humidity: #8b88ff;
     }
 
     /* Light theme: the same meanings, darker tones (text 4.5 : 1, icons and lines 3 : 1 on white). */
@@ -103,6 +106,8 @@ export const styles = css`
       --kd-area: rgb(0 0 0 / 5%);
       --kd-band-window: 0.1;
       --kd-band-ventilation: 0.14;
+      --kd-hatch-ventilation: 0.55;
+      --kd-humidity: #4b49c8;
     }
 
     ha-card {
@@ -470,11 +475,22 @@ export const styles = css`
     /* Humidity is neutral, except when it decided the room status (inline colour). */
     .humidity {
       position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
       min-width: 44px;
       color: var(--kd-neutral);
       font-size: 17px;
-      line-height: 28px;
+      line-height: 20px;
       text-align: right;
+    }
+
+    /* The absolute humidity under the relative one, smaller and quieter (uživatel 14. 11. 2026). */
+    .humidity-abs {
+      color: var(--kd-label);
+      font-size: 12px;
+      line-height: 14px;
+      white-space: nowrap;
     }
 
     /* Invisible touch target of 44 px in height. */
@@ -1175,36 +1191,8 @@ export const styles = css`
     .detail-list .list-option {
       box-sizing: border-box;
     }
-    .detail-cover {
-      flex-direction: column;
-      align-items: stretch;
-      gap: 12px;
-      padding-top: 10px;
-      padding-bottom: 14px;
-    }
-    .detail-cover-head {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .detail-cover .option-icon {
+    .detail-cover-icon {
       color: var(--kd-label);
-    }
-    .detail-presets {
-      display: block;
-    }
-    .detail-slider-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      margin: 0 4px 6px;
-      font-size: 15px;
-      line-height: 20px;
-    }
-    .detail-slider-value {
-      font-size: 17px;
-      font-weight: 600;
-      font-variant-numeric: tabular-nums;
     }
 
     /* Lists in popups (Kvalita vzduchu, Okna, Větrací režim) follow the kit, Seznam: one group of rows with a 12 px
@@ -1656,9 +1644,13 @@ export const styles = css`
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      color: var(--kd-sky);
+      color: var(--kd-humidity);
       font-size: 15px;
       white-space: nowrap;
+    }
+
+    .readout-abs {
+      color: var(--kd-label);
     }
 
     .readout-swatch {

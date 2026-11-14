@@ -131,7 +131,8 @@ const setLocale = (page: Page, changes: Record<string, string>) =>
   }, changes);
 const clean = (text: string | null) => (text ?? "").replace(/\s+/g, " ").trim();
 const temperature = async (page: Page) => clean(await rooms(page).first().locator(".temperature").textContent());
-const humidity = async (page: Page) => clean(await rooms(page).first().locator(".humidity").textContent());
+// The relative humidity (the first line of the humidity button; the absolute one is under it).
+const humidity = async (page: Page) => clean(await rooms(page).first().locator(".humidity > span").first().textContent());
 
 async function centre(page: Page, selector: string, index = 0): Promise<[number, number]> {
   const box = await page.locator(selector).nth(index).boundingBox();
@@ -2078,7 +2079,9 @@ test.describe("jazyky (CURRENT_SPEC.md, Jazyky)", () => {
         expect(tidy((await page.locator(".outside-tile button").innerText()).split("\n"))).toEqual(expected.outside);
         expect(tidy(await statuses(page))).toEqual(Array(5).fill(expected.status));
         await expect(first.locator(".temperature")).toHaveText(expected.temperature);
-        await expect(first.locator(".humidity")).toHaveText(expected.humidity);
+        await expect(first.locator(".humidity > span").first()).toHaveText(expected.humidity);
+        // The absolute humidity under it (uživatel 14. 11. 2026: „Vsude kde se zobrazuje relativni vlhkost chci i absolutni“).
+        await expect(first.locator(".humidity-abs")).toHaveText(/^\d+[.,]\d\sg\/m³$/);
         await expect(first.locator(".hvac .system-row").first()).toHaveText(expected.heating);
         await expect(first.locator(".hvac")).toHaveAccessibleDescription(expected.hvac);
         await expect(rooms(page).nth(1).locator(".slot-window")).toHaveText(expected.window);
@@ -2778,15 +2781,14 @@ test.describe("řádky HVAC (Room Card)", () => {
 });
 
 test.describe("detail místnosti (CURRENT_SPEC.md, Sjednocení s Energií a Domem)", () => {
-  test("jeden list: oba grafy se společným ukazatelem času, období 24 h | 7 dní, žaluzie předvolbou a posuvníky; žádné okno Home Assistantu", async ({ page }) => {
+  test("jeden list: oba grafy se společným ukazatelem času, období 24 h | 7 dní; žaluzie otevírá standardní okno Home Assistantu", async ({ page }) => {
     await open(page, "full");
     const COVER = "cover.loznice_zaluzie_loznice";
-    // The name of the room, the humidity and the panel of the blind all open the same sheet (uživatel 14. 11. 2026: „Q234 A“).
-    for (const trigger of [".room-link", ".humidity", ".cover-panel"]) {
+    // The name of the room and the humidity open the same sheet (uživatel 14. 11. 2026: „Q234 A“).
+    for (const trigger of [".room-link", ".humidity"]) {
       await rooms(page).first().locator(trigger).click();
       await expect(page.locator("kd-sheet h2"), trigger).toHaveText("Ložnice");
       await expect(page.locator("kd-sheet .sub"), trigger).toHaveText("Příjemné");
-      if (trigger === ".cover-panel") await expect(page.locator('.detail-list [data-part="cover"]')).toBeInViewport();
       await closePopup(page);
     }
     await rooms(page).first().locator(".room-link").click();
@@ -2808,16 +2810,25 @@ test.describe("detail místnosti (CURRENT_SPEC.md, Sjednocení s Energií a Dome
     await page.locator(".detail-period").getByRole("radio", { name: "7 dní" }).click();
     await expect.poll(async () => (await temperature.locator("text.tick").allTextContents()).some((label) => /\d+\.\s*\d+\./.test(label))).toBe(true);
     expect((await air.locator("text.tick").allTextContents()).some((label) => /\d+\.\s*\d+\./.test(label))).toBe(true);
-    // The blind: a preset on one tap (the sheet was opened on purpose) and the sliders of the position and of the slats.
-    await page.locator(".detail-presets").getByRole("radio", { name: "Den" }).click();
-    await expect.poll(async () => (await hook<unknown[]>(page, "services")).at(-1)).toEqual(["script", "zaluzie_posun", { entity: COVER, pos: 100, tilt: 100 }]);
-    const tilt = page.locator('kd-slider[data-cover="tilt"] input');
-    await tilt.fill("50");
-    await tilt.dispatchEvent("change");
-    await expect.poll(async () => (await hook<unknown[]>(page, "services")).at(-1)).toEqual(["script", "zaluzie_posun", { entity: COVER, pos: 0, tilt: 50 }]);
-    await closePopup(page);
-    // Nothing on the card opens a dialog of Home Assistant any more.
-    expect(await hook(page, "moreInfo")).toEqual([]);
+    // The readout says the relative humidity with the absolute one; the humidity line has its own colour, not the sky of a cold temperature.
+    await expect(temperature.locator(".readout-hum")).toContainText(/%\s·\s\d+[.,]\d\sg\/m³/);
+    expect(await temperature.locator(".humidity-line").evaluate((line) => getComputedStyle(line).stroke)).not.toBe(
+      await page.evaluate(() => {
+        const probe = document.createElement("i");
+        probe.style.color = "var(--kd-sky)";
+        document.querySelector("ha-klima-dashboard")!.shadowRoot!.querySelector(".sheet")!.append(probe);
+        const colour = getComputedStyle(probe).color;
+        probe.remove();
+        return colour;
+      }),
+    );
+    // The blind is one row; it opens the standard cover dialog of Home Assistant, as its panel on the card does
+    // (uživatel 14. 11. 2026: „Puvodni cover popup … se mi libil vice“).
+    await expect(page.locator(".detail-list kd-slider, .detail-list kd-segmented")).toHaveCount(0);
+    await page.locator('.detail-list [data-part="cover"]').click();
+    await expect(page.locator(".sheet")).toHaveCount(0);
+    await rooms(page).first().locator(".cover-panel").click();
+    expect(await hook(page, "moreInfo")).toEqual([COVER, COVER]);
   });
 });
 

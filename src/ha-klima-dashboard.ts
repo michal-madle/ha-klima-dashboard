@@ -107,8 +107,6 @@ const FLASH_MS = 700;
 const LANDSCAPE_QUERY = "(orientation: landscape) and (max-height: 600px)";
 /** The longer period of the charts of the room detail: a week. */
 const WEEK_HOURS = 168;
-/** The id of a position and tilt set by the sliders of the room detail (no preset of the room has it). */
-const CUSTOM_PRESET = "custom";
 const HINT_MS = 1_600;
 /** A failed preset stays visible longer: the person has to read it. */
 const ERROR_HINT_MS = 5_000;
@@ -174,9 +172,6 @@ export class HaKlimaDashboard extends LitElement {
   private _historyHours = 24;
   /** The part the room detail scrolls to once it is drawn. */
   private _focusPart?: DetailFocus;
-  /** A position and tilt set by the sliders of the detail, shown until the blind arrives. */
-  @state()
-  private _coverTarget: Record<string, { position: number; tilt: number }> = {};
 
   /** Key of the blind preset that was just sent (brief confirmation flash). */
   @state()
@@ -702,6 +697,8 @@ export class HaKlimaDashboard extends LitElement {
     const pm25 = this.pm25Reading(room, now);
     const { t } = this._i18n;
     const status = getRoomStatus({ temperature, humidity, co2, pm25 }, isSummer, modeKnown, room, t);
+    // Relative humidity always comes with the absolute one, counted from the temperature of the room.
+    const absolute = absoluteHumidity(temperature.value, humidity.value);
     // The measurement that decided the status is drawn in the status colour (CURRENT_SPEC.md,
     // Stavový systém); the other values stay neutral.
     const causeColour = (cause: "temperature" | "humidity") =>
@@ -755,7 +752,9 @@ export class HaKlimaDashboard extends LitElement {
             title=${this.staleTitle(humidity) ?? nothing}
             aria-label=${t.humidityLabel(
               this.roomLabel(room),
-              humidity.value === undefined ? undefined : this._i18n.percent(Math.round(humidity.value)),
+              humidity.value === undefined
+                ? undefined
+                : `${this._i18n.percent(Math.round(humidity.value))}${absolute === undefined ? "" : `, ${this._i18n.one(absolute)} g/m³`}`,
               this.staleSpoken(humidity),
             )}
             aria-haspopup="dialog"
@@ -763,7 +762,9 @@ export class HaKlimaDashboard extends LitElement {
           >
             ${humidity.value === undefined
               ? html`<span class="missing">––</span>`
-              : html`${this._i18n.percent(Math.round(humidity.value))}${this.staleMark(humidity)}`}
+              : html`<span>${this._i18n.percent(Math.round(humidity.value))}${this.staleMark(humidity)}</span>${absolute === undefined
+                    ? nothing
+                    : html`<span class="humidity-abs">${this._i18n.one(absolute)}${NBSP}g/m³</span>`}`}
           </button>
         </div>
         </div>
@@ -1258,73 +1259,37 @@ export class HaKlimaDashboard extends LitElement {
     `;
   }
 
-  /** The blind in the room detail: its state in words, the presets on one tap and the sliders of the position and of the slats. */
+  /**
+   * The blind in the room detail: one row with its state in words; it opens the standard cover dialog of Home Assistant
+   * (uživatel 14. 11. 2026: „Puvodni cover popup na tom pohledu na zaluzie se mi libil vice. Ty 2 slidery vodorovne jsou
+   * horsi nez ty standardni svisle.“). The presets stay on the room card.
+   */
   private renderDetailCover(room: Room, entityId: EntityId): TemplateResult {
     const { t } = this._i18n;
     const entity = this.getState(entityId);
     const state = entity?.state.toLowerCase();
     const available = state !== undefined && !isUnavailable(state);
-    const target = this._moving[room.name] === CUSTOM_PRESET ? this._coverTarget[room.name] : undefined;
-    const position = target?.position ?? (available ? numberAttribute(entity?.attributes.current_position) : undefined);
-    const tilt = target?.tilt ?? (available ? numberAttribute(entity?.attributes.current_tilt_position) : undefined);
+    const position = available ? numberAttribute(entity?.attributes.current_position) : undefined;
+    const tilt = available ? numberAttribute(entity?.attributes.current_tilt_position) : undefined;
     const known = position !== undefined && tilt !== undefined;
-    const pendingId = this._moving[room.name];
-    const active = room.presets.find((preset) => (pendingId !== undefined ? preset.id === pendingId : blindMatchesPreset(position, tilt, preset, this.tolerance())));
-    const text = !available ? t.cover.unavailable : active ? presetName(active, t, this._i18n.language) : known ? t.sheet.coverCustom : t.cover.unknown;
-    const slider = (kind: "position" | "tilt", value: number | undefined) => html`<div class="detail-slider">
-      <div class="detail-slider-head"><span>${kind === "position" ? t.sheet.coverPosition : t.sheet.coverTilt}</span><span class="detail-slider-value">${value === undefined ? "––" : this._i18n.percent(Math.round(value))}</span></div>
-      <kd-slider
-        data-cover=${kind}
-        .min=${0}
-        .max=${100}
-        .step=${5}
-        .tickStep=${25}
-        .value=${Math.round((value ?? 0) / 5) * 5}
-        .label=${`${t.sheet.cover}: ${kind === "position" ? t.sheet.coverPosition : t.sheet.coverTilt}`}
-        .valueText=${value === undefined ? "" : this._i18n.percent(Math.round(value))}
-        .minLabel=${kind === "position" ? t.sheet.coverDown : t.sheet.coverShut}
-        .maxLabel=${kind === "position" ? t.sheet.coverUp : t.sheet.coverOpened}
-        .disabled=${!known}
-        @hdk-input=${(event: Event) => event.stopPropagation()}
-        @hdk-change=${(event: CustomEvent<{ value: number }>) => {
-          event.stopPropagation();
-          if (!known) return;
-          void this.moveCover(room, kind === "position" ? event.detail.value : Math.round(position), kind === "tilt" ? event.detail.value : Math.round(tilt));
-        }}
-      ></kd-slider>
-    </div>`;
-    return html`<div class="option list-option detail-cover" data-part="cover">
-      <div class="detail-cover-head">
-        <span class="option-icon" aria-hidden="true">${renderPresetIcon(active?.icon ?? "shade")}</span>
-        <span class="option-text">
-          <span>${t.sheet.cover}</span>
-          <span class="option-hint detail-state">${known && !active ? joined([text, t.cover.position(Math.round(position), Math.round(tilt))]) : text}</span>
-        </span>
-      </div>
-      ${room.presets.length > 0
-        ? html`<kd-segmented
-            class="detail-presets"
-            .label=${t.sheet.coverPreset}
-            .options=${room.presets.map((preset) => ({ value: preset.id, label: presetName(preset, t, this._i18n.language) }))}
-            .value=${active?.id ?? ""}
-            .disabled=${!available}
-            .pending=${pendingId !== undefined && pendingId !== CUSTOM_PRESET}
-            @hdk-select=${(event: CustomEvent<{ value: string }>) => {
-              event.stopPropagation();
-              const preset = room.presets.find((item) => item.id === event.detail.value);
-              if (preset) void this.applyPreset(room, preset);
-            }}
-          ></kd-segmented>`
-        : nothing}
-      ${slider("position", position)} ${slider("tilt", tilt)}
-    </div>`;
-  }
-
-  /** A position and tilt from the sliders of the detail go through the same script as the presets. */
-  private async moveCover(room: Room, position: number, tilt: number): Promise<void> {
-    if (!room.cover) return;
-    this._coverTarget = { ...this._coverTarget, [room.name]: { position, tilt } };
-    await this.applyPreset(room, { id: CUSTOM_PRESET, icon: "shade", position, tilt });
+    const active = room.presets.find((preset) => blindMatchesPreset(position, tilt, preset, this.tolerance()));
+    const text = !available ? t.cover.unavailable : active ? presetName(active, t, this._i18n.language) : known ? joined([t.sheet.coverCustom, t.cover.position(Math.round(position), Math.round(tilt))]) : t.cover.unknown;
+    return html`<button
+      type="button"
+      class="plain-button option list-option detail-row"
+      data-part="cover"
+      @click=${() => {
+        this.closeSheet(false);
+        this.showMoreInfo(entityId);
+      }}
+    >
+      <span class="option-icon detail-cover-icon" aria-hidden="true">${renderPresetIcon(active?.icon ?? "shade")}</span>
+      <span class="option-text">
+        <span>${t.sheet.cover}</span>
+        <span class="option-hint detail-state">${text}</span>
+      </span>
+      <span class="list-chevron" aria-hidden="true">›</span>
+    </button>`;
   }
 
   // ------------------------------------------------------------ ventilation
@@ -1651,8 +1616,7 @@ export class HaKlimaDashboard extends LitElement {
         type="button"
         class="plain-button cover-panel ${moving ? "moving" : ""}"
         aria-label=${t.cover.label(this.roomLabel(room), description, moving)}
-        aria-haspopup="dialog"
-        @click=${(event: Event) => this.openSheet("history", room, event, "cover")}
+        @click=${() => this.showMoreInfo(entityId)}
       >
         <svg
           viewBox="0 0 ${BLIND_WIDTH} ${BLIND_HEIGHT}"
@@ -2492,5 +2456,13 @@ export class HaKlimaDashboard extends LitElement {
 
   private entityState(entityId: EntityId | undefined): string | undefined {
     return this.getState(entityId)?.state;
+  }
+
+  /** The standard dialog of an entity of Home Assistant (the blind: its own position and tilt controls). */
+  private showMoreInfo(entityId: EntityId | undefined): void {
+    if (!entityId) {
+      return;
+    }
+    this.dispatchEvent(new CustomEvent("hass-more-info", { detail: { entityId }, bubbles: true, composed: true }));
   }
 }

@@ -268,8 +268,8 @@ export interface BlindPreset {
 /** "ventilation" is the house-wide popup of the summary chip; its `room` is only the first room (unused). */
 export type SheetKind = "heating" | "climate" | "history" | "ventilation" | "outside";
 
-/** The part of the room detail the sheet opens at: a chart, the windows or the blind. */
-export type DetailFocus = "temperature" | "air" | "windows" | "cover";
+/** The part of the room detail the sheet opens at: a chart or the windows. */
+export type DetailFocus = "temperature" | "air" | "windows";
 
 /** What the room history popup draws (the segmented control switches it). */
 export type HistoryMetric = "temperature" | "co2" | "pm25";

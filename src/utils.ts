@@ -69,7 +69,7 @@ export const COLORS = {
   /** Humidity value: deliberately uncoloured. */
   neutral: "var(--kd-neutral)",
   /** Dashed humidity curve in the room history. */
-  humidityLine: "var(--kd-sky)",
+  humidityLine: "var(--kd-humidity)",
   label: "var(--kd-label)",
   off: "var(--kd-off)",
   plan: "var(--kd-plan)",
