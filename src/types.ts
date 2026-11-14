@@ -101,8 +101,6 @@ export interface HistorySettings {
   /** Length of the room history popup in hours. */
   hours: number;
   /** Night shading of the history chart, whole hours. */
-  night_start: number;
-  night_end: number;
   /** Smallest range of the temperature axis (°C). */
   min_temperature_span: number;
 }

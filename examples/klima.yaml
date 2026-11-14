@@ -66,8 +66,6 @@ trends:
 # Popup Historie místnosti (klepnutí na teplotu).
 history:
   hours: 24                     # délka období (1–168 h)
-  night_start: 22               # ztmavená noc v grafu od (hodina)
-  night_end: 6                  # do (hodina)
   min_temperature_span: 1.5     # nejmenší rozsah osy teploty (°C)
 
 # Žaluzie (místnost může předvolby přepsat vlastním "cover_presets" níže).

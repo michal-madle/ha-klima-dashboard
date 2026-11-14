@@ -60,8 +60,6 @@ export const DEFAULT_TRENDS: TrendSettings = {
 
 export const DEFAULT_HISTORY: HistorySettings = {
   hours: 24,
-  night_start: 22,
-  night_end: 6,
   min_temperature_span: 1.5,
 };
 
@@ -433,10 +431,12 @@ function normalize(config: DashboardConfig): Settings {
     co2_step: [1, 1000],
     pm25_step: [0.5, 100],
   });
-  const history = numbers(section(config.history, "history"), DEFAULT_HISTORY, "history", {
+  // The night is no longer drawn (uživatel 14. 11. 2026: „nepotřebuju vidět noc/den“): its old keys are skipped, not an error.
+  const historyInput = { ...section(config.history, "history") };
+  delete historyInput.night_start;
+  delete historyInput.night_end;
+  const history = numbers(historyInput, DEFAULT_HISTORY, "history", {
     hours: [1, 168, "integer"],
-    night_start: [0, 23, "integer"],
-    night_end: [0, 23, "integer"],
     min_temperature_span: [0.5, 20],
   });
   const coversInput = { ...section(config.covers, "covers") };

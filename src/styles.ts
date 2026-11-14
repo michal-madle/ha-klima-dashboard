@@ -50,7 +50,7 @@ export const styles = css`
       --kd-segment-shadow: 0 2px 6px rgb(0 0 0 / 30%);
       --kd-fill: rgb(255 255 255 / 5%);
       --kd-fill-border: rgb(255 255 255 / 8%);
-      --kd-night: rgb(0 0 0 / 30%);
+      --kd-target-area: 0.12;
       --kd-grid: rgb(255 255 255 / 8%);
       --kd-grid-soft: rgb(255 255 255 / 6%);
       --kd-area: rgb(255 255 255 / 7%);
@@ -105,7 +105,7 @@ export const styles = css`
       --kd-segment-shadow: 0 2px 6px rgb(0 0 0 / 12%);
       --kd-fill: rgb(0 0 0 / 4%);
       --kd-fill-border: rgb(0 0 0 / 8%);
-      --kd-night: rgb(0 0 0 / 6%);
+      --kd-target-area: 0.1;
       --kd-grid: rgb(0 0 0 / 8%);
       --kd-grid-soft: rgb(0 0 0 / 6%);
       --kd-area: rgb(0 0 0 / 5%);
@@ -1635,7 +1635,7 @@ export const styles = css`
       font-weight: 400;
     }
 
-    /* Humidity is the dashed blue line of the chart: a sample of that line stands for the missing label. */
+    /* Humidity is the thinner blue line of the chart: a sample of that line stands for the missing label. */
     .readout-hum {
       display: inline-flex;
       align-items: center;
@@ -1647,7 +1647,7 @@ export const styles = css`
 
     .readout-swatch {
       width: 14px;
-      border-top: 2px dashed currentColor;
+      border-top: 2px solid currentColor;
     }
 
     .readout-hum.pm25 {

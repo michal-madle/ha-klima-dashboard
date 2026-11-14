@@ -15,8 +15,8 @@ const NBSP = " ";
  * „Historie místnosti – 24 h“ (CURRENT_SPEC.md, Historie a grafy; the length is
  * `history.hours`), modelled on the day report
  * of the heating app: temperature curve over a grey area, heating as orange fill under the
- * curve (strength = 0–3 waves), the Topení target as a stepped dashed line, night shading,
- * dashed humidity, and time layers for Topení and Klimatizace. The chart is drawn 1:1 in CSS
+ * curve (strength = 0–3 waves), the Topení target as a stepped area filled from the bottom of the
+ * plot up to the target, humidity as a thinner full line, and time layers for Topení and Klimatizace. The chart is drawn 1:1 in CSS
  * pixels so its labels keep their size; texts, numbers and times are in the card language.
  */
 
@@ -130,8 +130,6 @@ export interface RoomChartModel {
   tempStep: number;
   humidityMin?: number;
   humidityMax?: number;
-  /** Night shading, whole hours [start, end] (start = end: none). */
-  night: [number, number];
 }
 
 function heatingMode(
@@ -292,7 +290,6 @@ export function buildRoomChart(
     tempStep,
     humidityMin: humidityValues.length > 0 ? Math.min(...humidityValues) : undefined,
     humidityMax: humidityValues.length > 0 ? Math.max(...humidityValues) : undefined,
-    night: [settings.night_start, settings.night_end],
   };
 }
 
@@ -363,33 +360,6 @@ function segmentAt(segments: Segment[], time: number, endMs: number): string | u
   return segments.find(
     (segment) => segment.start <= time && (time < segment.end || (time === endMs && segment.end === endMs)),
   )?.value;
-}
-
-/** Night intervals inside the range; a night from 22 to 6 h runs over midnight, one from 0 to 6 h does not. */
-function nightBands(range: ChartRange, [startHour, endHour]: [number, number]): Array<[number, number]> {
-  const bands: Array<[number, number]> = [];
-  if (startHour === endHour) {
-    return bands;
-  }
-  const day = new Date(range.startMs);
-  day.setHours(0, 0, 0, 0);
-  day.setDate(day.getDate() - 1);
-  while (day.getTime() < range.endMs) {
-    const from = new Date(day);
-    from.setHours(startHour, 0, 0, 0);
-    const to = new Date(day);
-    if (endHour < startHour) {
-      to.setDate(to.getDate() + 1);
-    }
-    to.setHours(endHour, 0, 0, 0);
-    const start = Math.max(from.getTime(), range.startMs);
-    const end = Math.min(to.getTime(), range.endMs);
-    if (end > start) {
-      bands.push([start, end]);
-    }
-    day.setDate(day.getDate() + 1);
-  }
-  return bands;
 }
 
 /**
@@ -589,7 +559,7 @@ export function renderRoomChart(
   isSummer = false,
   live?: LiveReading,
 ): TemplateResult {
-  // Ground, night and grid of the plot follow the theme (styles.ts).
+  // Ground and grid of the plot follow the theme (styles.ts).
   const { range } = model;
   const air = metric === "temperature" ? undefined : metric;
   const x = (time: number): number => xOf(time, range, width);
@@ -614,14 +584,22 @@ export function renderRoomChart(
   const curveArea =
     first && last ? `${curveLine} L${x(last.t).toFixed(1)} ${PLOT_BOTTOM} L${x(first.t).toFixed(1)} ${PLOT_BOTTOM} Z` : "";
 
-  // Stepped target line: horizontal at each target, vertical where two segments meet.
+  // The target of Topení (uživatel 14. 11. 2026: „ne čarkovaně jako teď, ale vyplnit i pozadí odspodu do nastavené
+  // teploty“): a stepped area from the bottom of the plot up to the target and a thin full line along its top;
+  // horizontal at each target, vertical where two segments meet, closed to the bottom where the target ends.
   let targetPath = "";
+  let targetArea = "";
   if (!air) {
     model.target.forEach((segment, index) => {
       const y = yOf(Number(segment.value)).toFixed(1);
       const previous = model.target[index - 1];
-      targetPath += previous && previous.end === segment.start ? ` L${x(segment.start).toFixed(1)} ${y}` : ` M${x(segment.start).toFixed(1)} ${y}`;
+      const next = model.target[index + 1];
+      const joins = previous !== undefined && previous.end === segment.start;
+      targetPath += joins ? ` L${x(segment.start).toFixed(1)} ${y}` : ` M${x(segment.start).toFixed(1)} ${y}`;
       targetPath += ` L${x(segment.end).toFixed(1)} ${y}`;
+      targetArea += joins ? ` L${x(segment.start).toFixed(1)} ${y}` : ` M${x(segment.start).toFixed(1)} ${PLOT_BOTTOM} L${x(segment.start).toFixed(1)} ${y}`;
+      targetArea += ` L${x(segment.end).toFixed(1)} ${y}`;
+      if (!next || next.start !== segment.end) targetArea += ` L${x(segment.end).toFixed(1)} ${PLOT_BOTTOM} Z`;
     });
   }
 
@@ -697,7 +675,6 @@ export function renderRoomChart(
           : svg`${block(model.windows ?? [], y, "var(--kd-sky)", "window-open", 1.5)}`;
   const scrubX = scrubTime === undefined ? undefined : x(scrubTime);
   const scrubValue = scrubTime === undefined ? undefined : valueAt(curve, scrubTime);
-  const nights = nightBands(range, model.night);
   // Over the plot, behind the curve: the times the windows were open and the ventilation mode ran (the air charts).
   const bands = (segments: Segment[] | undefined, color: string, className: string, token: string): TemplateResult[] =>
     (segments ?? []).map(
@@ -707,7 +684,8 @@ export function renderRoomChart(
     );
   const dotColor = (value: number): string => valueColor(value);
 
-  // PM2.5 under the CO₂ curve: a weaker dashed line on its own scale (no axis), like the humidity under the temperature;
+  // PM2.5 under the CO₂ curve: a thinner full line in its own colour and on its own scale (no axis), like the humidity
+  // under the temperature (uživatel 14. 11. 2026: „Graf čárkovanou linkou není vidět - stací barevně odlišit obojí plnou“);
   // the scale reaches at least the critical limit, so small values stay low and flat.
   const pm25Max = Math.max(...model.pm25.map((point) => point.v), 0);
   const pm25High = Math.max(pm25Max * (1 + AXIS_MARGIN), model.limits.pm25.critical);
@@ -755,10 +733,7 @@ export function renderRoomChart(
       </defs>
       <rect x=${PAD_LEFT} y=${PLOT_TOP} width=${plotWidth(width)} height=${PLOT_HEIGHT} rx="8" style=${fill("var(--kd-fill)")}></rect>
       <g clip-path=${`url(#${PLOT_CLIP_ID})`}>
-        ${nights.map(
-          ([start, end]) => svg`<rect class="night" x=${x(start).toFixed(1)} y=${PLOT_TOP} width=${(x(end) - x(start)).toFixed(1)}
-            height=${PLOT_HEIGHT} style=${fill("var(--kd-night)")}></rect>`,
-        )}
+        ${targetArea ? svg`<path class="target-area" d=${targetArea} style=${`${fill(COLORS.plan)}; opacity: var(--kd-target-area)`}></path>` : nothing}
         ${air ? bands(model.windows, "var(--kd-sky)", "window-band", "--kd-band-window") : nothing}
         ${air ? bands(model.ventilation, COLORS.fresh, "ventilation-band", "--kd-band-ventilation") : nothing}
       </g>
@@ -778,7 +753,7 @@ export function renderRoomChart(
             font-weight="600">${gridLabel(limit.value)}</text>`,
       )}
       <g clip-path=${`url(#${PLOT_CLIP_ID})`}>
-        ${curveArea ? svg`<path d=${curveArea} style=${fill("var(--kd-area)")}></path>` : nothing}
+        ${curveArea && air ? svg`<path d=${curveArea} style=${fill("var(--kd-area)")}></path>` : nothing}
       </g>
       ${!air
         ? svg`<g clip-path=${`url(#${CLIP_ID})`}>
@@ -791,15 +766,15 @@ export function renderRoomChart(
         : nothing}
       ${secondaryLine
         ? svg`<path class="pm25-line" d=${secondaryLine} fill="none" style=${stroke(COLORS.pm25)}
-            stroke-width="1.25" stroke-dasharray="4 3" stroke-linejoin="round" opacity="0.75" clip-path=${`url(#${PLOT_CLIP_ID})`}></path>`
+            stroke-width="1.5" stroke-linejoin="round" opacity="0.75" clip-path=${`url(#${PLOT_CLIP_ID})`}></path>`
         : nothing}
       ${!air && model.humidity.length > 0
-        ? svg`<path d=${line(model.humidity, yHumidity)} fill="none" style=${stroke(COLORS.humidityLine)}
-            stroke-width="1.25" stroke-dasharray="4 3" stroke-linejoin="round" opacity="0.65"></path>`
+        ? svg`<path class="humidity-line" d=${line(model.humidity, yHumidity)} fill="none" style=${stroke(COLORS.humidityLine)}
+            stroke-width="1.5" stroke-linejoin="round" opacity="0.75" clip-path=${`url(#${PLOT_CLIP_ID})`}></path>`
         : nothing}
       ${targetPath
-        ? svg`<path d=${targetPath} fill="none" style=${stroke(COLORS.plan)} stroke-width="1"
-            stroke-dasharray="3 3" opacity="0.45" clip-path=${`url(#${PLOT_CLIP_ID})`}></path>`
+        ? svg`<path class="target-line" d=${targetPath} fill="none" style=${stroke(COLORS.plan)} stroke-width="1"
+            opacity="0.5" clip-path=${`url(#${PLOT_CLIP_ID})`}></path>`
         : nothing}
       ${curveLine
         ? svg`<path class="temperature-curve" d=${curveLine} fill="none"

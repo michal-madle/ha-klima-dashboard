@@ -358,7 +358,7 @@ async function historyChart(page: Page, history: History) {
     const svg = document.querySelector("ha-klima-dashboard")!.shadowRoot!.querySelector("svg.chart")!;
     const ys = (path: Element | undefined) => [...(path?.getAttribute("d") ?? "").matchAll(/[ML]([\d.]+) ([\d.]+)/g)].map((m) => Number(m[2]));
     const curve = [...svg.querySelectorAll("path")].find((path) => path.getAttribute("stroke-width") === "2.5");
-    const target = [...svg.querySelectorAll("path")].find((path) => path.getAttribute("stroke-dasharray") === "3 3");
+    const target = svg.querySelector("path.target-line") ?? undefined;
     const plot = svg.querySelector("clipPath#history-plot rect")!;
     return {
       curve: ys(curve),
@@ -386,7 +386,7 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
       ...["humidity_min", "humidity_max", "co2_warning", "co2_critical", "pm25_warning", "pm25_critical", "winter_min",
         "winter_max", "summer_min", "summer_max", "stale_minutes", "heating_waves_2", "heating_waves_3"].map((key) => `thresholds.${key}`),
       ...["minutes", "samples", "temperature_step", "co2_step", "pm25_step"].map((key) => `trends.${key}`),
-      ...["hours", "night_start", "night_end", "min_temperature_span"].map((key) => `history.${key}`),
+      ...["hours", "min_temperature_span"].map((key) => `history.${key}`),
       "covers.script", "covers.tolerance", "covers.stall_seconds",
       ...["name", "icon", "position", "tilt", "description"].map((key) => `covers.presets[].${key}`),
       ...["name", "image", "link", "temperature", "humidity", "carbon_dioxide", "pm25", "window[].entity", "window[].name",
@@ -854,7 +854,7 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
   test("čas: vlastní obrázek a odkaz, den změny času, formáty času a data", async ({ page }) => {
     test.setTimeout(150000);
     await test.step("vlastní obrázek místnosti, odkaz z názvu, délka mikrotrendů a historie z konfigurace", async () => {
-      // A fixed morning: the last 12 h then hold the night 23–7 h (from 19 to 23 h they hold none).
+      // A fixed morning. The scenario still carries the old keys of the night (night_start, night_end): they are skipped.
       await page.clock.setFixedTime(new Date("2026-10-24T09:00:00+02:00"));
       await open(page, "config");
       const maxik = rooms(page).nth(2);
@@ -881,10 +881,14 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
       expect(await hook(page, "actions")).toEqual([
         { config: { tap_action: { action: "navigate", navigation_path: "/lovelace/loznice" } }, action: "tap" },
       ]);
-      // history: 12 h, night 23–7 h.
+      // history: 12 h; the night is not drawn (uživatel 14. 11. 2026: „nepotřebuju vidět noc/den“).
       await rooms(page).first().locator(".temperature").click();
       await expect(page.locator("kd-sheet h2")).toHaveText("Historie místnosti – 12 h");
-      await expect(page.locator(".chart .night")).toHaveCount(1);
+      await expect(page.locator(".chart .night")).toHaveCount(0);
+      // The second line (humidity) is a full line, not a dashed one; the target of Topení is an area from the bottom.
+      await expect(page.locator(".chart .humidity-line")).toHaveCount(1);
+      expect(await page.locator(".chart .humidity-line").getAttribute("stroke-dasharray")).toBeNull();
+      await expect(page.locator(".chart .target-area")).toHaveCount(1);
       await expect(page.locator(".chart-wrap")).toHaveAccessibleName(/^Graf za 12 hodin\./);
       // The grid (uživatel 4. 11. 2026): 6 to 10 vertical divisions of the width and horizontal lines about as far apart (square cells).
       const gridOfChart = await page.locator("svg.chart").evaluate((chart) => {
@@ -902,16 +906,11 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
       expect(gridOfChart.divisions).toBeLessThanOrEqual(10);
       expect(gridOfChart.cell[1] / gridOfChart.cell[0]).toBeGreaterThan(0.4);
       expect(gridOfChart.cell[1] / gridOfChart.cell[0]).toBeLessThan(2.2);
-      // In the evening the last 12 h hold no night.
-      await page.clock.setFixedTime(new Date("2026-10-24T21:00:00+02:00"));
-      await open(page, "config");
-      await rooms(page).first().locator(".temperature").click();
       await expect(page.locator(".chart .temperature-curve")).toHaveCount(1);
-      await expect(page.locator(".chart .night")).toHaveCount(0);
       // The chart has no legend under it: the values are in the readout above.
       await expect(page.locator(".legend")).toHaveCount(0);
     });
-    await test.step("den změny času 25. 10.: noc 22–6 h je 9 h, popisky v celých hodinách", async () => {
+    await test.step("den změny času 25. 10.: popisky v celých hodinách", async () => {
       // Steps share one page: what an earlier step stored in the browser must not leak into this one.
       await page.evaluate(() => { try { localStorage.clear(); } catch { /* no storage */ } });
       const measure = async (when: string) => {
@@ -921,14 +920,12 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
         await expect(page.locator("svg.chart")).toBeVisible();
         return page.locator("svg.chart").evaluate((chart) => ({
           ticks: [...chart.querySelectorAll("text.tick")].map((text) => text.textContent ?? ""),
-          nights: [...chart.querySelectorAll("rect.night")].map((rect) => Number(rect.getAttribute("width"))),
         }));
       };
       const shifted = await measure("2026-10-25T10:00:00+01:00");
       const normal = await measure("2026-10-24T10:00:00+02:00");
       expect(shifted.ticks).toEqual(["12", "15", "18", "21", "00", "03", "06", "09"]);
       expect(normal.ticks).toEqual(["12", "15", "18", "21", "00", "03", "06", "09"]);
-      expect(shifted.nights[0] / normal.nights[0]).toBeCloseTo(9 / 8, 1);
     });
     await test.step("formát času: 12 / 24 h z profilu i z jazyka; osa grafu má celé hodiny", async () => {
       // Steps share one page: what an earlier step stored in the browser must not leak into this one.
@@ -2726,7 +2723,7 @@ test.describe("historie místnosti: nuly po zapnutí čidla", () => {
       const plot = svg.querySelector("clipPath#history-plot rect")!;
       return {
         curve: ys(paths.find((path) => path.getAttribute("stroke-width") === "2")),
-        humidity: ys(paths.find((path) => path.getAttribute("stroke-dasharray") === "4 3")),
+        humidity: ys(paths.find((path) => path.classList.contains("humidity-line"))),
         labels: [...svg.querySelectorAll("text")].map((text) => text.textContent ?? "").filter((text) => text.endsWith("°")),
         top: Number(plot.getAttribute("y")),
         height: Number(plot.getAttribute("height")),
