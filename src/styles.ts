@@ -10,14 +10,14 @@ export const styles = css`
       display: block;
       color: var(--primary-text-color);
       --kd-text: #ffffff;
-      --kd-label: #9a9aa0;
+      --kd-label: #98989f;
       --kd-off: #8e8e93;
       --kd-neutral: #c7c7cc;
       --kd-plan: #f2f2f7;
       --kd-fresh: #30d158;
       --kd-closed: #6b6b70;
-      --kd-warning: #ff9f0a;
-      --kd-alert: #ff453a;
+      --kd-warning: #ff9230;
+      --kd-alert: #ff4245;
       --kd-alert-popup: #ff6961;
       --kd-sky: #64d2ff;
       --kd-dry: #ffd60a;
@@ -32,10 +32,9 @@ export const styles = css`
       --kd-preset-idle: #6f6f74;
       --kd-preset-on: #c9c0a8;
       --kd-preset-unavailable: rgb(111 111 116 / 55%);
+      /* Surfaces of the shared language (DASHBOARD_UX_SYSTEM.md, Povrchy): the card draws its page and its flat cards itself. */
+      --kd-page: #000000;
       --kd-card-bg: #1c1c1e;
-      --kd-card-gradient: linear-gradient(165deg, #232326 0%, #1c1c1e 55%);
-      --kd-card-border: rgb(255 255 255 / 7%);
-      --kd-card-shadow: inset 0 1px 0 rgb(255 255 255 / 6%);
       --kd-chip-tint: 14%;
       --kd-hint-bg: #3a3a3c;
       --kd-hint-text: #ffffff;
@@ -56,17 +55,12 @@ export const styles = css`
       --kd-area: rgb(255 255 255 / 7%);
       --kd-band-window: 0.14;
       --kd-band-ventilation: 0.2;
-      --kd-scene-bedroom: #a5a1f2;
-      --kd-scene-office: #7fc8f8;
-      --kd-scene-kids: #ffb36b;
-      --kd-scene-living: #e8d9b5;
-      --kd-image-opacity: 0.5;
     }
 
     /* Light theme: the same meanings, darker tones (text 4.5 : 1, icons and lines 3 : 1 on white). */
     :host([data-theme="light"]) {
       --kd-text: #1c1c1e;
-      --kd-label: #6c6c70;
+      --kd-label: #5f5f66;
       --kd-off: #6e6e73;
       --kd-neutral: #48484a;
       --kd-plan: #3a3a3c;
@@ -88,10 +82,8 @@ export const styles = css`
       --kd-preset-idle: #8e8e93;
       --kd-preset-on: #7a5c2e;
       --kd-preset-unavailable: rgb(142 142 147 / 45%);
+      --kd-page: #f2f2f7;
       --kd-card-bg: #ffffff;
-      --kd-card-gradient: #ffffff;
-      --kd-card-border: rgb(0 0 0 / 6%);
-      --kd-card-shadow: 0 1px 3px rgb(0 0 0 / 6%);
       --kd-chip-tint: 10%;
       --kd-hint-bg: #ffffff;
       --kd-hint-text: #1c1c1e;
@@ -111,17 +103,13 @@ export const styles = css`
       --kd-area: rgb(0 0 0 / 5%);
       --kd-band-window: 0.1;
       --kd-band-ventilation: 0.14;
-      --kd-scene-bedroom: #6f67d6;
-      --kd-scene-office: #2c8bc9;
-      --kd-scene-kids: #d9822b;
-      --kd-scene-living: #a88f5c;
-      --kd-image-opacity: 0.6;
     }
 
     ha-card {
       overflow: visible;
       border: 0;
-      background: transparent;
+      border-radius: 0;
+      background: var(--kd-page);
       box-shadow: none;
     }
 
@@ -172,10 +160,6 @@ export const styles = css`
     }
     :host([data-theme="light"]) .top-tiles {
       --hdk-tile-border: rgb(60 60 67 / 29%);
-    }
-    :host([data-theme="light"]) .top-tiles kd-tile:not(.off) {
-      border-radius: 12px;
-      box-shadow: var(--kd-card-shadow);
     }
     .top-tiles + .summary {
       margin-top: 8px;
@@ -291,11 +275,9 @@ export const styles = css`
       display: block;
       box-sizing: border-box;
       width: 100%;
-      padding: 16px;
-      border: 1px solid var(--kd-card-border);
-      border-radius: 24px;
-      background: var(--kd-card-gradient);
-      box-shadow: var(--kd-card-shadow);
+      padding: 14px 16px 16px;
+      border-radius: 12px;
+      background: var(--kd-card-bg);
       color: var(--kd-text);
       font: inherit;
       text-align: left;
@@ -311,66 +293,19 @@ export const styles = css`
       grid-template-rows: 0 0 0 var(--row-h) var(--row-h) var(--window-h);
     }
 
-    /* Above the picture; the screen-reader descriptions keep their own absolute position. */
-    .room > *:not(.scene, .sr-only) {
-      position: relative;
+    /* The head of the room (uživatel 14. 11. 2026: „Q229 B“): the name and the state on the left, the temperature and the
+       humidity on the right, in the place the illustration had. */
+    .room-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 12px;
+      min-height: 48px;
+      margin-bottom: 10px;
     }
 
-    /*
-     * Decorative illustration: a soft rectangle over the free top-right part of the card
-     * header, fading out only along its left and bottom edge (CURRENT_SPEC.md, Room Card).
-     */
-    .scene {
-      position: absolute;
-      top: 0;
-      right: 0;
-      width: 58%;
-      height: 132px;
-      color: var(--scene-tone);
-      background: linear-gradient(
-        to left,
-        color-mix(in srgb, currentColor 13%, transparent),
-        color-mix(in srgb, currentColor 5%, transparent)
-      );
-      -webkit-mask-image:
-        linear-gradient(to right, transparent 10%, #000 60%),
-        linear-gradient(to top, transparent, #000 15%);
-      -webkit-mask-composite: source-in;
-      mask-image:
-        linear-gradient(to right, transparent 10%, #000 60%),
-        linear-gradient(to top, transparent, #000 15%);
-      mask-composite: intersect;
-      pointer-events: none;
-    }
-
-    /* A picture of the user's fills the soft rectangle and fades out the same way. */
-    .scene.photo {
-      background: none;
-    }
-
-    .scene img {
-      display: block;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      opacity: var(--kd-image-opacity);
-    }
-
-    .scene svg {
-      position: absolute;
-      top: 1px;
-      right: 14px;
-      width: 150px;
-      height: 112px;
-      opacity: 0.62;
-    }
-
-    /* In a narrow room the drawing shrinks so it stays right of the humidity (about 190 px). */
-    @supports (width: 1cqw) {
-      .scene svg {
-        width: min(150px, max(0px, calc(100cqw - 190px)));
-        height: auto;
-      }
+    .room-id {
+      min-width: 0;
     }
 
     .plain-button {
@@ -398,22 +333,12 @@ export const styles = css`
 
     .room-title {
       overflow: hidden;
-      font-size: 26px;
+      font-size: 22px;
       font-weight: 600;
-      letter-spacing: -0.4px;
-      line-height: 32px;
+      letter-spacing: -0.2px;
+      line-height: 28px;
       text-overflow: ellipsis;
       white-space: nowrap;
-    }
-
-    /*
-     * A long name ends with „…“ before the drawing, not under it (CURRENT_SPEC.md, Room Card: the
-     * illustration does not cover text). The drawing is 14 px from the right edge, the name 16 px from the left.
-     */
-    @supports (width: 1cqw) {
-      .room:has(> .scene:not(.photo)) .room-title {
-        max-width: calc(100cqw - 30px - min(150px, max(0px, 100cqw - 190px)));
-      }
     }
 
     /* Room name with a link: the name and a chevron; the touch target is 44 px high (invisible area). */
@@ -430,7 +355,7 @@ export const styles = css`
     .room-link::after {
       content: "";
       position: absolute;
-      inset: -6px 0;
+      inset: -8px 0;
     }
 
     .room-name {
@@ -442,9 +367,9 @@ export const styles = css`
     .room-chevron {
       flex: none;
       color: var(--kd-label);
-      font-size: 24px;
+      font-size: 22px;
       font-weight: 400;
-      line-height: 32px;
+      line-height: 28px;
     }
 
     /* The dot beside the first line when the state has two (ha-dashboard-kit/joined). */
@@ -470,22 +395,31 @@ export const styles = css`
     .measurements {
       display: flex;
       align-items: baseline;
-      gap: 14px;
-      min-height: 44px;
-      margin: 8px 0 10px;
+      justify-content: flex-end;
+      gap: 10px;
       font-variant-numeric: tabular-nums;
+      white-space: nowrap;
     }
 
     .temperature {
-      font-size: 38px;
-      letter-spacing: -0.5px;
-      line-height: 44px;
+      font-size: 28px;
+      font-weight: 500;
+      letter-spacing: -0.3px;
+      line-height: 34px;
       white-space: nowrap;
+    }
+
+    /* Invisible touch target of 44 px in height. */
+    .temperature::after {
+      content: "";
+      position: absolute;
+      inset: -5px 0;
     }
 
     .temperature-unit {
       color: var(--kd-label);
-      font-size: 18px;
+      font-size: 17px;
+      font-weight: 400;
       letter-spacing: 0;
     }
 
@@ -494,8 +428,9 @@ export const styles = css`
       position: relative;
       min-width: 44px;
       color: var(--kd-neutral);
-      font-size: 18px;
+      font-size: 17px;
       line-height: 28px;
+      text-align: right;
     }
 
     /* Invisible touch target of 44 px in height. */
@@ -537,10 +472,10 @@ export const styles = css`
 
     .temperature .stale-mark {
       position: absolute;
-      top: 3px;
-      right: 4px;
-      width: 16px;
-      height: 16px;
+      top: -3px;
+      right: 0;
+      width: 12px;
+      height: 12px;
       margin: 0;
     }
 

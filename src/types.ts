@@ -41,14 +41,9 @@ export interface RoomConfig {
   heating?: HeatingEntities;
   /** Klimatizace: air conditioner climate entity. */
   air_conditioner?: EntityId;
-  /**
-   * Picture in the top-right corner of the room card: a built-in illustration
-   * (bedroom, office, kids, living), `none`, or the address of an image (/local/…, https://…).
-   * Without the key the illustration is chosen from the room name.
-   */
-  image?: string;
-  /** Older name of `image` (built-in illustrations only). */
-  scene?: string;
+  /** Old keys of the illustration of a room: the card has none any more (uživatel 14. 11. 2026: „Q229 B“), they are skipped. */
+  image?: unknown;
+  scene?: unknown;
   /** Tap on the room name: a Home Assistant path (/lovelace/…) or a web address. */
   link?: string;
 }
@@ -118,12 +113,12 @@ export interface CoverSettings {
   stall_seconds: number;
 }
 
-export type ThemeSetting = "auto" | "dark" | "light";
 export type Theme = "dark" | "light";
 
 export interface DashboardConfig {
   type: string;
-  theme?: ThemeSetting;
+  /** Old key: the card follows the dark or light mode of Home Assistant (uživatel 14. 11. 2026: „Q236 ano“), it is skipped. */
+  theme?: unknown;
   language?: LanguageSetting;
   house_mode_entity?: EntityId;
   house_modes?: { winter?: string; summer?: string };
@@ -147,13 +142,6 @@ export interface DashboardConfig {
 }
 
 // ------------------------------------------------------- normalized configuration
-
-export const ROOM_SCENES = ["bedroom", "office", "kids", "living"] as const;
-export type RoomScene = (typeof ROOM_SCENES)[number];
-export const SCENE_NONE = "none";
-
-/** Picture of a room: a built-in illustration or an image address. */
-export type RoomImage = { kind: "scene"; scene: RoomScene } | { kind: "url"; url: string };
 
 export interface WindowConfig {
   entity: EntityId;
@@ -181,13 +169,11 @@ export interface Room {
   thresholds: DashboardThresholds;
   heating?: HeatingEntities;
   air_conditioner?: EntityId;
-  image?: RoomImage;
   link?: string;
 }
 
 /** The card configuration after `normalizeConfig`. */
 export interface Settings {
-  theme: ThemeSetting;
   language: LanguageSetting;
   houseModeEntity: EntityId;
   houseModes: { winter: string; summer: string };

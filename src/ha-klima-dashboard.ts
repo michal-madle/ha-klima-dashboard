@@ -18,7 +18,6 @@ import {
 import {
   numberOf,
 } from "./heating-control";
-import { renderScene, sceneTone } from "./scenes";
 import { HOUR_MS, fetchHistory, normalizeToAxis, sampleNumeric, sharedAxis, stateAt } from "./history";
 import { absoluteHumidity, co2Value, lastSession, openDuring, progress } from "./ventilation";
 import type { VentilationSession } from "./ventilation";
@@ -351,10 +350,7 @@ export class HaKlimaDashboard extends LitElement {
    * that the system colour scheme of the browser.
    */
   private theme(): Theme {
-    const setting = this._config?.theme ?? "auto";
-    if (setting !== "auto") {
-      return setting;
-    }
+    // No setting of its own (HIG Dark Mode; uživatel 14. 11. 2026: „Q236 ano“): the mode of Home Assistant, else of the system.
     const dark = this.hass?.themes?.darkMode;
     return (typeof dark === "boolean" ? dark : this._prefersDark) ? "dark" : "light";
   }
@@ -673,7 +669,6 @@ export class HaKlimaDashboard extends LitElement {
     const pm25 = this.pm25Reading(room, now);
     const { t } = this._i18n;
     const status = getRoomStatus({ temperature, humidity, co2, pm25 }, isSummer, modeKnown, room, t);
-    const image = room.image;
     // The measurement that decided the status is drawn in the status colour (CURRENT_SPEC.md,
     // Stavový systém); the other values stay neutral.
     const causeColour = (cause: "temperature" | "humidity") =>
@@ -684,9 +679,9 @@ export class HaKlimaDashboard extends LitElement {
       <div class="room-cell"><article
         class="room ${!room.cover && !room.hasCo2 && !room.hasPm25 ? "compact" : ""}"
         aria-label=${this.roomLabel(room)}
-        style=${image?.kind === "scene" ? `--scene-tone: ${sceneTone(image.scene)}` : nothing}
       >
-        ${this.renderImage(room)}
+        <div class="room-head">
+        <div class="room-id">
         ${this.renderTitle(room, index)}
         <div class="status-line">
           <span
@@ -698,6 +693,7 @@ export class HaKlimaDashboard extends LitElement {
           <span style=${`color: ${status.color}; font-weight: ${status.kind === "normal" ? 400 : 500}`}>
             ${joinedText(status.label)}
           </span>
+        </div>
         </div>
         <div class="measurements">
           <button
@@ -737,6 +733,7 @@ export class HaKlimaDashboard extends LitElement {
               : html`${this._i18n.percent(Math.round(humidity.value))}${this.staleMark(humidity)}`}
           </button>
         </div>
+        </div>
         <div class="lower">
           <div class="info">
             ${this.renderAirBlock(room, index, co2, pm25, axes)}
@@ -751,23 +748,6 @@ export class HaKlimaDashboard extends LitElement {
         </div>
       </article></div>
     `;
-  }
-
-  /**
-   * Picture in the top-right corner (CURRENT_SPEC.md, Room Card): a built-in line drawing, or
-   * an image of the user's that fills the same soft rectangle. Both are decorative.
-   */
-  private renderImage(room: Room): TemplateResult | typeof nothing {
-    const image = room.image;
-    if (!image) {
-      return nothing;
-    }
-    if (image.kind === "scene") {
-      return html`<div class="scene" aria-hidden="true">${renderScene(image.scene)}</div>`;
-    }
-    return html`<div class="scene photo" aria-hidden="true">
-      <img src=${image.url} alt="" loading="lazy" decoding="async" />
-    </div>`;
   }
 
   /** Room name; with `link` a button that opens the page or address (CURRENT_SPEC.md, Room Card). */

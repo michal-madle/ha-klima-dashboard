@@ -1,5 +1,5 @@
 import { allTexts, checkKeys, entityId as kitEntityId, fail, isRecord, languageSetting, localizedText, section, text, withCardName } from "ha-dashboard-kit/config";
-import { BLIND_ICONS, ROOM_SCENES, SCENE_NONE } from "./types";
+import { BLIND_ICONS } from "./types";
 import type {
   BlindIcon,
   BlindPreset,
@@ -10,10 +10,7 @@ import type {
   PresetInput,
   Room,
   RoomConfig,
-  RoomImage,
-  RoomScene,
   Settings,
-  ThemeSetting,
   TrendSettings,
   WindowConfig,
 } from "./types";
@@ -78,18 +75,7 @@ export const DEFAULT_PRESETS: PresetInput[] = BLIND_ICONS.map((icon) => ({ icon,
 
 export const DEFAULT_HOUSE_MODES = { winter: "Zima", summer: "Léto" };
 
-const THEMES: readonly ThemeSetting[] = ["auto", "dark", "light"];
 const MAX_PRESETS = 3;
-
-/** Default illustration by room name (lower case, without diacritics). */
-const SCENE_BY_NAME: Record<string, RoomScene> = {
-  loznice: "bedroom",
-  pracovna: "office",
-  maxik: "kids",
-  mikulas: "kids",
-  obyvak: "living",
-  "obyvaci pokoj": "living",
-};
 
 const ROOM_KEYS = [
   "name",
@@ -259,37 +245,6 @@ function airSensor(value: unknown, where: string): { entity?: string; present: b
   return { entity: entityId(value, where), present: true };
 }
 
-function image(room: RoomConfig, where: string): RoomImage | undefined {
-  if (room.image != null && room.scene != null) {
-    fail(`${where}: use either image or scene (older name), not both.`);
-  }
-  const key = room.image != null ? "image" : "scene";
-  const value = room.image ?? room.scene;
-  if (value === undefined || value === null) {
-    // The illustration is chosen from the room name, in any of its languages.
-    const scene = allTexts(room.name).map((name) => SCENE_BY_NAME[plainText(name)]).find((found) => found !== undefined);
-    return scene ? { kind: "scene", scene } : undefined;
-  }
-  if (typeof value !== "string" || !value.trim()) {
-    fail(`${where}.${key} must be ${[...ROOM_SCENES, SCENE_NONE].join(", ")} or the address of an image.`);
-  }
-  const choice = value.trim();
-  if (choice === SCENE_NONE) {
-    return undefined;
-  }
-  if ((ROOM_SCENES as readonly string[]).includes(choice)) {
-    return { kind: "scene", scene: choice as RoomScene };
-  }
-  if (key === "image" && /^(\/|https?:\/\/|data:image\/)/i.test(choice)) {
-    return { kind: "url", url: choice };
-  }
-  fail(
-    `${where}.${key} must be one of ${[...ROOM_SCENES, SCENE_NONE].join(", ")}${
-      key === "image" ? " or an image address starting with /, http:// or https://" : ""
-    }.`,
-  );
-}
-
 function link(value: unknown, where: string): string | undefined {
   const target = text(value, `${where}.link`);
   if (target !== undefined && !/^(\/|https?:\/\/)/i.test(target)) {
@@ -363,7 +318,6 @@ function normalizeRoom(
     thresholds,
     heating,
     air_conditioner: entityId(room.air_conditioner, `${where}.air_conditioner`),
-    image: image(room, where),
     link: link(room.link, where),
   };
 }
@@ -375,10 +329,6 @@ export function normalizeConfig(config: DashboardConfig): Settings {
 function normalize(config: DashboardConfig): Settings {
   if (!isRecord(config) || !Array.isArray(config.rooms) || config.rooms.length === 0) {
     fail("the configuration requires a non-empty rooms list.");
-  }
-  const theme = config.theme ?? "auto";
-  if (!THEMES.includes(theme)) {
-    fail(`theme must be one of ${THEMES.join(", ")}.`);
   }
   const language = languageSetting(config.language);
   const houseModeEntity = entityId(config.house_mode_entity, "house_mode_entity") ?? HOUSE_MODE_ENTITY;
@@ -469,7 +419,6 @@ function normalize(config: DashboardConfig): Settings {
   }
 
   return {
-    theme,
     language,
     houseModeEntity,
     houseModes,

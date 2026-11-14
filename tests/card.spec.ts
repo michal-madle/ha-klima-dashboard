@@ -197,11 +197,9 @@ const measureLayout = (page: Page) =>
       const hvac = box(room.querySelector(".hvac"))!;
       const panel = box(room.querySelector(".cover-panel"));
       const presets = box(room.querySelector(".presets"));
-      const drawing = box(room.querySelector(".scene svg"));
+      const measurements = box(room.querySelector(".measurements"))!;
       const dot = box(room.querySelector(".slot-co2 .spark-dot"));
       const rail = box(room.querySelector(".preset svg rect"));
-      // The drawing sits in the upper part of its 112 px box; measure to the lowest stroke.
-      const lowest = Math.max(...[...room.querySelectorAll(".scene svg *")].map((node) => node.getBoundingClientRect().bottom));
       return {
         name: room.getAttribute("aria-label"),
         width: Math.round(box(room)!.width),
@@ -217,13 +215,12 @@ const measureLayout = (page: Page) =>
               }
             : undefined,
         trendEnd: panel && dot && rail ? { trend: panel.left - dot.right, preset: rail.left - panel.right } : undefined,
-        drawingAbovePanel: drawing && panel && panel.height > 0 ? panel.top - Math.min(lowest, drawing.bottom) : undefined,
-        overlaps: drawing
-          ? [
-              hit(drawing, box(room.querySelector(".humidity"))!) ? "vlhkost" : "",
-              hit(drawing, nameBox(room.querySelector(".room-title")!)) ? "název" : "",
-            ].filter(Boolean)
-          : [],
+        // The head of the room (uživatel 14. 11. 2026: „Q229 B“): the temperature and the humidity right of the name, nothing covers the other.
+        overlaps: [
+          hit(measurements, nameBox(room.querySelector(".room-title")!)) ? "název" : "",
+          hit(measurements, box(room.querySelector(".status-line"))!) && nameBox(room.querySelector(".status-line span:last-child")!).right > measurements.left ? "stav" : "",
+          measurements.right > box(room)!.right - 12 ? "pravý okraj" : "",
+        ].filter(Boolean),
         airRows: [...room.querySelectorAll(".air-row")].flatMap((row) => {
           const label = row.querySelector(".row-label");
           const unit = row.querySelector(".row-unit");
@@ -380,7 +377,7 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
   test("příklad YAML obsahuje úplně všechna nastavení", async () => {
     // Every key of the configuration contract as a path; "[]" is an item of a list.
     const all = [
-      "type", "theme", "language", "house_mode_entity", "house_modes.winter", "house_modes.summer",
+      "type", "language", "house_mode_entity", "house_modes.winter", "house_modes.summer",
       "ventilation_entity", "ventilation_timer_entity", "ventilation_co2_target", "ventilation_co2_full", "ventilation_settle_minutes", "send_delay_seconds",
       ...["temperature", "minimum", "maximum", "rain_probability", "pm25", "weather", "humidity"].map((key) => `outside.${key}`),
       ...["humidity_min", "humidity_max", "co2_warning", "co2_critical", "pm25_warning", "pm25_critical", "winter_min",
@@ -389,7 +386,7 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
       ...["hours", "min_temperature_span"].map((key) => `history.${key}`),
       "covers.script", "covers.tolerance", "covers.stall_seconds",
       ...["name", "icon", "position", "tilt", "description"].map((key) => `covers.presets[].${key}`),
-      ...["name", "image", "link", "temperature", "humidity", "carbon_dioxide", "pm25", "window[].entity", "window[].name",
+      ...["name", "link", "temperature", "humidity", "carbon_dioxide", "pm25", "window[].entity", "window[].name",
         "cover", "cover_presets", "thresholds", "heating.climate", "heating.overlay", "heating.target", "heating.intensity",
         "air_conditioner"].map((key) => `rooms[].${key}`),
     ];
@@ -408,7 +405,7 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
     // Every room lists every room key (an empty value is the default).
     for (const room of example().rooms as Array<Record<string, unknown>>) {
       expect(Object.keys(room), room.name as string).toEqual([
-        "name", "image", "link", "temperature", "humidity", "carbon_dioxide", "pm25", "window", "cover",
+        "name", "link", "temperature", "humidity", "carbon_dioxide", "pm25", "window", "cover",
         "cover_presets", "thresholds", "heating", "air_conditioner",
       ]);
     }
@@ -469,7 +466,6 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
         [{ thresholds: { heating_waves_2: 70 } }, {}, /heating_waves_2 \(70\) must be below heating_waves_3 \(68\)/],
         [{ trends: { minutes: 5 } }, {}, /trends\.minutes must be a whole number from 10 to 1440/],
         [{ history: { hours: 0 } }, {}, /history\.hours must be a whole number from 1 to 168/],
-        [{ theme: "blue" }, {}, /theme must be one of auto, dark, light/],
         [{ language: "de" }, {}, /language must be one of auto, cs, en, sv/],
         [{ house_modes: { winter: "Léto", summer: "leto" } }, {}, /must differ/],
         [{ covers: { presets: [...preset({}), ...preset({}), ...preset({}), ...preset({})] } }, {}, /covers\.presets must be a list of 1 to 3 presets/],
@@ -479,8 +475,6 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
         [{}, { window: [] }, /window must not be an empty list/],
         [{}, { window: ["binary_sensor.a", "binary_sensor.a"] }, /lists binary_sensor\.a twice/],
         [{}, { windows: ["binary_sensor.a"] }, /the key is "window"/],
-        [{}, { image: "javascript:alert(1)" }, /image must be one of bedroom, office, kids, living, none or an image address/],
-        [{}, { image: "bedroom", scene: "office" }, /either image or scene/],
         [{}, { link: "lovelace/loznice" }, /link must be a Home Assistant path/],
         [{}, { carbon_dioxide: true }, /carbon_dioxide must be an entity ID/],
         [{}, { thresholds: { winter_min: 25 } }, /room "Ložnice"\.thresholds: winter_min \(25\) must be at most winter_max \(24\)/],
@@ -490,7 +484,7 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
       for (const [top, room, message] of cases) {
         expect(await configError(top, room), JSON.stringify([top, room])).toMatch(message);
       }
-      // Accepted: the older `scene`, one window as a text, `false` for a missing sensor, empty title,
+      // Accepted: the old keys `image`, `scene` and `theme` (skipped), one window as a text, `false` for a missing sensor, empty title,
       // a preset without a name (named after its icon in the card language), and a key without a
       // value (null in YAML), which is the default as in the example.
       const accepted: Array<[Record<string, unknown>, Record<string, unknown>]> = [
@@ -514,7 +508,7 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
       expect(tidy(await statuses(page))).toEqual(["Příjemné", "Příjemné", "Chladno", "Příjemné", "Příjemné"]);
       const wavesLit = () =>
         rooms(page).first().locator(".hvac .row-icon").first().evaluate((icon) =>
-          [...icon.querySelectorAll("path")].filter((path) => getComputedStyle(path).stroke === "rgb(255, 159, 10)").length,
+          [...icon.querySelectorAll("path")].filter((path) => getComputedStyle(path).stroke === "rgb(255, 146, 48)").length,
         );
       expect(await wavesLit()).toBe(1); // Ložnice 20 %: one wave by the default bands.
       await reconfigure(page, { thresholds: { heating_waves_2: 10, heating_waves_3: 15 }, house_modes: { winter: "Topná sezóna", summer: "Chladicí sezóna" } });
@@ -854,10 +848,9 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
       await page.clock.setFixedTime(new Date("2026-10-24T09:00:00+02:00"));
       await open(page, "config");
       const maxik = rooms(page).nth(2);
-      await expect(maxik.locator(".scene.photo img")).toHaveAttribute("src", /^data:image\/svg\+xml,/);
-      await expect(maxik.locator(".scene.photo img")).toHaveAttribute("alt", "");
-      await expect(maxik.locator(".scene")).toHaveAttribute("aria-hidden", "true");
-      // The picture fades out like the illustration and does not cover the values.
+      // The card has no illustrations any more (uživatel 14. 11. 2026: „Q229 B“): the old key `image` of Maxík is skipped.
+      await expect(maxik.locator(".scene, img")).toHaveCount(0);
+      // The temperature and the humidity sit right of the name; nothing covers the values.
       expect((await measureLayout(page)).rooms.flatMap((room) => room.overlaps.map((what) => `${room.name}: ${what}`))).toEqual([]);
       // trends: 60 min, 7 samples; history 12 h (texts for screen readers too).
       const points = await rooms(page).first().locator(".slot-co2 polyline").getAttribute("points");
@@ -1054,8 +1047,6 @@ test.describe("rozložení na všech šířkách (Room Card, Dashboard Domov)", 
             // Topení + Klimatizace: one target ≥ 44 px over at least the whole left column.
             expect(room.hvac.height, `${at}: ${room.name}`).toBeGreaterThanOrEqual(44);
             expect(room.hvac.short, `${at}: ${room.name}`).toBeLessThanOrEqual(0.5);
-            // The illustration ends at least 22 px above the blind panel.
-            if (room.drawingAbovePanel !== undefined) expect(room.drawingAbovePanel, `${at}: ${room.name}`).toBeGreaterThanOrEqual(22);
           }
           // Presets right of the panel, as tall as it, top to bottom Den, Stín, Tma.
           expect(first.presets!.gap, at).toBeGreaterThanOrEqual(0);
@@ -1175,7 +1166,7 @@ test.describe("scénáře: stav místnosti, souhrn, barvy a konflikty (Stavový 
       // Ložnice, Maxík and Obývák heat with the window open: a dot at the window, "konflikt" for the screen reader.
       await expect(page.locator(".conflict-dot")).toHaveCount(3);
       await expect(page.locator(".slot-window").first()).toHaveAccessibleDescription(/konflikt: otevřené okno při topení/);
-      await expect(rooms(page).first().locator(".slot-co2 .row-label")).toHaveCSS("color", "rgb(255, 69, 58)");
+      await expect(rooms(page).first().locator(".slot-co2 .row-label")).toHaveCSS("color", "rgb(255, 66, 69)");
       // The value that turned Příjemné into another status takes its colour.
       const colours = await causeColours(page);
       const neutral = colours[3]; // Mikuláš is calm
@@ -1367,25 +1358,24 @@ test.describe("přístupnost", () => {
 test.describe("světlý a tmavý režim, barvy (Barvy)", () => {
   test("režimy: auto podle Home Assistantu a barvy ikon", async ({ page }) => {
     test.setTimeout(120000);
-    await test.step("auto podle Home Assistantu (bez obnovení stránky), dark / light vynutí, bez údaje podle systému", async () => {
+    await test.step("podle Home Assistantu (bez obnovení stránky), starý klíč theme nic nevynutí, bez údaje podle systému", async () => {
       const theme = () => page.locator("ha-klima-dashboard");
       const roomLook = () =>
         rooms(page).first().evaluate((room) => ({ background: getComputedStyle(room).backgroundColor, color: getComputedStyle(room).color }));
       await open(page, "full");
       await expect(theme()).toHaveAttribute("data-theme", "dark");
       // The dark theme is the existing palette, unchanged.
-      expect(await roomLook()).toEqual({ background: "rgba(0, 0, 0, 0)", color: "rgb(255, 255, 255)" });
+      expect(await roomLook()).toEqual({ background: "rgb(28, 28, 30)", color: "rgb(255, 255, 255)" });
       await page.evaluate(() => {
         // @ts-expect-error test hook
         window.__test.setDarkMode(false);
       });
       await expect(theme()).toHaveAttribute("data-theme", "light");
       expect(await roomLook()).toEqual({ background: "rgb(255, 255, 255)", color: "rgb(28, 28, 30)" });
-      // theme: dark wins over a light Home Assistant.
+      // The card has no setting of its own (uživatel 14. 11. 2026: „Q236 ano“): the old key `theme` is skipped.
       await reconfigure(page, { theme: "dark" });
-      await expect(theme()).toHaveAttribute("data-theme", "dark");
+      await expect(theme()).toHaveAttribute("data-theme", "light");
       // Without the dark mode from Home Assistant: the system colour scheme, live.
-      await reconfigure(page, { theme: "auto" });
       await page.evaluate(() => {
         // @ts-expect-error test hook
         window.__test.dropThemes();
@@ -1833,7 +1823,7 @@ test.describe("kvalita vzduchu, okno a hlavička (Room Card, Vizuální pravidla
       return { label: label.color, duration: duration.color, weight: duration.fontWeight };
     });
     expect(look.duration).not.toBe(look.label);
-    expect(look.duration).toBe("rgb(154, 154, 160)");
+    expect(look.duration).toBe("rgb(152, 152, 159)");
     expect(look.weight).toBe("400");
     // Every half minute the time moves on and changes its units.
     await page.clock.fastForward("01:02:00");

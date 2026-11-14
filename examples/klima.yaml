@@ -14,7 +14,6 @@ type: custom:ha-klima-dashboard
 # -----------------------------------------------------------------------------
 # 1. SPOLEČNÉ NASTAVENÍ PRO CELÝ DŮM (platí pro všechny místnosti)
 # -----------------------------------------------------------------------------
-theme: auto                     # barvy: auto (podle Home Assistantu / Vzhledu iPhonu), dark, light
 language: auto                  # jazyk: auto (podle Home Assistantu: čeština, švédština, jinak angličtina), cs, sv, en
 
 # Režim domu: Zima / Léto (pořadí Topení a Klimatizace, komfortní pásmo).
@@ -112,8 +111,6 @@ covers:
 
 # -----------------------------------------------------------------------------
 # 2. MÍSTNOSTI (v tomto pořadí na kartě)
-#   image: bedroom | office | kids | living | none, nebo adresa vlastního obrázku
-#          (/local/klima/loznice.jpg = soubor /config/www/klima/loznice.jpg)
 #   link: řádek „Stránka místnosti“ v listu místnosti otevře stránku (/lovelace/loznice) nebo https://…
 #   carbon_dioxide / pm25: entita čidla; false = místnost čidlo nemá (řádek zmizí,
 #          stav místnosti ho nepotřebuje); prázdné = čidlo zatím chybí („Bez dat“)
@@ -127,7 +124,6 @@ rooms:
       cs: Ložnice
       en: Bedroom
       sv: Sovrum
-    image: bedroom
     link: null
     temperature: sensor.loznice_teplomer_loznice_temperature
     humidity: sensor.loznice_teplomer_loznice_humidity
@@ -152,7 +148,6 @@ rooms:
       cs: Pracovna
       en: Study
       sv: Arbetsrum
-    image: office
     link: null
     temperature: sensor.pracovna_teplomer_pracovna_temperature
     humidity: sensor.pracovna_teplomer_pracovna_humidity
@@ -177,7 +172,6 @@ rooms:
       cs: Maxík
       en: Maxík
       sv: Maxík
-    image: kids
     link: null
     temperature: sensor.maxik_teplomer_maxik_temperature
     humidity: sensor.maxik_teplomer_maxik_humidity
@@ -202,7 +196,6 @@ rooms:
       cs: Mikuláš
       en: Mikuláš
       sv: Mikuláš
-    image: kids
     link: null
     temperature: sensor.mikulas_teplomer_mikulas_temperature
     humidity: sensor.mikulas_teplomer_mikulas_humidity
@@ -227,7 +220,6 @@ rooms:
       cs: Obývák
       en: Living room
       sv: Vardagsrum
-    image: living
     link: null
     temperature: sensor.obyvak_teplomer_obyvak_temperature
     humidity: sensor.obyvak_teplomer_obyvak_humidity
