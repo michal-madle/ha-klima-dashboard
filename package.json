@@ -2,7 +2,7 @@
   "name": "ha-klima-dashboard",
   "description": "Klima Dashboard: Lovelace card for Home Assistant (rooms, air, heating, cooling, blinds)",
   "license": "MIT",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "private": true,
   "type": "module",
   "scripts": {

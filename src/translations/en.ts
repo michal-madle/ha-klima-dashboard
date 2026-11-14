@@ -172,6 +172,8 @@ export const en: Texts = {
   },
 
   summaryChips: {
+    /** The heading of the conflicts above the chips, as in the card Dům. */
+    needsYou: "Needs you",
     rooms: (count) => `${count} ${plural(count, "room", "rooms")}`,
     conflict: {
       "window-heating": "Window open · heating on",

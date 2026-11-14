@@ -166,6 +166,50 @@ export const styles = css`
     }
 
     /* House summary: chips only for what differs from a quiet house. */
+    /* Conflicts as rows "Potřebuje tebe" (CURRENT_SPEC.md, Konflikty): a small heading and one group of rows of the kit. */
+    .attention {
+      margin-top: 10px;
+    }
+
+    .section-label {
+      margin: 0 4px 6px;
+      color: var(--kd-label);
+      font-size: 13px;
+      font-weight: 400;
+      line-height: 18px;
+      text-transform: uppercase;
+    }
+
+    .list-options.attention-list {
+      background: var(--kd-card-bg);
+    }
+
+    .attention-row {
+      gap: 12px;
+      min-height: 60px;
+      padding: 8px 12px;
+      cursor: pointer;
+    }
+
+    .attention-icon {
+      display: grid;
+      place-items: center;
+      width: 36px;
+      height: 36px;
+      flex: none;
+      border-radius: 8px;
+      background: color-mix(in srgb, var(--kd-warning) var(--kd-chip-tint), var(--kd-card-bg));
+      color: var(--kd-warning);
+      font-size: 17px;
+      font-weight: 700;
+    }
+
+    .list-option .option-hint.attention-reason {
+      color: var(--kd-warning);
+      font-size: 15px;
+      line-height: 20px;
+    }
+
     .summary {
       display: flex;
       flex-wrap: wrap;

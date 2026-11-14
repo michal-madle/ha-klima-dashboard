@@ -612,8 +612,41 @@ export class HaKlimaDashboard extends LitElement {
     if (chips.length === 0) {
       return nothing;
     }
-    return html`<ul class="summary" aria-label=${this._i18n.t.summary}>
-      ${chips.map((chip) => {
+    // Conflicts are rows "Potřebuje tebe" as in the card Dům (uživatel 14. 11. 2026: „Q233 B“): the rooms, the reason and a
+    // chevron into the popup that settles it. The other chips stay chips.
+    const conflicts = chips.filter((chip) => chip.conflict !== undefined);
+    const rest = chips.filter((chip) => chip.conflict === undefined);
+    const { t } = this._i18n;
+    const attention =
+      conflicts.length === 0
+        ? nothing
+        : html`<section class="attention" aria-label=${t.summaryChips.needsYou}>
+            <h2 class="section-label">${joined([t.summaryChips.needsYou, String(conflicts.length)])}</h2>
+            <div class="options list-options attention-list">
+              ${conflicts.map((chip) => {
+                const conflict = chip.conflict!;
+                const names = conflict.labels.length <= 2 ? conflict.labels.join(", ") : t.summaryChips.rooms(conflict.labels.length);
+                return html`<button
+                  type="button"
+                  class="plain-button option list-option attention-row"
+                  title=${chip.spoken}
+                  aria-haspopup="dialog"
+                  @click=${(event: Event) => this.openGroupSheet(conflict.system, conflict.rooms, event)}
+                >
+                  <span class="attention-icon" aria-hidden="true">!</span>
+                  <span class="option-text">
+                    <span>${names}</span>
+                    <span class="option-hint attention-reason">${joinedText(conflict.reason)}</span>
+                  </span>
+                  <span class="list-chevron" aria-hidden="true">›</span>
+                </button>`;
+              })}
+            </div>
+          </section>`;
+    return html`${attention}${rest.length === 0
+      ? nothing
+      : html`<ul class="summary" aria-label=${this._i18n.t.summary}>
+      ${rest.map((chip) => {
         const icon = this.summaryIcon(chip);
         const opens = chip.opens;
         if (opens && opens.rooms.length > 0) {
@@ -635,7 +668,7 @@ export class HaKlimaDashboard extends LitElement {
           <span class="chip-icon" aria-hidden="true">${icon}</span>${chip.text}
         </li>`;
       })}
-    </ul>`;
+    </ul>`}`;
   }
 
   /** The icon of a summary chip (window, air conditioner, heating option or waves). */

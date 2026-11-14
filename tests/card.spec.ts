@@ -1159,10 +1159,19 @@ test.describe("scénáře: stav místnosti, souhrn, barvy a konflikty (Stavový 
       await page.evaluate(() => { try { localStorage.clear(); } catch { /* no storage */ } });
       await open(page, "alarm");
       expect(tidy(await statuses(page)).slice(0, 3)).toEqual(["Silně vydýchaný vzduch", "Znečištěný vzduch", "Vlhko"]);
-      // Conflicts (open window while heating) come first, then the usual house summary.
+      // Conflicts (open window while heating) are rows "Potřebuje tebe" above the chips (uživatel 14. 11. 2026: „Q233 B“), as in the card Dům.
+      await expect(page.locator(".attention .section-label")).toHaveText(/Potřebuje tebe\s*·\s*1/i);
+      const conflict = page.locator(".attention-row");
+      await expect(conflict).toHaveCount(1);
+      await expect(conflict).toContainText("3 místnosti");
+      await expect(conflict).toContainText(/Okno otevřené\s*·\s*topí se/);
       const chips = tidy(await page.locator(".summary .chip").allInnerTexts());
-      expect(chips[0]).toMatch(/^Okno otevřené · topí se: /);
-      expect(chips.slice(1)).toEqual(["5 oken otevřených", "Ručně: 5 místností", "Topí 3 místnosti"]);
+      expect(chips).toEqual(["5 oken otevřených", "Ručně: 5 místností", "Topí 3 místnosti"]);
+      // The row opens the popup Topení for exactly the rooms of the conflict.
+      await conflict.click();
+      await expect(page.locator("kd-climate")).toBeVisible();
+      expect(await page.locator("kd-climate .rooms kd-tile").evaluateAll((tiles) => tiles.filter((tile) => tile.shadowRoot?.querySelector("button")?.getAttribute("aria-pressed") === "true").length)).toBe(3);
+      await closePopup(page);
       // Ložnice, Maxík and Obývák heat with the window open: a dot at the window, "konflikt" for the screen reader.
       await expect(page.locator(".conflict-dot")).toHaveCount(3);
       await expect(page.locator(".slot-window").first()).toHaveAccessibleDescription(/konflikt: otevřené okno při topení/);
@@ -1199,11 +1208,13 @@ test.describe("scénáře: stav místnosti, souhrn, barvy a konflikty (Stavový 
         await row.evaluate((element) => element.querySelector(".row-unit")!.getBoundingClientRect().top - element.querySelector(".row-label")!.getBoundingClientRect().top > 2),
       ).toBe(false);
       // An open window with cooling is reported once; with the window closed it is "cooling although cold".
-      const chips = tidy(await page.locator(".summary .chip").allInnerTexts());
-      expect(chips).toContain("Okno otevřené · chladí se: Pracovna");
-      expect(chips.join("|")).not.toContain("i když je chladno");
+      const conflict = page.locator(".attention-row");
+      await expect(conflict).toHaveCount(1);
+      await expect(conflict).toContainText("Pracovna");
+      await expect(conflict).toContainText(/Okno otevřené\s*·\s*chladí se/);
       await setStates(page, { "binary_sensor.pracovna_okno_pracovna": "off" });
-      await expect(page.locator(".summary .chip").first()).toHaveText(/Chladí se, i když je chladno: Pracovna/);
+      await expect(conflict).toHaveCount(1);
+      await expect(conflict).toContainText("Chladí se, i když je chladno");
     });
   });
 

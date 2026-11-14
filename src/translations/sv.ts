@@ -173,6 +173,8 @@ export const sv: Texts = {
   },
 
   summaryChips: {
+    /** The heading of the conflicts above the chips, as in the card Dům. */
+    needsYou: "Behöver dig",
     rooms: (count) => `${count} rum`,
     conflict: {
       "window-heating": "Fönster öppet · värme på",

@@ -16,6 +16,8 @@ export interface SummaryChip {
   waves?: number;
   /** Heating and air-conditioning chips open the popup for exactly these rooms (in card order). */
   opens?: { system: "heating" | "climate"; rooms: string[] };
+  /** A conflict: its reason in words, the rooms it is in (identities and shown names) and the system whose popup settles it. */
+  conflict?: { reason: string; rooms: string[]; labels: string[]; system: "heating" | "climate" };
 }
 
 /** Up to two room names, otherwise a count ("Ložnice, Pracovna" / "3 místnosti"). */
@@ -136,6 +138,12 @@ export function houseSummary(
         text: `${texts.conflict[conflict]}: ${namesOrCount(show(conflicts[conflict]), i18n)}`,
         color: COLORS.warning,
         spoken: `${texts.conflictSpoken[conflict]}: ${show(conflicts[conflict]).join(", ")}`,
+        conflict: {
+          reason: texts.conflict[conflict],
+          rooms: conflicts[conflict],
+          labels: show(conflicts[conflict]),
+          system: conflict === "window-heating" ? "heating" : "climate",
+        },
       });
     }
   }

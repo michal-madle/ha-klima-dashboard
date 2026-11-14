@@ -201,6 +201,8 @@ export const cs = {
 
   // House summary chips (Dashboard Domov, Konflikty)
   summaryChips: {
+    /** The heading of the conflicts above the chips, as in the card Dům. */
+    needsYou: "Potřebuje tebe",
     rooms: (count: number) => `${count} ${plural(count, "místnost", "místnosti", "místností")}`,
     conflict: {
       "window-heating": "Okno otevřené · topí se",
