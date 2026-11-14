@@ -3,10 +3,15 @@
  * the shared one of the kit (ha-dashboard-kit/climate). Pure helpers, no DOM.
  */
 
-/** Target (°C) Tado reports while the heating is off; Vypnuto for a limited time is a timer at this value. */
-export const HEATING_OFF_TARGET = 5;
+import { BOOST_TEMPERATURE, OFF_TEMPERATURE } from "ha-dashboard-kit/climate";
+
+/**
+ * Target (°C) Tado reports while the heating is off; Vypnuto for a limited time is a timer at this value. The rule is the
+ * kit's, the same in every card (uživatel 14. 11. 2026: „Je to vlastnost kitu, common chování“).
+ */
+export const HEATING_OFF_TARGET = OFF_TEMPERATURE;
 /** Boost is a fixed target (Tado app: 25 °C). */
-export const BOOST_TEMPERATURE = 25;
+export { BOOST_TEMPERATURE };
 
 export function numberOf(value: unknown): number | undefined {
   const number = typeof value === "string" ? Number.parseFloat(value) : value;

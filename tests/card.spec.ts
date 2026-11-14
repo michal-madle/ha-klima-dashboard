@@ -2530,9 +2530,16 @@ test.describe("popup Topení / Klimatizace (CURRENT_SPEC.md kitu, Popup Topení 
     const { rooms: all } = await config(page);
     await openPopup(page, ".hvac");
     await page.locator("kd-climate kd-segmented").first().getByRole("radio", { name: "Boost" }).click();
-    await expect(page.locator("kd-climate kd-segmented").nth(1).getByRole("radio")).toHaveText(["Do změny plánu", "30 min", "1 h", "3 h", "Trvale"]);
+    await expect(page.locator("kd-climate kd-segmented").nth(1).getByRole("radio")).toHaveText(["Do plánu", "30 min", "1 h", "3 h", "Trvale"]);
     await closePopup(page);
     await expect.poll(() => services(page)).toEqual([["tado_ce", "set_climate_timer", { entity_id: all[0].heating.climate, temperature: 25, time_period: "00:30:00" }]]);
+    // Vypnuto takes a duration too (uživatel 14. 11. 2026: „vypnout jen na hodinu a nezapomněl“): a timer at 5 °C, then back to the schedule.
+    await openPopup(page, ".hvac");
+    await page.locator("kd-climate kd-segmented").first().getByRole("radio", { name: "Vypnuto" }).click();
+    await expect(page.locator("kd-climate h3").nth(1)).toHaveText("Vypnuto platí");
+    await page.locator("kd-climate kd-segmented").nth(1).getByRole("radio", { name: "1 h" }).click();
+    await closePopup(page);
+    await expect.poll(async () => (await services(page)).at(-1)).toEqual(["tado_ce", "set_climate_timer", { entity_id: all[0].heating.climate, temperature: 5, time_period: "01:00:00" }]);
     await page.goto("/tests/harness.html?s=full&timer=none");
     await page.locator(".room").first().waitFor();
     await openPopup(page, ".hvac");
