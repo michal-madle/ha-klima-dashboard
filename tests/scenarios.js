@@ -242,7 +242,10 @@ const hass = {
     message.type === "execute_script"
       ? // A script Home Assistant runs by itself (switch-off after a timer): only recorded.
         (test.scripts.push(message), {})
-      : Object.fromEntries(
+      : message.type === "call_service"
+        ? // The forecast of a weather entity (weather.get_forecasts); `test.forecast` holds its daily and hourly entries.
+          { response: { [message.target.entity_id]: { forecast: test.forecast?.[message.service_data.type] ?? [] } } }
+        : Object.fromEntries(
       message.entity_ids.map((id) => {
         // The card asks the history for the start of the current state (a window, the ventilation mode): a week back.
         // Like Home Assistant without a restart: one row, the state since its last_changed; `test.runHistoryFor` replaces it.

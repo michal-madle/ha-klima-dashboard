@@ -33,6 +33,9 @@ export const cs = {
   // Header (Dashboard Domov)
   /** The tile "Venku" at the top of the card and its popup (CURRENT_SPEC.md, Sjednocení s Energií a Domem, Horní řádek). */
   outside: {
+    next24: "Příštích 24 hodin",
+    rainMost: (amount: string) => `srážky nejvíc ${amount}`,
+    noRain: "bez srážek",
     title: "Venku",
     temperature: "Teplota",
     weather: "Počasí",
@@ -224,6 +227,9 @@ export const cs = {
 
   // Větrací režim: popup ze štítku souhrnu domu (CURRENT_SPEC.md, Větrací režim)
   ventilation: {
+    /** What airing does to the humidity now: the grams of water in a cubic metre of air outside against the rooms. */
+    effect: { dries: "Větrání vzduch vysuší", wets: "Větrání vzduch zvlhčí", keeps: "Větrání vlhkost nezmění" },
+    effectDetail: (outside: string, inside: string) => `venku ${outside} g/m³, uvnitř ${inside} g/m³`,
     start: "Spustit větrání",
     starting: "Spouští se…",
     off: "Vypnuto",

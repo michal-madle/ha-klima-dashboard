@@ -26,6 +26,9 @@ export const en: Texts = {
 
   /** The tile "Venku" at the top of the card and its popup (CURRENT_SPEC.md, Sjednocení s Energií a Domem, Horní řádek). */
   outside: {
+    next24: "Next 24 hours",
+    rainMost: (amount) => `rain at most ${amount}`,
+    noRain: "no rain",
     title: "Outside",
     temperature: "Temperature",
     weather: "Weather",
@@ -194,6 +197,9 @@ export const en: Texts = {
   },
 
   ventilation: {
+    /** What airing does to the humidity now: the grams of water in a cubic metre of air outside against the rooms. */
+    effect: { dries: "Ventilation will dry the air", wets: "Ventilation will make the air more humid", keeps: "Ventilation will not change the humidity" },
+    effectDetail: (outside, inside) => `outside ${outside} g/m³, inside ${inside} g/m³`,
     start: "Start ventilation",
     starting: "Starting…",
     off: "Off",

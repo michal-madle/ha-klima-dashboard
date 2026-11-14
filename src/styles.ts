@@ -1460,6 +1460,47 @@ export const styles = css`
       text-align: center;
     }
 
+    /* What airing does to the humidity: the verdict, and under it the two numbers it comes from. */
+    .vent-effect {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      margin: 0 4px 12px;
+      color: var(--kd-label);
+      font-size: 15px;
+      line-height: 20px;
+    }
+
+    .vent-effect strong {
+      color: var(--kd-text);
+      font-size: 17px;
+      font-weight: 600;
+      line-height: 22px;
+    }
+
+    /* The next 24 hours in the popup Venku. */
+    .forecast {
+      margin-top: 16px;
+    }
+
+    .forecast-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 0 4px 6px;
+      font-size: 15px;
+      line-height: 20px;
+    }
+
+    .forecast-rain {
+      color: var(--kd-label);
+    }
+
+    .forecast-chart {
+      display: block;
+      max-width: 100%;
+    }
+
     .vent-start {
       background: #0a6ed1;
       color: #ffffff;

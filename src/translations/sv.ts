@@ -26,6 +26,9 @@ export const sv: Texts = {
 
   /** The tile "Venku" at the top of the card and its popup (CURRENT_SPEC.md, Sjednocení s Energií a Domem, Horní řádek). */
   outside: {
+    next24: "Kommande 24 timmar",
+    rainMost: (amount) => `nederbörd som mest ${amount}`,
+    noRain: "ingen nederbörd",
     title: "Ute",
     temperature: "Temperatur",
     weather: "Väder",
@@ -195,6 +198,9 @@ export const sv: Texts = {
   },
 
   ventilation: {
+    /** What airing does to the humidity now: the grams of water in a cubic metre of air outside against the rooms. */
+    effect: { dries: "Vädring torkar luften", wets: "Vädring gör luften fuktigare", keeps: "Vädring ändrar inte fukten" },
+    effectDetail: (outside, inside) => `ute ${outside} g/m³, inne ${inside} g/m³`,
     start: "Starta vädring",
     starting: "Startar…",
     off: "Av",

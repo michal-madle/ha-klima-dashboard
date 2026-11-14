@@ -380,7 +380,7 @@ test.describe("konfigurace (CURRENT_SPEC.md, Konfigurace)", () => {
     const all = [
       "type", "language", "house_mode_entity", "house_modes.winter", "house_modes.summer",
       "ventilation_entity", "ventilation_timer_entity", "ventilation_co2_target", "ventilation_co2_full", "ventilation_settle_minutes", "send_delay_seconds",
-      ...["temperature", "minimum", "maximum", "rain_probability", "pm25", "weather", "humidity"].map((key) => `outside.${key}`),
+      ...["temperature", "minimum", "maximum", "rain_probability", "pm25", "weather", "humidity", "forecast"].map((key) => `outside.${key}`),
       ...["humidity_min", "humidity_max", "co2_warning", "co2_critical", "pm25_warning", "pm25_critical", "winter_min",
         "winter_max", "summer_min", "summer_max", "stale_minutes", "heating_waves_2", "heating_waves_3"].map((key) => `thresholds.${key}`),
       ...["minutes", "samples", "temperature_step", "co2_step", "pm25_step"].map((key) => `trends.${key}`),
@@ -2863,5 +2863,48 @@ test.describe("horní řádek (CURRENT_SPEC.md, Sjednocení s Energií a Domem)"
     await vent.click();
     await page.getByRole("button", { name: "Spustit větrání" }).click();
     await expect.poll(async () => (await hook<unknown[]>(page, "services")).at(-1)).toEqual(["input_boolean", "turn_on", { entity_id: "input_boolean.ventilation_mode" }]);
+  });
+});
+
+test.describe("předpověď (CURRENT_SPEC.md, Dashboard Klima, Horní řádek)", () => {
+  test("den z předpovědi v dlaždici a popupu Venku, příštích 24 hodin jako graf; popup Větrací režim řekne, zda větrání vzduch vysuší", async ({ page }) => {
+    await open(page, "vent");
+    await page.evaluate(() => {
+      const hour = 3_600_000;
+      const now = Date.now();
+      const start = Math.floor(now / hour) * hour;
+      // @ts-expect-error test hook
+      const test = window.__test;
+      test.forecast = {
+        daily: [{ datetime: new Date(now).toISOString(), temperature: 10, templow: 2, precipitation: 2.4 }],
+        hourly: Array.from({ length: 30 }, (_, i) => ({ datetime: new Date(start + i * hour).toISOString(), temperature: 6 + Math.sin(i / 4) * 3, precipitation: i > 5 && i < 9 ? 0.8 : 0 })),
+      };
+      test.update({
+        "sensor.out_temperature": { state: "8", attributes: {} },
+        "weather.out": { state: "cloudy", attributes: {} },
+        "sensor.out_humidity": { state: "81", attributes: {} },
+        "input_boolean.ventilation_mode": { state: "off", attributes: {} },
+      });
+    });
+    // The forecast comes from its own entity (uživatel 14. 11. 2026: „Q240 A“); without a probability the rain is the amount of the day.
+    await reconfigure(page, { outside: { temperature: "sensor.out_temperature", weather: "weather.out", humidity: "sensor.out_humidity", forecast: "weather.forecast" } });
+    const outside = page.locator(".outside-tile");
+    await expect(outside).toContainText(/Zataženo\s*·\s*2–10\s°C\s*·\s*☂\s2,4\smm/);
+    await outside.click();
+    await expect(page.locator(".outside-list .static-row")).toHaveText([/Teplota/, /Počasí/, /Dnes\s*2–10\s°C/, /Déšť\s*2,4\smm/, /Vlhkost/]);
+    // The next 24 hours: the temperature line, the rain bars, 6 to 10 hour labels and the wettest hour in words.
+    await expect(page.locator(".forecast-head")).toContainText("Příštích 24 hodin");
+    await expect(page.locator(".forecast-rain")).toHaveText(/srážky nejvíc 0,8 mm\/h/);
+    await expect(page.locator(".forecast-chart .forecast-line")).toHaveCount(1);
+    await expect(page.locator(".forecast-chart .forecast-bar")).toHaveCount(3);
+    const labels = await page.locator(".forecast-chart text.tick").count();
+    expect(labels).toBeGreaterThanOrEqual(6);
+    expect(labels).toBeLessThanOrEqual(10);
+    expect(await axeViolations(page)).toEqual([]);
+    await closePopup(page);
+    // 8 °C and 81 % outside is 6,7 g/m³; the rooms hold more water, so airing dries the air.
+    await page.locator(".vent-tile").click();
+    await expect(page.locator(".vent-effect strong")).toHaveText("Větrání vzduch vysuší");
+    await expect(page.locator(".vent-effect span")).toHaveText(/^venku 6,7 g\/m³, uvnitř \d+,\d g\/m³$/);
   });
 });

@@ -25,6 +25,8 @@ import { pickText } from "ha-dashboard-kit/config";
 import { HoldOrDoubleTap } from "ha-dashboard-kit/gesture";
 import { RunStarts } from "ha-dashboard-kit/runstart";
 import { fitJoined, joined, joinedStyles, joinedText } from "ha-dashboard-kit/joined";
+import { fetchForecast, nextHours, renderForecastChart, today } from "./forecast";
+import type { Forecast } from "./forecast";
 import { cardLanguage, getI18n, hassLanguage } from "./i18n";
 import type { I18n } from "./i18n";
 import { styles } from "./styles";
@@ -105,6 +107,8 @@ const FLASH_MS = 700;
 /** How long the "hold or double tap" hint stays after a single tap on a preset. */
 /** A phone on its side or any short window: the history popup is full width (styles.ts). */
 const LANDSCAPE_QUERY = "(orientation: landscape) and (max-height: 600px)";
+/** How often the weather forecast is asked for again. */
+const FORECAST_REFRESH_MS = 30 * 60_000;
 /** The longer period of the charts of the room detail: a week. */
 const WEEK_HOURS = 168;
 const HINT_MS = 1_600;
@@ -166,6 +170,11 @@ export class HaKlimaDashboard extends LitElement {
   /** Time under the finger in the history chart; undefined = now. */
   @state()
   private _scrubTime?: number;
+
+  /** The forecast of `outside.forecast` (the day and the next hours); loaded with the trends, at most every half an hour. */
+  @state()
+  private _forecast?: Forecast;
+  private _forecastAt = 0;
 
   /** Period of the charts of the room detail in hours: `history.hours`, or a week (CURRENT_SPEC.md, Sjednocení, Období historie). */
   @state()
@@ -233,6 +242,9 @@ export class HaKlimaDashboard extends LitElement {
     this._trendsLoaded = false;
     this._reported = {};
     this._trendsStarted = false;
+    // Another configuration may name another forecast: it is asked for again with the trends.
+    this._forecast = undefined;
+    this._forecastAt = 0;
   }
 
   connectedCallback(): void {
@@ -492,14 +504,24 @@ export class HaKlimaDashboard extends LitElement {
   // ---------------------------------------------------------------- header
 
   /** What is known about the outside now: the temperature, the weather in words, the range of the day, the rain, the humidity and the air. */
-  private outsideFacts(): { temperature?: number; condition?: string; range?: string; rain?: number; humidity?: number; air?: { label: string; color: string } } | undefined {
+  private outsideFacts(): { temperature?: number; condition?: string; range?: string; rain?: string; humidity?: number; air?: { label: string; color: string } } | undefined {
     const outside = this._config?.outside;
     if (!outside) {
       return undefined;
     }
     const { t, whole } = this._i18n;
-    const minimum = this.numberState(outside.minimum);
-    const maximum = this.numberState(outside.maximum);
+    // The minimum, the maximum and the rain of the day: from their entities, else from the forecast (uživatel 14. 11. 2026: „Q240 A“).
+    const day = today(this._forecast, Date.now());
+    const minimum = this.numberState(outside.minimum) ?? day?.low;
+    const maximum = this.numberState(outside.maximum) ?? day?.temperature;
+    const probability = this.numberState(outside.rain_probability) ?? day?.probability;
+    // Without a probability the amount of the day in mm says whether it rains.
+    const rain =
+      probability !== undefined
+        ? this._i18n.percent(whole(probability))
+        : day?.rain !== undefined && day.rain > 0
+          ? `${this._i18n.one(day.rain)}${NBSP}mm`
+          : undefined;
     const pm25 = this.numberState(outside.pm25);
     const weather = this.entityState(outside.weather)?.toLowerCase();
     // Outdoor air uses the shared PM2.5 limits of the rooms (CURRENT_SPEC.md, Dashboard Domov).
@@ -516,7 +538,7 @@ export class HaKlimaDashboard extends LitElement {
       temperature: this.numberState(outside.temperature),
       condition: weather === undefined ? undefined : t.weatherState[weather],
       range: minimum !== undefined && maximum !== undefined ? `${whole(minimum)}–${whole(maximum)}${NBSP}°C` : undefined,
-      rain: this.numberState(outside.rain_probability),
+      rain,
       humidity: this.numberState(outside.humidity),
       air,
     };
@@ -531,7 +553,7 @@ export class HaKlimaDashboard extends LitElement {
     const { t, whole } = this._i18n;
     const facts = this.outsideFacts();
     const parts = facts
-      ? [facts.condition, facts.range, facts.rain === undefined ? undefined : `☂${NBSP}${this._i18n.percent(whole(facts.rain))}`].filter((part): part is string => part !== undefined)
+      ? [facts.condition, facts.range, facts.rain === undefined ? undefined : `☂${NBSP}${facts.rain}`].filter((part): part is string => part !== undefined)
       : [];
     const hasOutside = facts !== undefined && (facts.temperature !== undefined || parts.length > 0 || facts.air !== undefined);
     const outsideName = facts?.temperature === undefined ? t.outside.title : `${t.outside.title} ${whole(facts.temperature)}${NBSP}°C`;
@@ -592,14 +614,15 @@ export class HaKlimaDashboard extends LitElement {
     if (facts.temperature !== undefined) rows.push([t.outside.temperature, `${this._i18n.one(facts.temperature)}${NBSP}°C`]);
     if (facts.condition !== undefined) rows.push([t.outside.weather, facts.condition]);
     if (facts.range !== undefined) rows.push([t.outside.today, facts.range]);
-    if (facts.rain !== undefined) rows.push([t.outside.rain, this._i18n.percent(whole(facts.rain))]);
+    if (facts.rain !== undefined) rows.push([t.outside.rain, facts.rain]);
     if (facts.humidity !== undefined) {
       rows.push([t.outside.humidity, joined([this._i18n.percent(whole(facts.humidity)), ...(absolute === undefined ? [] : [`${this._i18n.one(absolute)}${NBSP}g/m³`])])]);
     }
     if (facts.air !== undefined) rows.push([t.outside.air, html`<span style=${`color: ${facts.air.color}`}>${facts.air.label}</span>`]);
     return html`<div class="static-list outside-list" role="group" aria-label=${t.outside.title}>
-      ${rows.map(([label, value]) => html`<div class="static-row"><span class="option-text"><span>${label}</span></span><span class="list-value">${value}</span></div>`)}
-    </div>`;
+        ${rows.map(([label, value]) => html`<div class="static-row"><span class="option-text"><span>${label}</span></span><span class="list-value">${value}</span></div>`)}
+      </div>
+      ${renderForecastChart(nextHours(this._forecast, Date.now()), this.chartWidth(), this._i18n)}`;
   }
 
   /** House summary chips: only what differs from a quiet house (CURRENT_SPEC.md, Dashboard Domov). */
@@ -1543,6 +1566,7 @@ export class HaKlimaDashboard extends LitElement {
         </div>`;
     }
     return html`
+      ${this.renderAiringEffect()}
       ${!running && !session
         ? nothing
         : html`<div class="static-list" role="group" aria-label=${text.title}>${summary}${table}</div>`}
@@ -1574,6 +1598,27 @@ export class HaKlimaDashboard extends LitElement {
   }
 
   /** "Ukončit": turns the mode off; Home Assistant switches the fans off and returns the slats (kit, Home Assistant: větrací režim). */
+  /**
+   * What airing does to the humidity now (uživatel 14. 11. 2026: „Q231 1,2,3,4“): the absolute humidity outside against the
+   * average of the rooms of the mode, both to one decimal; lower outside dries the air, higher makes it more humid.
+   */
+  private renderAiringEffect(): TemplateResult | typeof nothing {
+    const outside = this.outsideFacts();
+    const out = absoluteHumidity(outside?.temperature, outside?.humidity);
+    const rooms = this.ventilationRooms().flatMap((room) => {
+      const value = absoluteHumidity(this.numberState(room.temperature), this.numberState(room.humidity));
+      return value === undefined ? [] : [value];
+    });
+    if (out === undefined || rooms.length === 0) {
+      return nothing;
+    }
+    const round = (value: number): number => Math.round(value * 10) / 10;
+    const inside = round(rooms.reduce((sum, value) => sum + value, 0) / rooms.length);
+    const text = this._i18n.t.ventilation;
+    const effect = round(out) < inside ? text.effect.dries : round(out) > inside ? text.effect.wets : text.effect.keeps;
+    return html`<p class="vent-effect"><strong>${effect}</strong><span>${text.effectDetail(this._i18n.one(out), this._i18n.one(inside))}</span></p>`;
+  }
+
   /** Starts the mode (uživatel 14. 11. 2026: „Q232 A“) or ends it; the popup stays and shows the new state once Home Assistant reports it. */
   private async switchVentilation(service: "turn_on" | "turn_off"): Promise<void> {
     const entityId = this._config?.ventilationEntity;
@@ -2328,7 +2373,16 @@ export class HaKlimaDashboard extends LitElement {
   // ---------------------------------------------------------------- trends
 
   private async refreshTrends(): Promise<void> {
-    await Promise.all([this.loadTrends(), this.loadReported()]);
+    await Promise.all([this.loadTrends(), this.loadReported(), this.loadForecast()]);
+  }
+
+  private async loadForecast(): Promise<void> {
+    const entityId = this._config?.outside?.forecast;
+    if (!this.hass || !entityId || Date.now() - this._forecastAt < FORECAST_REFRESH_MS) {
+      return;
+    }
+    this._forecastAt = Date.now();
+    this._forecast = await fetchForecast(this.hass, entityId);
   }
 
   private async loadTrends(): Promise<void> {

@@ -39,6 +39,7 @@ outside:
   pm25: null                    # venkovní PM2.5 (µg/m³)
   weather: weather.openweathermap                  # entita počasí: její stav je počasí slovem („Zataženo“)
   humidity: sensor.openweathermap_humidity         # venkovní relativní vlhkost (%)
+  forecast: weather.forecast_domov                 # entita počasí s předpovědí: minimum, maximum a déšť dne, příštích 24 hodin v popupu
 
 # Prahy (místnost je může přepsat vlastním "thresholds" níže).
 thresholds:

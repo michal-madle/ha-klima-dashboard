@@ -65,6 +65,8 @@ export interface OutsideConfig {
   weather?: EntityId;
   /** Outdoor relative humidity (%). */
   humidity?: EntityId;
+  /** The weather entity whose forecast gives the minimum, the maximum and the rain of the day and the next hours. */
+  forecast?: EntityId;
 }
 
 export interface DashboardThresholds {
