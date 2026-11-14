@@ -40,7 +40,7 @@ async function open(
 const rooms = (page: Page) => page.locator(".room");
 const statuses = (page: Page) => page.locator(".status-line").allInnerTexts();
 const tidy = (texts: string[]) => texts.map((text) => text.replace(/\s+/g, " ").trim());
-const example = () => parse(readFileSync(new URL("../examples/domov_prototyp_loznice.yaml", import.meta.url), "utf8"));
+const example = () => parse(readFileSync(new URL("../examples/klima.yaml", import.meta.url), "utf8"));
 
 /** Test hooks of tests/scenarios.js (window.__test). */
 const hook = <T>(page: Page, name: "services" | "scripts" | "haptics" | "moreInfo" | "actions" | "config") =>

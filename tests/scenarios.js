@@ -1,6 +1,6 @@
 // Test scenarios for the Klima Dashboard card: a configuration and a fake `hass` object.
 // Open /tests/harness.html?s=<scenario>. The "real" scenario is the configuration of
-// examples/domov_prototyp_loznice.yaml itself, read and parsed here. &lang=sv (en-GB, de, …)
+// examples/klima.yaml itself, read and parsed here. &lang=sv (en-GB, de, …)
 // is the language of Home Assistant, Czech without it; &lang= alone is a frontend without one.
 import "/ha-klima-dashboard.js";
 import { parse } from "/node_modules/yaml/browser/index.js";
@@ -24,7 +24,7 @@ const CONFIG_KEY = { temperature: "temperature", humidity: "humidity", carbon_di
 /** Card configuration; "real" is the example YAML, the others are built from ROOMS. */
 export async function buildConfig(name) {
   if (name === "real") {
-    return parse(await (await fetch("/examples/domov_prototyp_loznice.yaml")).text());
+    return parse(await (await fetch("/examples/klima.yaml")).text());
   }
   const rooms = ROOMS.map((room) => {
     const config = {
