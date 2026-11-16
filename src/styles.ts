@@ -1091,9 +1091,10 @@ export const styles = css`
       --hdk-track-compact: #3a3a3c;
       --hdk-bar: rgb(255 255 255 / 14%);
       --hdk-tick: rgb(255 255 255 / 28%);
-      --hdk-seg-thumb: #ffffff;
+      /* Selected segment: grey #636366 with white text in the dark, white with black in the light (uživatel 16. 11. 2026: „Q289 dark V4, light V0“). */
+      --hdk-seg-thumb: #636366;
       --hdk-seg-text: #ebebf5;
-      --hdk-seg-selected: #000000;
+      --hdk-seg-selected: #ffffff;
       color: var(--kd-text);
     }
 
@@ -1110,7 +1111,9 @@ export const styles = css`
       --hdk-track-compact: #e5e5ea;
       --hdk-bar: rgb(60 60 67 / 18%);
       --hdk-tick: rgb(60 60 67 / 30%);
+      --hdk-seg-thumb: #ffffff;
       --hdk-seg-text: #000000;
+      --hdk-seg-selected: #000000;
     }
 
     .sheet-message {
